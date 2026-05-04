@@ -24,6 +24,7 @@ const palette = {
 export const theme = createTheme({
   colors: {
     mainBackground: palette.white,
+    secondaryBackground: palette.grayLight,
     cardBackground: palette.pureWhite,
     primaryText: palette.black,
     secondaryText: palette.grayDark,
@@ -34,9 +35,12 @@ export const theme = createTheme({
     borderColor: palette.grayLight,
     errorText: palette.danger,
     errorBackground: palette.dangerLight,
+    warning: '#EAB308', // Amber-500
+    success: '#22C55E', // Green-500
     transparent: 'transparent',
   },
   spacing: {
+    xs: 4,
     s: 8,
     m: 16,
     l: 24,

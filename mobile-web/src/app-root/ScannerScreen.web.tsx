@@ -106,16 +106,45 @@ export function ScannerScreen() {
     }
   ];
 
+  const handleWipeData = async () => {
+    Alert.alert(
+      'Wipe All Data',
+      'Are you sure you want to delete all local inventory data? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Wipe Everything', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await database.write(async () => {
+                await database.unsafeWipeAll();
+              });
+              loadInventory();
+              Alert.alert('Success', 'Local database wiped.');
+            } catch (error) {
+              console.error('Wipe failed', error);
+              Alert.alert('Error', 'Failed to wipe database.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (viewInventory) {
     return (
       <Box flex={1} bg="mainBackground" p="m">
         <Card style={{ flex: 1 }}>
           <Box flexDirection="row" justifyContent="space-between" alignItems="center" mb="m">
-            <Text variant="header">Inventory</Text>
+            <Box>
+              <Text variant="header">Inventory</Text>
+              <Button title="Wipe Local Data" onPress={handleWipeData} variant="secondary" />
+            </Box>
             <Button title="Back to Scanner" onPress={() => setViewInventory(false)} />
           </Box>
 
-          <Box flexDirection="row" mb="m" bg="secondaryBackground" borderRadius={8} p="xs">
+          <Box flexDirection="row" mb="m" bg="secondaryBackground" borderRadius="m" p="xs">
             <Box flex={1}>
               <Button 
                 title="Pending" 
