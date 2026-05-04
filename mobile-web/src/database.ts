@@ -1,7 +1,7 @@
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
-import { mySchema, InventoryItem } from '@burma-inventory/shared-types';
+import { schema as mySchema, InventoryItem } from '@burma-inventory/shared-types';
 import { Platform } from 'react-native';
 
 const adapter = Platform.OS === 'web'

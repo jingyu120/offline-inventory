@@ -7,6 +7,7 @@ export interface ColumnDef<T> {
   header: string;
   width?: number;
   flex?: number;
+  render?: (item: T) => React.ReactNode;
   renderCell?: (item: T) => React.ReactNode;
 }
 
@@ -33,7 +34,9 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
     <Box flexDirection="row" borderBottomWidth={1} borderBottomColor="borderColor" py="m">
       {columns.map((col) => (
         <Box key={col.key} width={col.width} flex={col.flex || (col.width ? undefined : 1)} px="s">
-          {col.renderCell ? (
+          {col.render ? (
+            col.render(item)
+          ) : col.renderCell ? (
             col.renderCell(item)
           ) : (
             <Text variant="body">

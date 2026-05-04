@@ -10,6 +10,8 @@ export class InventoryItem extends Model {
   @field('status') status!: string; // 'PENDING' | 'RECEIVED'
   @field('user_id') userId!: string;
   @field('location') location?: string;
+  @date('shipped_at') shippedAt?: Date;
+  @date('received_at') receivedAt?: Date;
   @readonly @date('created_at') createdAt: Date;
   @readonly @date('updated_at') updatedAt: Date;
 }
