@@ -1,0 +1,27 @@
+{
+  "name": "mobile-web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "eas-build-post-install": "cd ../ && node tools/scripts/eas-build-post-install.mjs . mobile-web"
+  },
+  "dependencies": {
+    "@expo/metro-config": "*",
+    "@testing-library/react-native": "*",
+    "@types/lokijs": "^1.5.14",
+    "expo": "*",
+    "expo-splash-screen": "*",
+    "expo-status-bar": "*",
+    "expo-system-ui": "*",
+    "jest-expo": "*",
+    "lokijs": "^1.5.12",
+    "metro-config": "*",
+    "metro-resolver": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-svg": "*",
+    "react-native-svg-transformer": "*",
+    "react-native-web": "*"
+  }
+}
