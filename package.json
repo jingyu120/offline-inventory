@@ -5,7 +5,12 @@
   "scripts": {
     "setup": "npm install --no-audit",
     "start:local": "lsof -ti:8081,3000 | xargs kill -9 2>/dev/null; docker compose up -d && npx nx run sync-server:build:development && (npx nx run sync-server:build --configuration=watch & npx nx run-many -t serve -p sync-server mobile-web)",
-    "db:wipe": "docker exec burma_inventory_db psql -U postgres -d inventory_db -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'"
+    "db:wipe": "docker exec burma_inventory_db psql -U postgres -d inventory_db -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'",
+    "lint": "npx nx run-many -t lint",
+    "typecheck": "npx nx run-many -t typecheck",
+    "format": "npx nx format:write",
+    "format:check": "npx nx format:check",
+    "check": "npm run typecheck && npm run lint && npm run format:check"
   },
   "overrides": {
     "postcss": "^8.5.10",

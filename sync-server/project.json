@@ -26,6 +26,12 @@
       "options": {
         "command": "nodemon --watch dist/sync-server/main.js --env-file=sync-server/.env dist/sync-server/main.js"
       }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsc --noEmit -p sync-server/tsconfig.json"
+      }
     }
   },
   "tags": []
