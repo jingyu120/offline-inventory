@@ -38,7 +38,7 @@ Visualize market distribution and relationship health on an interactive map to e
 
 - **Map Library**: Google Maps or OpenStreetMap integration (web/desktop dashboard).
 - **Client-side Clustering**: Handle 500+ pins smoothly without lag.
-- **Sentiment & Churn Engine**: Built on the **Gemma 4 LLM** via a local or hosted API endpoint. Gemma 4 parses unstructured logs, extracts competitor intelligence keywords, and predicts churn probabilities.
+- **Sentiment & Churn Engine (Backend Hosted)**: Built on the **Gemma 4 LLM** via a backend-hosted inference endpoint. By evaluating relationship logs server-side, it minimizes mobile CPU/memory footprint, returning lightweight trend predictions directly to the client.
 
 ## User Story: The Sales Manager
 

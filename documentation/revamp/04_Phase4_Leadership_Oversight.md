@@ -33,7 +33,7 @@ Enforce daily accountability, prevent "batch data dumping," and automate operati
 ## Technical Requirements
 - **Cron Jobs**: Automated report generation at 8:00 PM local time.
 - **Email Service**: Integration with SendGrid or SMTP for digests.
-- **Analytics & AI Engine**: Injected **Gemma 4 inference module** utilizing daily transactional and text logging pipelines.
+- **Analytics & AI Engine (Server-Side)**: Server-side **Gemma 4 inference module** executes complex log synthesis and predictive quota modeling without running heavy models on reps' hand-held hardware.
 
 ## User Story: The Executive
 > "As an Executive, I don't have time to look at every shop. I want an 8:00 PM email that tells me which reps didn't work today and highlights any critical market news like competitor price drops."

@@ -40,6 +40,7 @@ Replace fragmented Viber group chats with a structured, 30-second mobile logging
 - **Camera/Gallery Access**: Expo ImagePicker integration.
 - **Image Processing**: Client-side resizing/compression using `expo-image-manipulator`.
 - **Deep Linking**: `expo-linking` using `viber://` schema.
+- **Backend AI Processing (Zero Client Overhead)**: Gemma 4 runs completely on the NestJS backend to prevent memory/CPU starvation or battery drain on low-end mobile devices. The client pushes clean strings or compressed images, and the backend returns structured responses.
 
 ## User Story: The Field Rep
 > "As a field rep, I just finished a call. I want to log the 'Order Placed' and the 3 products they bought in 3 taps, snap a quick screenshot of the order confirmation in Viber, and be done, so I can move to the next shop."
