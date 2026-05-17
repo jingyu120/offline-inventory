@@ -2,20 +2,10 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "jsx": "react-native",
-    "module": "commonjs",
+    "jsx": "react-jsx",
     "lib": ["dom", "esnext"],
-    "moduleResolution": "bundler",
-    "skipLibCheck": true,
     "resolveJsonModule": true,
-    "strict": true,
-    "declaration": true
+    "types": ["node"]
   },
-  "files": [],
-  "include": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    }
-  ]
+  "include": ["src/**/*"]
 }

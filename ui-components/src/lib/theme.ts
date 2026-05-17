@@ -38,13 +38,20 @@ export const theme = createTheme({
     warning: '#EAB308', // Amber-500
     success: '#22C55E', // Green-500
     transparent: 'transparent',
+    pureWhite: palette.pureWhite,
   },
   spacing: {
+    none: 0,
     xs: 4,
     s: 8,
     m: 16,
     l: 24,
     xl: 40,
+    '-xs': -4,
+    '-s': -8,
+    '-m': -16,
+    '-l': -24,
+    '-xl': -40,
   },
   breakpoints: {
     phone: 0,

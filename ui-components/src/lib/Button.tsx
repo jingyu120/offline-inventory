@@ -1,5 +1,9 @@
 import React from 'react';
-import { TouchableOpacity, ActivityIndicator, TouchableOpacityProps } from 'react-native';
+import {
+  TouchableOpacity,
+  ActivityIndicator,
+  TouchableOpacityProps,
+} from 'react-native';
 import { Box, Text } from './Primitives';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from './theme';
@@ -21,13 +25,19 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme<Theme>();
 
-  const bg = variant === 'primary' ? 'primaryButton' 
-           : variant === 'secondary' ? 'secondaryButton' 
-           : 'transparent';
-           
-  const textColor = variant === 'primary' ? 'primaryButtonText' 
-                  : variant === 'secondary' ? 'secondaryButtonText' 
-                  : 'primaryButton';
+  const bg =
+    variant === 'primary'
+      ? 'primaryButton'
+      : variant === 'secondary'
+        ? 'secondaryButton'
+        : 'transparent';
+
+  const textColor =
+    variant === 'primary'
+      ? 'primaryButtonText'
+      : variant === 'secondary'
+        ? 'secondaryButtonText'
+        : 'primaryButton';
 
   const borderWidth = variant === 'outline' ? 1 : 0;
   const borderColor = variant === 'outline' ? 'primaryButton' : 'transparent';
@@ -51,12 +61,17 @@ export function Button({
         borderColor={borderColor}
         py={py}
         px={px}
-        opacity={(disabled || isLoading) ? 0.5 : 1}
+        opacity={disabled || isLoading ? 0.5 : 1}
       >
         {isLoading ? (
-          <ActivityIndicator color={theme.colors[textColor]} />
+          <ActivityIndicator
+            testID="button-loading-indicator"
+            color={theme.colors[textColor]}
+          />
         ) : (
-          <Text variant="button" color={textColor}>{title}</Text>
+          <Text variant="button" color={textColor}>
+            {title}
+          </Text>
         )}
       </Box>
     </TouchableOpacity>

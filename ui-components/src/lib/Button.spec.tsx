@@ -26,14 +26,14 @@ describe('Button', () => {
 
   it('shows loading indicator and disables press when isLoading is true', () => {
     const onPressMock = jest.fn();
-    const { queryByText, getByType } = renderWithTheme(
+    const { queryByText, getByTestId } = renderWithTheme(
       <Button title="Loading" isLoading={true} onPress={onPressMock} />,
     );
 
     expect(queryByText('Loading')).toBeNull();
-    expect(getByType('ActivityIndicator')).toBeTruthy();
+    expect(getByTestId('button-loading-indicator')).toBeTruthy();
 
-    const indicator = getByType('ActivityIndicator');
+    const indicator = getByTestId('button-loading-indicator');
     if (indicator.parent) {
       fireEvent.press(indicator.parent);
     }

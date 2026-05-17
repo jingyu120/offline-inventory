@@ -11,11 +11,11 @@ model InventoryItem {
   barcode   String   @unique
   name      String
   quantity  Int      @default(0)
-  status    String   @default("PENDING") // PENDING, RECEIVED
+  status    String   @default("EXPECTED") // EXPECTED, INVENTORY, HISTORICAL
   userId    String?
   location  String?
-  shippedAt DateTime? @map("shipped_at")
   receivedAt DateTime? @map("received_at")
+  soldAt     DateTime? @map("sold_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")

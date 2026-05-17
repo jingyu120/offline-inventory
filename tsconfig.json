@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./shared-types" },
+    { "path": "./ui-components" },
+    { "path": "./mobile-web" },
+    { "path": "./sync-server" },
+    { "path": "./sync-server-e2e" }
+  ]
+}

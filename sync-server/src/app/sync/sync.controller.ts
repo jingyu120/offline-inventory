@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Query, Body } from '@nestjs/common';
 import { SyncService } from './sync.service';
+import type { PushChangesBody } from '@burma-inventory/shared-types';
 
 @Controller('sync')
 export class SyncController {
@@ -12,13 +13,11 @@ export class SyncController {
   }
 
   @Post()
-  async pushChanges(@Body() body: any) {
-    const { changes } = body;
-    if (!changes) {
+  async pushChanges(@Body() body: PushChangesBody) {
+    if (!body.changes) {
       return { success: false, error: 'No changes provided' };
     }
-    
-    await this.syncService.pushChanges(changes);
+    await this.syncService.pushChanges(body.changes);
     return { success: true };
   }
 }

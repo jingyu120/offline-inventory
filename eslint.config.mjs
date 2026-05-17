@@ -1,20 +1,27 @@
 import nx from '@nx/eslint-plugin';
+import tseslint from 'typescript-eslint';
+import jsoncParser from 'jsonc-eslint-parser';
 
-export default [
-  ...nx.configs['flat/base'],
-  ...nx.configs['flat/typescript'],
-  ...nx.configs['flat/javascript'],
+export default tseslint.config(
   {
-    ignores: ['**/dist', '**/out-tsc'],
+    ignores: ['**/dist', '**/node_modules', '**/.expo', '**/tmp'],
   },
+  // Global Nx plugin configuration
+  ...nx.configs['flat/base'],
+
+  // TypeScript files
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    extends: [
+      ...nx.configs['flat/typescript'],
+      ...tseslint.configs.recommended,
+    ],
     rules: {
       '@nx/enforce-module-boundaries': [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
+          allow: [],
           depConstraints: [
             {
               sourceTag: '*',
@@ -23,20 +30,38 @@ export default [
           ],
         },
       ],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
   {
-    files: [
-      '**/*.ts',
-      '**/*.tsx',
-      '**/*.cts',
-      '**/*.mts',
-      '**/*.js',
-      '**/*.jsx',
-      '**/*.cjs',
-      '**/*.mjs',
-    ],
-    // Override or add rules here
-    rules: {},
+    files: ['**/*.js', '**/*.jsx', '**/*.config.js', '**/*.config.mjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
-];
+
+  // JSON files
+  {
+    files: ['**/*.json'],
+    languageOptions: {
+      parser: jsoncParser,
+    },
+    rules: {
+      '@nx/dependency-checks': [
+        'warn',
+        {
+          ignoredFiles: [
+            '{projectRoot}/eslint.config.mjs',
+            '{projectRoot}/tsconfig.json',
+          ],
+        },
+      ],
+    },
+  },
+);
