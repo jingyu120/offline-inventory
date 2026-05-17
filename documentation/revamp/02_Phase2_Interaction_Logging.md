@@ -36,3 +36,12 @@ Replace fragmented Viber group chats with a structured, 30-second mobile logging
 
 ## User Story: The Field Rep
 > "As a field rep, I just finished a call. I want to log the 'Order Placed' and the 3 products they bought in 3 taps, snap a quick screenshot of the order confirmation in Viber, and be done, so I can move to the next shop."
+
+---
+
+## Current Status & Progress - **In Progress**
+
+- **Relational Models & Database Setup**: Completed. The database tables `interaction_logs` and `interaction_items` are fully defined in the unified SQLite and PostgreSQL schemas.
+- **Sync Protocol Integration**: The synchronization client and NestJS sync-server support high-volume push/pull and offline capability for interaction logs and their child items.
+- **Frontend Interaction Forms**: Currently targeted as the next focus. Image compression and viber deep-linking are scheduled for the next development sprints.
+

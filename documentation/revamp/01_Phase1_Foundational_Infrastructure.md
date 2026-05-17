@@ -301,3 +301,14 @@ The sync server MUST support all 7 tables in both push and pull phases. Follow t
 2.  **Mobile Date/Time Drift**: If a device's internal clock is incorrect due to manual user shifts, prioritize local sequence order. Keep `createdAtLocal` exactly as the device reports it for consistency verification, but rely on the server clock to assign `syncedAtServer` during cloud database commit steps.
 3.  **Network Resilience & Retry Limits**: In low signal zones, client-side sync loops can crash. Configure Axios sync requests with a `30-second timeout` limit and back-off retry logic (exponential retry delay: 2s, 4s, 8s).
 4.  **Soft Deletes Garbage Collection**: Keep deleted records in SQLite locally until the sync response confirms they are officially logged by the server. Once synced, purge local soft-deleted records from SQLite to preserve device memory.
+
+---
+
+## 5. Phase 1 Implementation Status - **100% Completed**
+
+- **Database Schemas & Relations**: Full schemas for regions, shops, contacts, items, logs, items-log join, and quotas are fully deployed in PostgreSQL and SQLite formats.
+- **Sync Protocol Backend**: Fully automated config-driven mapping logic with registry handles incremental synchronization, soft delete propagation, and `$transaction` safety checks.
+- **macOS Dev Sandbox**: Solved native macOS client credential bugs using SQL fallback scripts.
+- **Precommit Check Engine**: Integrated custom git hook gating all builds.
+- **UI Integration**: Fully integrated inside the `ShopLedgerScreen` component, demonstrating dynamic data representation of the relational structure.
+

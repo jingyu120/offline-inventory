@@ -43,3 +43,11 @@ Visualize market distribution and relationship health on an interactive map to e
 ## User Story: The Sales Manager
 
 > "As a Sales Manager, I want to open the map on Monday morning and see which 'High-Value' shops are glowing red. I can then instantly message the assigned rep to visit them today."
+
+---
+
+## Current Status & Progress - **Planned**
+
+- **Database Backbone**: Partially complete. Geolocation attributes (`latitude`, `longitude`) are already included in the `Shop` models in SQLite and Prisma schema files to support plotting.
+- **Next Steps**: Integrating Google Maps / Leaflet mapping libraries and designing the dashboard layouts.
+

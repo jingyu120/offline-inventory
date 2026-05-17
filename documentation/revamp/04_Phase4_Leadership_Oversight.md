@@ -37,3 +37,11 @@ Enforce daily accountability, prevent "batch data dumping," and automate operati
 
 ## User Story: The Executive
 > "As an Executive, I don't have time to look at every shop. I want an 8:00 PM email that tells me which reps didn't work today and highlights any critical market news like competitor price drops."
+
+---
+
+## Current Status & Progress - **Planned**
+
+- **Relational Models & Database Setup**: Completed. The daily quota tracking tables `daily_quotas` are defined in the schema to hold sales targets per rep/user.
+- **Next Steps**: Setting up server-side cron triggers and mailing modules for automated summaries, and rendering the weekly compliance scorecard grid.
+
