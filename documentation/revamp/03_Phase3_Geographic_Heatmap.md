@@ -27,7 +27,7 @@ Visualize market distribution and relationship health on an interactive map to e
 
 - **Profile Snapshot**: Instant access to Shop Name, Owner Contact, Coordinates, and Total Lifetime Value (LTV).
 - **Chronological Feed**: A scrollable, immutable timeline of historical notes and Viber screenshots logged by reps.
-- **Sentiment Trend**: Visual arrow indicator (↗️ Improving, ➡️ Stable, ↘️ Declining) calculated automatically based on the last 3 commercial status logs.
+- **Sentiment Trend**: Visual arrow indicator (↗️ Improving, ➡️ Stable, ↘️ Declining) computed dynamically using **Gemma 4 semantic analysis** over rep notes, highlighting churn risks.
 
 ## Success Metrics
 
@@ -38,7 +38,7 @@ Visualize market distribution and relationship health on an interactive map to e
 
 - **Map Library**: Google Maps or OpenStreetMap integration (web/desktop dashboard).
 - **Client-side Clustering**: Handle 500+ pins smoothly without lag.
-- **Sentiment Logic**: Simple heuristic engine (Order Placed > Interested > Followed Up > Not Interested).
+- **Sentiment & Churn Engine**: Built on the **Gemma 4 LLM** via a local or hosted API endpoint. Gemma 4 parses unstructured logs, extracts competitor intelligence keywords, and predicts churn probabilities.
 
 ## User Story: The Sales Manager
 

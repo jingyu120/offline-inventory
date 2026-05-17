@@ -19,7 +19,14 @@ Replace fragmented Viber group chats with a structured, 30-second mobile logging
 - **Image Compression**: Auto-compress screenshots to <200KB before local save to preserve storage.
 - **Viber Deep-Linking**: "Open in Viber" button that launches the chat thread for the specific shop owner's number.
 
-### 3. Immutable Logging & Metadata
+### 3. Gemma 4 AI Copilot Integration (Zero-Friction Logging)
+- **Voice/Unstructured Text Parser**: Reps can speak or type an unstructured note (supporting mixed Burmese, English, and local slang). Gemma 4 will parse it to auto-extract:
+  - **Commercial Status**: Auto-triage to the matching status.
+  - **SKU Interests**: Extract mentioned products from the master ledger.
+  - **Volume & Quantities**: Extract any ordering values.
+- **Multimodal Viber Screenshot OCR**: When a Viber screenshot is uploaded, Gemma 4 is used to cross-verify the image text against the logged order quantities, flag price anomalies, and extract handwritten/typed billing info.
+
+### 4. Immutable Logging & Metadata
 - **Local Timestamping**: Capture `created_at_local` at the exact moment of "Save".
 - **Immutable Audit**: Once saved, core log details (status, volume, timestamp) cannot be edited by the rep.
 - **Offline Flag**: Silently tag entries created while offline.

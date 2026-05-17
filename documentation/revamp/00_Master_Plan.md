@@ -10,9 +10,9 @@ The revamp is divided into four distinct phases, prioritizing infrastructure sta
 | Phase | Title | Focus | Key Deliverable | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 1** | **Foundational Infrastructure** | Offline-first sync & Master Data | Reliable Sync Server + Shop/SKU Ledger | **100% Completed** |
-| **Phase 2** | **Interaction Logging** | Mobile-optimized field reporting | 30-sec Logging Form + Viber Integration | **In Progress** (Schema/models ready) |
-| **Phase 3** | **Geographic Heatmap** | Market intelligence visualization | Map-based Relationship Dashboard | **Planned** (GPS coordinates ready) |
-| **Phase 4** | **Manager Oversight** | Accountability & Compliance | Team Pulse Grid + Automated EOD Digests | **Planned** (Daily quota schema ready) |
+| **Phase 2** | **Interaction Logging** | **Gemma 4 AI Copilot** & Field Reporting | 30-sec Voice/Text Form + Viber Integration | **In Progress** (Schema/models ready) |
+| **Phase 3** | **Geographic Heatmap** | **Gemma 4 Sentiment Analytics** & Mapping | Map-based Relationship Dashboard | **Planned** (GPS coordinates ready) |
+| **Phase 4** | **Manager Oversight** | **Gemma 4 EOD Summarization** & Compliance | Team Pulse Grid + Automated Digests | **Planned** (Daily quota schema ready) |
 
 ---
 
@@ -49,5 +49,6 @@ The "Operational Engine". This phase adds the layer of accountability. Automated
 - **Frontend**: React Native / Expo (Mobile-web)
 - **Database**: WatermelonDB (SQLite for offline-first)
 - **Backend**: Node.js Sync Server with NestJS & Prisma
+- **AI Engine**: Google Gemma 4 (Local/hosted LLM for OCR, voice parsing, sentiment scoring, and summarization)
 - **Auth**: Device ID based hardware verification
 - **Deployment**: Localized server (due to power/internet stability)

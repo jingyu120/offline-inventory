@@ -13,16 +13,16 @@ Enforce daily accountability, prevent "batch data dumping," and automate operati
   - **Red**: Zero entries submitted.
 - **Velocity Timeline**: Linear graph showing *when* entries were saved. Flag "Batch Updated" if >5 logs occur in <15 minutes.
 
-### 2. Automated Reporting (EOD Digest)
-- **Daily 8:00 PM Email**: Automated summary sent to management.
+### 2. Automated Reporting (Gemma 4 EOD Digest)
+- **Daily 8:00 PM Email**: Automated executive briefing compiled by Gemma 4.
 - **Digest Content**:
+  - **Gemma 4 Market Insights Synthesis**: AI-curated summary of critical rep notes (e.g. competitors dropping prices, major construction blocking retail entries, wholesale price movements).
   - Top Performing Rep (by volume and quota).
-  - High-Priority Market Intel (Notes flagged with "Competitor pricing" or "Store closing").
-  - Compliance warnings (Reps in the "Red" zone).
+  - Compliance warnings (Reps in the "Red" zone or flagged for end-of-day batch dumping).
 
 ### 3. Advanced Shop Analytics
-- **Buying Patterns**: "Top 3 SKU Interest" per shop.
-- **Churn Risk**: Automatic flagging of shops with declining sentiment trends over 30 days.
+- **Gemma 4 Buying Forecasts**: "Top 3 SKU Interest" per shop mapped against seasonal sales trends.
+- **Dynamic Quota Optimizations**: Gemma 4 analyzes visit volume outcomes to suggest regional adjustments for `daily_quotas`.
 - **Audit Logs**: Immutable log history for compliance checks.
 
 ## Success Metrics
@@ -33,7 +33,7 @@ Enforce daily accountability, prevent "batch data dumping," and automate operati
 ## Technical Requirements
 - **Cron Jobs**: Automated report generation at 8:00 PM local time.
 - **Email Service**: Integration with SendGrid or SMTP for digests.
-- **Analytics Engine**: Backend queries to calculate velocity and sentiment trends.
+- **Analytics & AI Engine**: Injected **Gemma 4 inference module** utilizing daily transactional and text logging pipelines.
 
 ## User Story: The Executive
 > "As an Executive, I don't have time to look at every shop. I want an 8:00 PM email that tells me which reps didn't work today and highlights any critical market news like competitor price drops."
