@@ -6,29 +6,140 @@ datasource db {
   provider = "postgresql"
 }
 
-model InventoryItem {
-  id        String   @id @default(uuid())
-  barcode   String   @unique
-  name      String
-  quantity  Int      @default(0)
-  status    String   @default("EXPECTED") // EXPECTED, INVENTORY, HISTORICAL
-  userId    String?
-  location  String?
-  receivedAt DateTime? @map("received_at")
-  soldAt     DateTime? @map("sold_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("inventory_items")
-}
-
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  regionId        String?          @map("region_id")
+  region          Region?          @relation(fields: [regionId], references: [id])
+  assignedShops   Shop[]
+  interactionLogs InteractionLog[]
+  dailyQuotas     DailyQuota[]
 
   @@map("users")
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  division  String   // E.g., "Yangon Division", "Shan State"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  shops     Shop[]
+  reps      User[]
+
+  @@map("regions")
+}
+
+model Shop {
+  id             String   @id @default(uuid())
+  name           String
+  address        String
+  latitude       Float?   // GPS Coordinates for visual map representation
+  longitude      Float?   // GPS Coordinates for visual map representation
+  regionId       String   @map("region_id")
+  assignedRepId  String?  @map("assigned_rep_id")
+  lifetimeValue  Decimal  @default(0) @db.Decimal(12, 2) @map("lifetime_value")
+  sentimentTrend String   @default("STABLE") @map("sentiment_trend") // E.g., "IMPROVING", "STABLE", "DECLINING"
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  region        Region           @relation(fields: [regionId], references: [id])
+  assignedRep   User?            @relation(fields: [assignedRepId], references: [id])
+  contacts      Contact[]
+  interactions  InteractionLog[]
+
+  @@map("shops")
+}
+
+model Contact {
+  id          String   @id @default(uuid())
+  shopId      String   @map("shop_id")
+  name        String
+  phoneNumber String   @map("phone_number")
+  email       String?
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model Item {
+  id        String   @id @default(uuid())
+  sku       String   @unique // E.g., "SKU-PB-640"
+  name      String
+  unitPrice Decimal  @db.Decimal(10, 2) @map("unit_price")
+  category  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  interactionItems InteractionItem[]
+
+  @@map("items")
+}
+
+model InteractionLog {
+  id                 String   @id @default(uuid())
+  shopId             String   @map("shop_id")
+  repId              String   @map("rep_id")
+  type               String   // E.g., "PHONE_CALL", "VIBER", "SHOP_VISIT"
+  commercialStatus   String   @map("commercial_status") // E.g., "FOLLOWED_UP", "INTERESTED", "ORDER_PLACED", "NOT_INTERESTED"
+  notes              String   @db.Text
+  nextFollowUpDate   DateTime? @map("next_follow_up_date")
+  viberScreenshotUrl String?  @map("viber_screenshot_url")
+  createdAtLocal     DateTime @map("created_at_local") // Captured instantly using the device clock when rep clicks "Save"
+  syncedAtServer     DateTime? @map("synced_at_server")
+  isOfflineEntry     Boolean  @default(false) @map("is_offline_entry")
+  deviceId           String   @map("device_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  shop               Shop              @relation(fields: [shopId], references: [id])
+  rep                User              @relation(fields: [repId], references: [id])
+  interactionItems   InteractionItem[]
+
+  @@map("interaction_logs")
+}
+
+model InteractionItem {
+  id                 String   @id @default(uuid())
+  interactionLogId   String   @map("interaction_log_id")
+  itemId             String   @map("item_id")
+  quantity           Int      @default(1)
+  unitPriceAtSale    Decimal  @db.Decimal(10, 2) @map("unit_price_at_sale")
+  interestLevel      String?  @map("interest_level") // E.g., "HIGH", "MEDIUM", "LOW"
+
+  interaction        InteractionLog @relation(fields: [interactionLogId], references: [id], onDelete: Cascade)
+  item               Item           @relation(fields: [itemId], references: [id])
+
+  @@map("interaction_items")
+}
+
+model DailyQuota {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  targetVisits  Int      @default(0) @map("target_visits")
+  targetPhone   Int      @default(0) @map("target_phone")
+  targetViber   Int      @default(0) @map("target_viber")
+  effectiveFrom DateTime @map("effective_from")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@map("daily_quotas")
 }

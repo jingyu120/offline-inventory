@@ -1,39 +1,158 @@
-import type {
-  InventoryItemRecord,
-  InventoryStatus,
+import {
+  RegionRecord,
+  ShopRecord,
+  ContactRecord,
+  ItemRecord,
+  InteractionLogRecord,
+  InteractionItemRecord,
+  DailyQuotaRecord,
   WatermelonChangeSet,
+  INTERACTION_TYPES,
+  COMMERCIAL_STATUSES,
+  SENTIMENT_TRENDS,
 } from './shared-types';
 
 describe('shared-types', () => {
-  it('InventoryStatus covers all three lifecycle states', () => {
-    const statuses: InventoryStatus[] = ['EXPECTED', 'INVENTORY', 'HISTORICAL'];
-    expect(statuses).toHaveLength(3);
+  describe('Domain constants', () => {
+    it('INTERACTION_TYPES has expected values', () => {
+      expect(INTERACTION_TYPES).toContain('PHONE_CALL');
+      expect(INTERACTION_TYPES).toContain('VIBER');
+      expect(INTERACTION_TYPES).toContain('SHOP_VISIT');
+    });
+
+    it('COMMERCIAL_STATUSES has expected values', () => {
+      expect(COMMERCIAL_STATUSES).toContain('ORDER_PLACED');
+      expect(COMMERCIAL_STATUSES).toContain('NOT_INTERESTED');
+    });
+
+    it('SENTIMENT_TRENDS has expected values', () => {
+      expect(SENTIMENT_TRENDS).toEqual(['IMPROVING', 'STABLE', 'DECLINING']);
+    });
   });
 
-  it('InventoryItemRecord has all required sync fields', () => {
-    const record: InventoryItemRecord = {
-      id: 'abc-123',
-      barcode: '1234567890',
-      name: 'Test Item',
-      quantity: 5,
-      status: 'EXPECTED',
-      user_id: 'user-1',
-      location: null,
-      received_at: null,
-      sold_at: null,
-      created_at: Date.now(),
-      updated_at: Date.now(),
-    };
-    expect(record.id).toBe('abc-123');
-    expect(record.status).toBe('EXPECTED');
+  describe('Record types', () => {
+    it('RegionRecord has correct shape', () => {
+      const record: RegionRecord = {
+        id: 'reg-1',
+        name: 'Yangon',
+        division: 'Yangon Div',
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.id).toBe('reg-1');
+      expect(record.name).toBe('Yangon');
+    });
+
+    it('ShopRecord supports nullable GPS coords', () => {
+      const record: ShopRecord = {
+        id: 's-1',
+        name: 'Test Shop',
+        address: '123 St',
+        latitude: null,
+        longitude: null,
+        region_id: 'reg-1',
+        assigned_rep_id: null,
+        lifetime_value: 0,
+        sentiment_trend: 'STABLE',
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.latitude).toBeNull();
+    });
+
+    it('ContactRecord has primary flag', () => {
+      const record: ContactRecord = {
+        id: 'c-1',
+        shop_id: 's-1',
+        name: 'U Kyaw',
+        phone_number: '+959',
+        email: null,
+        is_primary: true,
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.is_primary).toBe(true);
+    });
+
+    it('ItemRecord has SKU and price', () => {
+      const record: ItemRecord = {
+        id: 'i-1',
+        sku: 'SKU-PB-640',
+        name: 'Premium Beer',
+        unit_price: 2500,
+        category: 'Beverage',
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.sku).toBe('SKU-PB-640');
+    });
+
+    it('InteractionLogRecord has all sync fields', () => {
+      const record: InteractionLogRecord = {
+        id: 'log-1',
+        shop_id: 'shop-1',
+        rep_id: 'rep-1',
+        type: 'SHOP_VISIT',
+        commercial_status: 'INTERESTED',
+        notes: 'test',
+        next_follow_up_date: null,
+        viber_screenshot_url: null,
+        created_at_local: 10000,
+        synced_at_server: null,
+        is_offline_entry: true,
+        device_id: 'dev-1',
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.type).toBe('SHOP_VISIT');
+      expect(record.is_offline_entry).toBe(true);
+    });
+
+    it('InteractionItemRecord has price snapshot', () => {
+      const record: InteractionItemRecord = {
+        id: 'ii-1',
+        interaction_log_id: 'log-1',
+        item_id: 'i-1',
+        quantity: 5,
+        unit_price_at_sale: 2400,
+        interest_level: 'HIGH',
+      };
+      expect(record.unit_price_at_sale).toBe(2400);
+    });
+
+    it('DailyQuotaRecord has target metrics', () => {
+      const record: DailyQuotaRecord = {
+        id: 'q-1',
+        user_id: 'u-1',
+        target_visits: 10,
+        target_phone: 5,
+        target_viber: 15,
+        effective_from: 10000,
+        created_at: 10000,
+        updated_at: 10000,
+      };
+      expect(record.target_visits).toBe(10);
+    });
   });
 
-  it('WatermelonChangeSet is correctly shaped', () => {
-    const changeset: WatermelonChangeSet<string> = {
-      created: ['a'],
-      updated: ['b'],
-      deleted: ['c'],
-    };
-    expect(changeset.created).toHaveLength(1);
+  describe('WatermelonChangeSet', () => {
+    it('is correctly shaped', () => {
+      const changeset: WatermelonChangeSet<string> = {
+        created: ['a'],
+        updated: ['b'],
+        deleted: ['c'],
+      };
+      expect(changeset.created).toHaveLength(1);
+      expect(changeset.deleted).toHaveLength(1);
+    });
+
+    it('supports empty sets', () => {
+      const changeset: WatermelonChangeSet<RegionRecord> = {
+        created: [],
+        updated: [],
+        deleted: [],
+      };
+      expect(changeset.created).toHaveLength(0);
+    });
   });
 });

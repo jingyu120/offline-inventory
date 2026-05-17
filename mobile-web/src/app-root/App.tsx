@@ -3,7 +3,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '@shopify/restyle';
 import { theme } from '@burma-inventory/ui-components';
-import { ScannerScreen } from './ScannerScreen';
+import { ShopLedgerScreen } from './ShopLedgerScreen';
 import { syncData } from '../sync';
 
 export const App = () => {
@@ -14,9 +14,11 @@ export const App = () => {
   return (
     <SafeAreaProvider>
       <ThemeProvider theme={theme}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.mainBackground }}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.mainBackground }}
+        >
           <StatusBar style="dark" />
-          <ScannerScreen />
+          <ShopLedgerScreen />
         </SafeAreaView>
       </ThemeProvider>
     </SafeAreaProvider>

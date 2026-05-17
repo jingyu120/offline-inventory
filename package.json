@@ -4,13 +4,21 @@
   "license": "MIT",
   "scripts": {
     "setup": "npm install --no-audit",
-    "start:local": "lsof -ti:8081,3000 | xargs kill -9 2>/dev/null; docker compose up -d && npx nx run sync-server:build:development && (npx nx run sync-server:build --configuration=watch & npx nx run-many -t serve -p sync-server mobile-web)",
-    "db:wipe": "docker exec burma_inventory_db psql -U postgres -d inventory_db -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'",
+    "db:wipe": "./scripts/db.sh wipe",
+    "db:push": "./scripts/db.sh push",
+    "db:generate": "./scripts/db.sh generate",
+    "db:reset": "./scripts/db.sh reset",
+    "db:fresh": "./scripts/db.sh fresh",
+    "start:server": "npx nx run sync-server:serve",
+    "start:client": "npx nx run mobile-web:serve",
+    "start:local": "lsof -ti:8081,3000 | xargs kill -9 2>/dev/null; ./scripts/db.sh fresh && npx nx run sync-server:build:development && (npx nx run sync-server:build --configuration=watch & npx nx run-many -t serve -p sync-server mobile-web)",
     "lint": "npx nx run-many -t lint --tui-auto-exit=true --nx-bail",
     "typecheck": "npx nx run-many -t typecheck --tui-auto-exit=true --nx-bail",
+    "test": "npx nx run-many -t test --tui-auto-exit=true --nx-bail",
     "format": "npx nx format:write",
     "format:check": "npx nx format:check",
-    "check": "npm run typecheck -- --skip-nx-cache && npm run lint -- --skip-nx-cache && npm run format:check"
+    "check": "npm run typecheck -- --skip-nx-cache && npm run lint -- --skip-nx-cache && npm run test -- --skip-nx-cache && npm run format:check",
+    "precommit": "./scripts/precommit.sh"
   },
   "overrides": {
     "postcss": "^8.5.10",
@@ -50,6 +58,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "20.19.9",
     "@types/react": "^19.1.0",
+    "@types/yargs": "^17.0.32",
     "babel-preset-expo": "~54.0.7",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
@@ -64,11 +73,12 @@
     "prettier": "~3.6.2",
     "prisma": "^7.8.0",
     "ts-jest": "^29.4.9",
-    "ts-node": "10.9.1",
+    "ts-node": "^10.9.1",
     "tslib": "^2.3.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.40.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "yargs": "^17.7.2"
   },
   "dependencies": {
     "@expo/metro-config": "~54.0.9",
