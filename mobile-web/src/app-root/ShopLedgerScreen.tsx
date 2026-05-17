@@ -22,6 +22,7 @@ import {
   InteractionLog,
   Region,
 } from '@burma-inventory/shared-types';
+import { InteractionLoggingScreen } from './InteractionLoggingScreen';
 
 export function ShopLedgerScreen() {
   const [shops, setShops] = useState<(Shop & { regionName?: string })[]>([]);
@@ -30,6 +31,7 @@ export function ShopLedgerScreen() {
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [shopContacts, setShopContacts] = useState<Contact[]>([]);
   const [shopLogs, setShopLogs] = useState<InteractionLog[]>([]);
+  const [loggingModalVisible, setLoggingModalVisible] = useState(false);
 
   useEffect(() => {
     loadShops();
@@ -155,11 +157,18 @@ export function ShopLedgerScreen() {
   if (selectedShop) {
     return (
       <Box flex={1} bg="mainBackground" p="m">
-        <Button
-          title="Back to List"
-          onPress={() => setSelectedShop(null)}
-          variant="secondary"
-        />
+        <Box flexDirection="row" justifyContent="space-between">
+          <Button
+            title="Back to List"
+            onPress={() => setSelectedShop(null)}
+            variant="secondary"
+          />
+          <Button
+            title="Log Interaction"
+            onPress={() => setLoggingModalVisible(true)}
+            variant="primary"
+          />
+        </Box>
         <Card mt="m">
           <Text variant="header">{selectedShop.name}</Text>
           <Text variant="body" color="secondaryText">
@@ -209,6 +218,16 @@ export function ShopLedgerScreen() {
             <Text variant="body">No interactions yet.</Text>
           )}
         </ScrollView>
+
+        <InteractionLoggingScreen
+          visible={loggingModalVisible}
+          onClose={() => {
+            setLoggingModalVisible(false);
+            // Refresh logs
+            selectShop(selectedShop);
+          }}
+          shop={selectedShop}
+        />
       </Box>
     );
   }
