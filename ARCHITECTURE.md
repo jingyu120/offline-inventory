@@ -34,10 +34,10 @@ graph TD
 
 The workspace is split into projects under the Nx ecosystem:
 
-- [**mobile-web/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web): React Native/Expo application targeting both web viewports (desktop) and native platforms. Manages localized database storage and synchronization triggers.
-- [**sync-server/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/sync-server): Express backend connecting to PostgreSQL. Orchestrates database sync payloads, runs background EOD cron audits, and drives AI text parsing/summarization.
-- [**ui-components/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/ui-components): Shared presentation system built on top of `@shopify/restyle`. Houses core buttons, text fields, boxes, and themes.
-- [**shared-types/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/shared-types): Common TypeScript interfaces, model definitions, and database schemas shared between the frontend client and the sync server.
+- [**mobile-web/**](./mobile-web): React Native/Expo application targeting both web viewports (desktop) and native platforms. Manages localized database storage and synchronization triggers.
+- [**sync-server/**](./sync-server): Express backend connecting to PostgreSQL. Orchestrates database sync payloads, runs background EOD cron audits, and drives AI text parsing/summarization.
+- [**ui-components/**](./ui-components): Shared presentation system built on top of `@shopify/restyle`. Houses core buttons, text fields, boxes, and themes.
+- [**shared-types/**](./shared-types): Common TypeScript interfaces, model definitions, and database schemas shared between the frontend client and the sync server.
 
 ---
 
@@ -109,3 +109,12 @@ The application incorporates a local **Gemma AI** model integrated on the sync s
 - Parse unstructured speech-to-text or free-text interaction notes into structured sales records.
 - Run sentiment classification (Positive, Neutral, Negative) over visit comments.
 - Summarize daily field reports at 8:00 PM to compile an EOD management digest email.
+
+---
+
+## 7. Advanced Offline Capabilities (Implemented Features)
+
+The following advanced architectural modules are fully operational:
+
+- **Offline Leaflet Map Pre-Caching (`tileDb`)**: Captures OpenStreetMap tile image requests and caches them inside an IndexedDB local store as base64 data URLs. This enables interactive geographic map rendering in rural areas without cellular connection.
+- **Multi-Currency Pricing & Price Books**: Dynamically queries region-specific price books and converts pricing on-the-fly (supporting MMK, USD, and THB) directly on the client utilizing an active SQLite exchange rate table. Allows robust offline invoicing calculations.

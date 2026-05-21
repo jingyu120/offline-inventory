@@ -34,11 +34,16 @@ npx nx run sync-server:build:development
 # 4. Start watcher and run servers
 echo "📡 Launching development services..."
 
+# Disable interactive terminal UI to prevent garbled/messy terminal rendering
+export NX_TUI=false
+
 # Set trap to kill all background jobs spawned by this script on exit
 trap 'echo -e "\n🛑 Stopping all services..."; kill $(jobs -p) 2>/dev/null || true' EXIT
 
 # Start backend bundler in the background
 npx nx run sync-server:build --configuration=watch &
 
-# Start backend runtime (nodemon) and frontend dev server
-npx nx run-many -t serve -p sync-server mobile-web
+# Start backend runtime (nodemon) and frontend dev server streaming output cleanly
+npx nx run-many -t serve -p sync-server mobile-web --output-style=stream
+
+

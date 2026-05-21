@@ -6,7 +6,7 @@ This directory contains key shell scripts to manage the local development lifecy
 
 ## 📂 Available Scripts
 
-### 1. [`clean-setup.sh`](file:///Users/justin.zhang/Desktop/burma/burma-inventory/scripts/clean-setup.sh)
+### 1. [`clean-setup.sh`](./clean-setup.sh)
 
 - **Purpose**: Destructively resets the project to a clean starting state.
 - **Use Case**: Run this if you change branches with major database schema changes, encounter NPM dependency conflicts, or need a fresh seed of the local Postgres database.
@@ -22,7 +22,7 @@ This directory contains key shell scripts to manage the local development lifecy
   ./scripts/clean-setup.sh
   ```
 
-### 2. [`db.sh`](file:///Users/justin.zhang/Desktop/burma/burma-inventory/scripts/db.sh)
+### 2. [`db.sh`](./db.sh)
 
 - **Purpose**: A command wrapper managing local Postgres and Prisma operations. Specifically designed to bypass direct schema push limits on Mac Docker setups.
 - **Commands**:
@@ -36,7 +36,7 @@ This directory contains key shell scripts to manage the local development lifecy
   ./scripts/db.sh [up|down|reset|seed|migrate]
   ```
 
-### 3. [`precommit.sh`](file:///Users/justin.zhang/Desktop/burma/burma-inventory/scripts/precommit.sh)
+### 3. [`precommit.sh`](./precommit.sh)
 
 - **Purpose**: Local code quality checker acting as the Git pre-commit verification gate.
 - **Checks Executed**:
@@ -49,7 +49,7 @@ This directory contains key shell scripts to manage the local development lifecy
   ./scripts/precommit.sh
   ```
 
-### 4. [`start-dev.sh`](file:///Users/justin.zhang/Desktop/burma/burma-inventory/scripts/start-dev.sh)
+### 4. [`start-dev.sh`](./start-dev.sh)
 
 - **Purpose**: A developer helper script that starts the database, sync server, and Expo client.
 - **Execution**:

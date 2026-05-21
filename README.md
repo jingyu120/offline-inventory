@@ -19,12 +19,12 @@ A lightweight, offline-first Sales & Inventory Relationship Manager built for re
 
 This application is built in a TypeScript monorepo managed with **Nx**:
 
-- **[mobile-web/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web)**: The frontend React Native/Expo app. Adapts between **Katana Cloud Inventory** (Desktop table/grid views) and **Sortly** (Mobile touch card views).
-- **[sync-server/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/sync-server)**: Express + Prisma API server processing synchronized changes, scheduled EOD cron tasks, and local Gemma AI parsing.
-- **[ui-components/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/ui-components)**: Shared UI components built with `@shopify/restyle`.
-- **[shared-types/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/shared-types)**: Common data types and interfaces.
+- **[mobile-web/](./mobile-web)**: The frontend React Native/Expo app. Adapts between **Katana Cloud Inventory** (Desktop table/grid views) and **Sortly** (Mobile touch card views).
+- **[sync-server/](./sync-server)**: Express + Prisma API server processing synchronized changes, scheduled EOD cron tasks, and local Gemma AI parsing.
+- **[ui-components/](./ui-components)**: Shared UI components built with `@shopify/restyle`.
+- **[shared-types/](./shared-types)**: Common data types and interfaces.
 
-Refer to the [**ARCHITECTURE.md**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.md**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/GUIDING_PRINCIPLES.md) files for more information.
+Refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.md**](./GUIDING_PRINCIPLES.md) files for more information.
 
 ---
 
@@ -76,7 +76,7 @@ npm install
 
 ## 📘 Future Roadmaps & Plans
 
-Refer to the [**documentation/revamp/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/documentation/revamp) directory for full development history and future implementation specs:
+Refer to the [**documentation/revamp/**](./documentation/revamp) directory for full development history and future implementation specs:
 
 - `00_Master_Plan.md`: Revamp phases and goals.
 - `05_Phase5_Route_Optimization.md`: Intelligent routing coordinates.
