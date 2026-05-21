@@ -1,450 +1,876 @@
-import { Database } from '@nozbe/watermelondb';
-import {
-  Region,
-  Shop,
-  Contact,
-  Item,
-  InteractionLog,
-  InteractionItem,
-  DailyQuota,
-  ItemStock,
-} from '@burma-inventory/shared-types';
+import { sqliteSchema } from '@burma-inventory/shared-types';
 
-export const seedLocalDatabase = async (database: Database): Promise<void> => {
-  await database.write(async () => {
-    // Clear existing records first
-    const tables = [
-      'interaction_items',
-      'interaction_logs',
-      'contacts',
-      'items',
-      'shops',
-      'regions',
-      'daily_quotas',
-      'item_stocks',
-    ];
-    for (const t of tables) {
-      try {
-        const records = await database.collections.get(t).query().fetch();
-        for (const r of records) {
-          await r.destroyPermanently();
-        }
-      } catch (err) {
-        console.warn(`Could not clear table ${t}:`, err);
-      }
+export const seedLocalDatabase = async (db: any): Promise<void> => {
+  // Clear existing records first
+  const tables = [
+    sqliteSchema.interaction_items,
+    sqliteSchema.interaction_logs,
+    sqliteSchema.contacts,
+    sqliteSchema.items,
+    sqliteSchema.shops,
+    sqliteSchema.regions,
+    sqliteSchema.daily_quotas,
+    sqliteSchema.item_stocks,
+    sqliteSchema.planned_routes,
+    sqliteSchema.check_in_logs,
+    sqliteSchema.prediction_logs,
+    sqliteSchema.recommended_orders,
+    sqliteSchema.price_books,
+    sqliteSchema.price_book_items,
+    sqliteSchema.exchange_rates,
+    sqliteSchema.rep_scores,
+    sqliteSchema.points_logs,
+  ];
+
+  for (const table of tables) {
+    try {
+      await db.delete(table);
+    } catch (err) {
+      console.warn(`Could not clear table:`, err);
     }
+  }
 
-    const regionsCol = database.collections.get<Region>('regions');
-    const r1 = await regionsCol.create((r) => {
-      r.name = 'Yangon Division';
-      r.division = 'Yangon';
-    });
-    const r2 = await regionsCol.create((r) => {
-      r.name = 'Mandalay Division';
-      r.division = 'Mandalay';
-    });
-    const r3 = await regionsCol.create((r) => {
-      r.name = 'Shan State';
-      r.division = 'Shan';
-    });
+  const now = Date.now();
 
-    const itemsCol = database.collections.get<Item>('items');
-    const i1 = await itemsCol.create((item) => {
-      item.sku = 'SKU-PB-640';
-      item.name = 'Premium Beer 640ml';
-      item.unitPrice = 3200;
-      item.category = 'BEER';
-    });
-    const i2 = await itemsCol.create((item) => {
-      item.sku = 'SKU-ST-320';
-      item.name = 'Special Stout 320ml';
-      item.unitPrice = 2800;
-      item.category = 'BEER';
-    });
-    const i3 = await itemsCol.create((item) => {
-      item.sku = 'SKU-CD-500';
-      item.name = 'Classic Cider 500ml';
-      item.unitPrice = 2500;
-      item.category = 'CIDER';
-    });
+  // 1. Seed Regions
+  await db.insert(sqliteSchema.regions).values([
+    {
+      id: 'region-yangon',
+      name: 'Yangon Region',
+      division: 'Yangon Division',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'region-mandalay',
+      name: 'Mandalay Region',
+      division: 'Mandalay Division',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // Seed stock quantities
-    const itemStocksCol = database.collections.get<ItemStock>('item_stocks');
-    await itemStocksCol.create((s) => {
-      s.itemId = i1.id;
-      s.quantity = 500;
-    });
-    await itemStocksCol.create((s) => {
-      s.itemId = i2.id;
-      s.quantity = 300;
-    });
-    await itemStocksCol.create((s) => {
-      s.itemId = i3.id;
-      s.quantity = 250;
-    });
+  // 2. Seed Price Books
+  await db.insert(sqliteSchema.price_books).values([
+    {
+      id: 'pb-yangon',
+      name: 'Yangon Retail Book',
+      region_id: 'region-yangon',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'pb-mandalay',
+      name: 'Mandalay Wholesale Book',
+      region_id: 'region-mandalay',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    const shopsCol = database.collections.get<Shop>('shops');
-    const contactsCol = database.collections.get<Contact>('contacts');
-    const logsCol =
-      database.collections.get<InteractionLog>('interaction_logs');
-    const logItemsCol =
-      database.collections.get<InteractionItem>('interaction_items');
+  // 3. Seed Items
+  await db.insert(sqliteSchema.items).values([
+    {
+      id: 'item-1',
+      sku: 'SKU-PB-640',
+      name: 'Myanmar Premium Beer 640ml',
+      unit_price: 3200,
+      category: 'Beverage',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'item-2',
+      sku: 'SKU-RG-320',
+      name: 'Red Gem Energy Drink 320ml',
+      unit_price: 1500,
+      category: 'Energy Drink',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'item-3',
+      sku: 'SKU-WS-1000',
+      name: 'Golden Water Bottle 1L',
+      unit_price: 800,
+      category: 'Water',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'item-4',
+      sku: 'SKU-SS-500',
+      name: 'Silver Soda Can 500ml',
+      unit_price: 1200,
+      category: 'Beverage',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    const now = new Date().getTime();
+  // 4. Seed Item Stocks
+  await db.insert(sqliteSchema.item_stocks).values([
+    {
+      id: 'stock-1',
+      item_id: 'item-1',
+      quantity: 150,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'stock-2',
+      item_id: 'item-2',
+      quantity: 300,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'stock-3',
+      item_id: 'item-3',
+      quantity: 500,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'stock-4',
+      item_id: 'item-4',
+      quantity: 200,
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // 1. Bright Green (< 48h)
-    const s1 = await shopsCol.create((s) => {
-      s.name = 'Lucky Store Hledan';
-      s.address = 'Hledan Center, Yangon';
-      s.latitude = 16.8256;
-      s.longitude = 96.1326;
-      s.regionId = r1.id;
-      s.lifetimeValue = 15000;
-      s.sentimentTrend = 'IMPROVING';
-      s.assignedRepId = 'rep-1';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s1.id;
-      c.name = 'U Kyaw';
-      c.phoneNumber = '+95912345678';
-      c.isPrimary = true;
-    });
-    const log1 = await logsCol.create((l) => {
-      l.shopId = s1.id;
-      l.repId = 'rep-1';
-      l.type = 'SHOP_VISIT';
-      l.commercialStatus = 'ORDER_PLACED';
-      l.notes =
-        'Owner U Kyaw is absolutely delighted with the new Premium Beer batch. Ordered 5 cases and requested early delivery next week. Extremely happy!';
-      l.createdAtLocal = new Date(now - 6 * 3600 * 1000); // 6 hours ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-1';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log1.id;
-      li.itemId = i1.id;
-      li.quantity = 5;
-      li.unitPriceAtSale = 3200;
-      li.interestLevel = 'HIGH';
-    });
+  // 5. Seed Price Book Items
+  const items = [
+    { id: 'item-1', unitPrice: 3200 },
+    { id: 'item-2', unitPrice: 1500 },
+    { id: 'item-3', unitPrice: 800 },
+    { id: 'item-4', unitPrice: 1200 },
+  ];
 
-    // 2. Faded Green (< 7 days)
-    const s2 = await shopsCol.create((s) => {
-      s.name = 'City Express Tamwe';
-      s.address = 'Tamwe Road, Yangon';
-      s.latitude = 16.7992;
-      s.longitude = 96.1798;
-      s.regionId = r1.id;
-      s.lifetimeValue = 25000;
-      s.sentimentTrend = 'STABLE';
-      s.assignedRepId = 'rep-1';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s2.id;
-      c.name = 'Daw Mya';
-      c.phoneNumber = '+95998765432';
-      c.isPrimary = true;
-    });
-    const log2 = await logsCol.create((l) => {
-      l.shopId = s2.id;
-      l.repId = 'rep-1';
-      l.type = 'PHONE_CALL';
-      l.commercialStatus = 'INTERESTED';
-      l.notes =
-        'Followed up via phone. Stable sales. Expressed moderate interest in trying Special Stout next month.';
-      l.createdAtLocal = new Date(now - 4 * 24 * 3600 * 1000); // 4 days ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-1';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log2.id;
-      li.itemId = i1.id;
-      li.quantity = 10;
-      li.unitPriceAtSale = 3200;
-      li.interestLevel = 'MEDIUM';
-    });
+  for (const item of items) {
+    await db.insert(sqliteSchema.price_book_items).values([
+      {
+        id: `pbi-y-${item.id}`,
+        price_book_id: 'pb-yangon',
+        item_id: item.id,
+        price: item.unitPrice,
+        currency: 'MMK',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: `pbi-m-${item.id}`,
+        price_book_id: 'pb-mandalay',
+        item_id: item.id,
+        price: Math.round(item.unitPrice * 0.9),
+        currency: 'MMK',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+  }
 
-    // 3. Bright Green in Mandalay
-    const s3 = await shopsCol.create((s) => {
-      s.name = 'Ruby Minimart Mandalay';
-      s.address = '73rd Street, Mandalay';
-      s.latitude = 21.9588;
-      s.longitude = 96.0891;
-      s.regionId = r2.id;
-      s.lifetimeValue = 45000;
-      s.sentimentTrend = 'IMPROVING';
-      s.assignedRepId = 'rep-2';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s3.id;
-      c.name = 'U Ba';
-      c.phoneNumber = '+95944445555';
-      c.isPrimary = true;
-    });
-    const log3 = await logsCol.create((l) => {
-      l.shopId = s3.id;
-      l.repId = 'rep-2';
-      l.type = 'SHOP_VISIT';
-      l.commercialStatus = 'ORDER_PLACED';
-      l.notes =
-        'U Ba loves the Classic Cider and Stout. Sales are improving. Excellent relationship with Ko Hla.';
-      l.createdAtLocal = new Date(now - 20 * 3600 * 1000); // 20 hours ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-2';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log3.id;
-      li.itemId = i2.id;
-      li.quantity = 8;
-      li.unitPriceAtSale = 2800;
-      li.interestLevel = 'HIGH';
-    });
+  // 6. Seed Exchange Rates
+  await db.insert(sqliteSchema.exchange_rates).values([
+    {
+      id: 'er-usd-mmk',
+      from_currency: 'USD',
+      to_currency: 'MMK',
+      rate: 2100.0,
+      updated_at: now,
+    },
+    {
+      id: 'er-thb-mmk',
+      from_currency: 'THB',
+      to_currency: 'MMK',
+      rate: 58.5,
+      updated_at: now,
+    },
+  ]);
 
-    // 4. Red Neglected (Contacted 20 days ago) - Yangon
-    const s4 = await shopsCol.create((s) => {
-      s.name = 'Insein Market Corner';
-      s.address = 'Insein Road, Yangon';
-      s.latitude = 16.8894;
-      s.longitude = 96.1158;
-      s.regionId = r1.id;
-      s.lifetimeValue = 8000;
-      s.sentimentTrend = 'DECLINING';
-      s.assignedRepId = 'rep-2';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s4.id;
-      c.name = 'Daw Hla';
-      c.phoneNumber = '+95933332222';
-      c.isPrimary = true;
-    });
-    const log4 = await logsCol.create((l) => {
-      l.shopId = s4.id;
-      l.repId = 'rep-2';
-      l.type = 'VIBER_CHAT';
-      l.commercialStatus = 'NOT_INTERESTED';
-      l.notes =
-        'Client complained about the expensive Stout prices and late delivery. Churn risk is high because a local competitor offered them a discount.';
-      l.createdAtLocal = new Date(now - 20 * 24 * 3600 * 1000); // 20 days ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-2';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log4.id;
-      li.itemId = i2.id;
-      li.quantity = 2;
-      li.unitPriceAtSale = 2800;
-      li.interestLevel = 'LOW';
-    });
+  // 7. Seed Shops
+  await db.insert(sqliteSchema.shops).values([
+    {
+      id: 'shop-1',
+      name: 'City Mart Junction City',
+      address: 'Bogyoke Aung San Rd, Yangon',
+      latitude: 16.7794,
+      longitude: 96.1518,
+      region_id: 'region-yangon',
+      price_book_id: 'pb-yangon',
+      lifetime_value: 1250000,
+      sentiment_trend: 'IMPROVING',
+      assigned_rep_id: 'rep-1',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'shop-2',
+      name: 'Ruby Supermarket Mandalay',
+      address: '78th St, Mandalay',
+      latitude: 21.9754,
+      longitude: 96.0838,
+      region_id: 'region-mandalay',
+      price_book_id: 'pb-mandalay',
+      lifetime_value: 980000,
+      sentiment_trend: 'STABLE',
+      assigned_rep_id: 'rep-2',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'shop-3',
+      name: 'Kantharyar Shopping Centre',
+      address: 'U Aung Myat St, Yangon',
+      latitude: 16.7932,
+      longitude: 96.1664,
+      region_id: 'region-yangon',
+      price_book_id: 'pb-yangon',
+      lifetime_value: 450000,
+      sentiment_trend: 'DECLINING',
+      assigned_rep_id: 'rep-1',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'shop-4',
+      name: 'Mandalay Station Store',
+      address: 'Railway Station Ground, Mandalay',
+      latitude: 21.9685,
+      longitude: 96.0852,
+      region_id: 'region-mandalay',
+      price_book_id: 'pb-mandalay',
+      lifetime_value: 150000,
+      sentiment_trend: 'IMPROVING',
+      assigned_rep_id: 'rep-2',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // 5. Faded Green (< 7 days) - Yangon
-    const s5 = await shopsCol.create((s) => {
-      s.name = 'Yankin Plaza Shop';
-      s.address = 'Yankin Road, Yangon';
-      s.latitude = 16.8294;
-      s.longitude = 96.1618;
-      s.regionId = r1.id;
-      s.lifetimeValue = 35000;
-      s.sentimentTrend = 'STABLE';
-      s.assignedRepId = 'rep-1';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s5.id;
-      c.name = 'Ko Htun';
-      c.phoneNumber = '+95955556666';
-      c.isPrimary = true;
-    });
-    await logsCol.create((l) => {
-      l.shopId = s5.id;
-      l.repId = 'rep-1';
-      l.type = 'SHOP_VISIT';
-      l.commercialStatus = 'FOLLOWED_UP';
-      l.notes =
-        'Routine check. Steady stocks and stable sales. Customer satisfied with current terms.';
-      l.createdAtLocal = new Date(now - 3 * 24 * 3600 * 1000); // 3 days ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-1';
-    });
+  // 8. Seed Contacts
+  await db.insert(sqliteSchema.contacts).values([
+    {
+      id: 'contact-1',
+      shop_id: 'shop-1',
+      name: 'U Kyaw',
+      phone_number: '+95912345678',
+      is_primary: true,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'contact-2',
+      shop_id: 'shop-2',
+      name: 'Daw Mya',
+      phone_number: '+95998765432',
+      is_primary: true,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'contact-3',
+      shop_id: 'shop-3',
+      name: 'U Ba',
+      phone_number: '+95944445555',
+      is_primary: true,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'contact-4',
+      shop_id: 'shop-4',
+      name: 'Daw Tin',
+      phone_number: '+95922221111',
+      is_primary: true,
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // 6. Yellow Warning (10 days ago) - Shan State
-    const s6 = await shopsCol.create((s) => {
-      s.name = 'Shan Hills Tavern';
-      s.address = 'Main Road, Taunggyi';
-      s.latitude = 20.7888;
-      s.longitude = 97.0333;
-      s.regionId = r3.id;
-      s.lifetimeValue = 52000;
-      s.sentimentTrend = 'DECLINING';
-      s.assignedRepId = 'rep-2';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s6.id;
-      c.name = 'U Chit';
-      c.phoneNumber = '+95977778888';
-      c.isPrimary = true;
-    });
-    const log6 = await logsCol.create((l) => {
-      l.shopId = s6.id;
-      l.repId = 'rep-2';
-      l.type = 'SHOP_VISIT';
-      l.commercialStatus = 'NOT_INTERESTED';
-      l.notes =
-        'U Chit is unhappy with recent Stout supply delays. Competitors visited them twice this week. We must resolve the logistics issues.';
-      l.createdAtLocal = new Date(now - 10 * 24 * 3600 * 1000); // 10 days ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-2';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log6.id;
-      li.itemId = i3.id;
-      li.quantity = 4;
-      li.unitPriceAtSale = 2500;
-      li.interestLevel = 'LOW';
-    });
+  // 9. Seed Predictions
+  await db.insert(sqliteSchema.prediction_logs).values([
+    {
+      id: 'pred-shop-1',
+      shop_id: 'shop-1',
+      predicted_ltv: 1375000,
+      churn_risk: 0.08,
+      stockout_risk: 0.65,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'pred-shop-2',
+      shop_id: 'shop-2',
+      predicted_ltv: 1078000,
+      churn_risk: 0.35,
+      stockout_risk: 0.15,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'pred-shop-3',
+      shop_id: 'shop-3',
+      predicted_ltv: 495000,
+      churn_risk: 0.82,
+      stockout_risk: 0.65,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'pred-shop-4',
+      shop_id: 'shop-4',
+      predicted_ltv: 165000,
+      churn_risk: 0.08,
+      stockout_risk: 0.15,
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // 7. Red Neglected (No contact at all) - Yangon
-    const s7 = await shopsCol.create((s) => {
-      s.name = 'Downtown Retailer';
-      s.address = 'Anawrahta Road, Yangon';
-      s.latitude = 16.7736;
-      s.longitude = 96.1596;
-      s.regionId = r1.id;
-      s.lifetimeValue = 3000;
-      s.sentimentTrend = 'STABLE';
-      s.assignedRepId = 'rep-1';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s7.id;
-      c.name = 'Daw Tin';
-      c.phoneNumber = '+95922221111';
-      c.isPrimary = true;
-    });
+  // 10. Seed Reorders
+  await db.insert(sqliteSchema.recommended_orders).values([
+    {
+      id: 'rec-shop-1-item-1',
+      shop_id: 'shop-1',
+      item_id: 'item-1',
+      quantity: 48,
+      confidence: 0.89,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'rec-shop-2-item-1',
+      shop_id: 'shop-2',
+      item_id: 'item-1',
+      quantity: 24,
+      confidence: 0.89,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'rec-shop-3-item-1',
+      shop_id: 'shop-3',
+      item_id: 'item-1',
+      quantity: 24,
+      confidence: 0.89,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'rec-shop-4-item-1',
+      shop_id: 'shop-4',
+      item_id: 'item-1',
+      quantity: 24,
+      confidence: 0.89,
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // 8. Yellow Warning (12 days ago) - Mandalay
-    const s8 = await shopsCol.create((s) => {
-      s.name = 'Hlwan Beer Station';
-      s.address = 'Sagaing Road, Mandalay';
-      s.latitude = 21.9333;
-      s.longitude = 96.05;
-      s.regionId = r2.id;
-      s.lifetimeValue = 12000;
-      s.sentimentTrend = 'IMPROVING';
-      s.assignedRepId = 'rep-2';
-    });
-    await contactsCol.create((c) => {
-      c.shopId = s8.id;
-      c.name = 'U Hlwan';
-      c.phoneNumber = '+95966667777';
-      c.isPrimary = true;
-    });
-    const log8 = await logsCol.create((l) => {
-      l.shopId = s8.id;
-      l.repId = 'rep-2';
-      l.type = 'PHONE_CALL';
-      l.commercialStatus = 'INTERESTED';
-      l.notes =
-        'Spoke to U Hlwan. He was very happy and satisfied with special discount. Thinks relationship is improving.';
-      l.createdAtLocal = new Date(now - 12 * 24 * 3600 * 1000); // 12 days ago
-      l.isOfflineEntry = false;
-      l.deviceId = 'dev-2';
-    });
-    await logItemsCol.create((li) => {
-      li.interactionLogId = log8.id;
-      li.itemId = i2.id;
-      li.quantity = 3;
-      li.unitPriceAtSale = 2800;
-      li.interestLevel = 'MEDIUM';
-    });
+  // 11. Seed Logs (programmatically aligned with current week to test Compliance Grid scorecard)
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  const monMs = monday.getTime();
 
-    // ─── Quota & Weekly Compliance Seeding ───
-    const dailyQuotasCol = database.collections.get<DailyQuota>('daily_quotas');
-    await dailyQuotasCol.create((q) => {
-      q.userId = 'rep-1';
-      q.targetVisits = 4;
-      q.targetPhone = 2;
-      q.targetViber = 2;
-      q.effectiveFrom = new Date(now - 30 * 24 * 3600 * 1000);
-    });
-    await dailyQuotasCol.create((q) => {
-      q.userId = 'rep-2';
-      q.targetVisits = 5;
-      q.targetPhone = 1;
-      q.targetViber = 2;
-      q.effectiveFrom = new Date(now - 30 * 24 * 3600 * 1000);
-    });
+  const logsToSeed = [
+    // rep-1 (Ko Min) logs
+    // Mon: 3 logs (Yellow status; target is 8)
+    {
+      id: 'log-r1-d0-1',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      notes: 'Kyaw ordered beer.',
+      d: 0,
+      h: 9,
+    },
+    {
+      id: 'log-r1-d0-2',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      notes: 'Followed up on bottle orders.',
+      d: 0,
+      h: 11,
+    },
+    {
+      id: 'log-r1-d0-3',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      notes: 'Shared price list.',
+      d: 0,
+      h: 14,
+    },
+    // Tue: 8 logs (Green status; target is 8)
+    {
+      id: 'log-r1-d1-1',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 1,
+      h: 9,
+    },
+    {
+      id: 'log-r1-d1-2',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 1,
+      h: 10,
+    },
+    {
+      id: 'log-r1-d1-3',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 1,
+      h: 11,
+    },
+    {
+      id: 'log-r1-d1-4',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 1,
+      h: 12,
+    },
+    {
+      id: 'log-r1-d1-5',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      d: 1,
+      h: 13,
+    },
+    {
+      id: 'log-r1-d1-6',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      d: 1,
+      h: 14,
+    },
+    {
+      id: 'log-r1-d1-7',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 1,
+      h: 15,
+    },
+    {
+      id: 'log-r1-d1-8',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 1,
+      h: 16,
+    },
+    // Thu: 5 logs (Yellow status; target is 8)
+    {
+      id: 'log-r1-d3-1',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 3,
+      h: 9,
+    },
+    {
+      id: 'log-r1-d3-2',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 3,
+      h: 10,
+    },
+    {
+      id: 'log-r1-d3-3',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 3,
+      h: 11,
+    },
+    {
+      id: 'log-r1-d3-4',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 3,
+      h: 12,
+    },
+    {
+      id: 'log-r1-d3-5',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      d: 3,
+      h: 13,
+    },
+    // Fri: 9 logs (Green status; target is 8)
+    {
+      id: 'log-r1-d4-1',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 4,
+      h: 9,
+    },
+    {
+      id: 'log-r1-d4-2',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 4,
+      h: 10,
+    },
+    {
+      id: 'log-r1-d4-3',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 4,
+      h: 11,
+    },
+    {
+      id: 'log-r1-d4-4',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 4,
+      h: 12,
+    },
+    {
+      id: 'log-r1-d4-5',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      d: 4,
+      h: 13,
+    },
+    {
+      id: 'log-r1-d4-6',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'VIBER',
+      d: 4,
+      h: 14,
+    },
+    {
+      id: 'log-r1-d4-7',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 4,
+      h: 15,
+    },
+    {
+      id: 'log-r1-d4-8',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      d: 4,
+      h: 16,
+    },
+    {
+      id: 'log-r1-d4-9',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'PHONE_CALL',
+      d: 4,
+      h: 17,
+    },
 
-    const getDayOfWeek = (offset: number) => {
-      const today = new Date();
-      const day = today.getDay();
-      const mondayOffset = day === 0 ? -6 : 1 - day;
-      const targetDay = new Date(today);
-      targetDay.setDate(today.getDate() + mondayOffset + offset);
-      return targetDay;
-    };
+    // rep-2 (Ko Hla) logs
+    // Tue: 4 logs (Yellow status; target is 8)
+    {
+      id: 'log-r2-d1-1',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      notes: 'Daw Mya ordered red gem.',
+      d: 1,
+      h: 9,
+    },
+    {
+      id: 'log-r2-d1-2',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'PHONE_CALL',
+      notes: 'Followed up.',
+      d: 1,
+      h: 11,
+    },
+    {
+      id: 'log-r2-d1-3',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'VIBER',
+      notes: 'Shared info.',
+      d: 1,
+      h: 14,
+    },
+    {
+      id: 'log-r2-d1-4',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      notes: 'Visit.',
+      d: 1,
+      h: 16,
+    },
+    // Wed: 8 logs (Green status; target is 8)
+    {
+      id: 'log-r2-d2-1',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      d: 2,
+      h: 9,
+    },
+    {
+      id: 'log-r2-d2-2',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      d: 2,
+      h: 10,
+    },
+    {
+      id: 'log-r2-d2-3',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'PHONE_CALL',
+      d: 2,
+      h: 11,
+    },
+    {
+      id: 'log-r2-d2-4',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'PHONE_CALL',
+      d: 2,
+      h: 12,
+    },
+    {
+      id: 'log-r2-d2-5',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'VIBER',
+      d: 2,
+      h: 13,
+    },
+    {
+      id: 'log-r2-d2-6',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'VIBER',
+      d: 2,
+      h: 14,
+    },
+    {
+      id: 'log-r2-d2-7',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      d: 2,
+      h: 15,
+    },
+    {
+      id: 'log-r2-d2-8',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      d: 2,
+      h: 16,
+    },
+    // Thu: 5 logs that occur within a 10-minute window (Yellow status & Flagged for batch dumping!)
+    {
+      id: 'log-r2-d3-1',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      notes: 'Fast entry 1',
+      d: 3,
+      h: 17,
+      m: 1,
+    },
+    {
+      id: 'log-r2-d3-2',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'SHOP_VISIT',
+      notes: 'Fast entry 2',
+      d: 3,
+      h: 17,
+      m: 3,
+    },
+    {
+      id: 'log-r2-d3-3',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'PHONE_CALL',
+      notes: 'Fast entry 3',
+      d: 3,
+      h: 17,
+      m: 5,
+    },
+    {
+      id: 'log-r2-d3-4',
+      shop_id: 'shop-4',
+      rep_id: 'rep-2',
+      type: 'PHONE_CALL',
+      notes: 'Fast entry 4',
+      d: 3,
+      h: 17,
+      m: 7,
+    },
+    {
+      id: 'log-r2-d3-5',
+      shop_id: 'shop-2',
+      rep_id: 'rep-2',
+      type: 'VIBER',
+      notes: 'Fast entry 5',
+      d: 3,
+      h: 17,
+      m: 9,
+    },
+  ];
 
-    // rep-1: Monday (5 logs), Tuesday (9 logs), Thursday (2 logs), Friday (8 logs)
-    const daysRep1 = [
-      { dayOffset: 0, count: 5 },
-      { dayOffset: 1, count: 9 },
-      { dayOffset: 3, count: 2 },
-      { dayOffset: 4, count: 8 },
-    ];
-    for (const config of daysRep1) {
-      const baseDate = getDayOfWeek(config.dayOffset);
-      for (let index = 0; index < config.count; index++) {
-        await logsCol.create((l) => {
-          l.shopId = s1.id;
-          l.repId = 'rep-1';
-          l.type = index % 2 === 0 ? 'SHOP_VISIT' : 'PHONE_CALL';
-          l.commercialStatus = 'FOLLOWED_UP';
-          l.notes = `Routine sales follow up by Ko Min. Checked stock levels. Volume detail #${index + 1}.`;
-          l.createdAtLocal = new Date(
-            baseDate.getTime() + (9 * 3600 + index * 3600) * 1000,
-          );
-          l.isOfflineEntry = false;
-          l.deviceId = 'dev-1';
-        });
-      }
-    }
+  await db.insert(sqliteSchema.interaction_logs).values(
+    logsToSeed.map((log) => {
+      const timestamp =
+        monMs +
+        log.d * 24 * 3600 * 1000 +
+        log.h * 3600 * 1000 +
+        (log.m ?? 0) * 60 * 1000;
+      return {
+        id: log.id,
+        shop_id: log.shop_id,
+        rep_id: log.rep_id,
+        type: log.type,
+        commercial_status: 'ORDER_PLACED',
+        notes: log.notes || 'Routine update.',
+        created_at_local: timestamp,
+        is_offline_entry: false,
+        device_id: 'dev-1',
+        created_at: timestamp,
+        updated_at: timestamp,
+      };
+    }),
+  );
 
-    // rep-2: Monday (10 logs), Tuesday (4 logs), Friday (9 logs)
-    const daysRep2 = [
-      { dayOffset: 0, count: 10 },
-      { dayOffset: 1, count: 4 },
-      { dayOffset: 4, count: 9 },
-    ];
-    for (const config of daysRep2) {
-      const baseDate = getDayOfWeek(config.dayOffset);
-      for (let index = 0; index < config.count; index++) {
-        await logsCol.create((l) => {
-          l.shopId = s3.id;
-          l.repId = 'rep-2';
-          l.type = index % 2 === 0 ? 'SHOP_VISIT' : 'VIBER_CHAT';
-          l.commercialStatus = 'FOLLOWED_UP';
-          l.notes = `Operational check by Ko Hla. Customer satisfied. Record #${index + 1}.`;
-          l.createdAtLocal = new Date(
-            baseDate.getTime() + (9 * 3600 + index * 3600) * 1000,
-          );
-          l.isOfflineEntry = false;
-          l.deviceId = 'dev-2';
-        });
-      }
-    }
+  // 12. Seed Interaction Items
+  await db.insert(sqliteSchema.interaction_items).values([
+    {
+      id: 'log-item-1',
+      interaction_log_id: 'log-r1-d0-1',
+      item_id: 'item-1',
+      quantity: 5,
+      unit_price_at_sale: 3200,
+      interest_level: 'HIGH',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 
-    // rep-2: Wednesday (6 logs in 5 minutes to trigger velocity flag)
-    const wednesdayBase = getDayOfWeek(2);
-    for (let index = 0; index < 6; index++) {
-      await logsCol.create((l) => {
-        l.shopId = s3.id;
-        l.repId = 'rep-2';
-        l.type = 'VIBER_CHAT';
-        l.commercialStatus = 'INTERESTED';
-        l.notes = `Batch log entry #${index + 1} - Checking retail inventory shelf status. Competitor pricing check.`;
-        l.createdAtLocal = new Date(
-          wednesdayBase.getTime() + (12 * 3600 + index * 60) * 1000,
-        );
-        l.isOfflineEntry = false;
-        l.deviceId = 'dev-2';
-      });
-    }
-  });
+  // 13. Seed Daily Quotas
+  await db.insert(sqliteSchema.daily_quotas).values([
+    {
+      id: 'quota-rep-1',
+      user_id: 'rep-1',
+      target_visits: 4,
+      target_phone: 2,
+      target_viber: 2,
+      effective_from: now - 30 * 24 * 3600 * 1000,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'quota-rep-2',
+      user_id: 'rep-2',
+      target_visits: 5,
+      target_phone: 1,
+      target_viber: 2,
+      effective_from: now - 30 * 24 * 3600 * 1000,
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // 14. Seed Planned Routes
+  await db.insert(sqliteSchema.planned_routes).values([
+    {
+      id: 'route-ko-min',
+      rep_id: 'rep-1',
+      date: new Date().toISOString().split('T')[0],
+      shop_ids: JSON.stringify(['shop-1', 'shop-3']),
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'route-ko-hla',
+      rep_id: 'rep-2',
+      date: new Date().toISOString().split('T')[0],
+      shop_ids: JSON.stringify(['shop-2', 'shop-4']),
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // 15. Seed Rep Scores
+  await db.insert(sqliteSchema.rep_scores).values([
+    {
+      id: 'score-rep-1',
+      rep_id: 'rep-1',
+      points: 450,
+      streak_days: 5,
+      badges: JSON.stringify(['Top Seller', 'Early Bird']),
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'score-rep-2',
+      rep_id: 'rep-2',
+      points: 380,
+      streak_days: 3,
+      badges: JSON.stringify(['Road Warrior']),
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'score-rep-3',
+      rep_id: 'rep-3',
+      points: 0,
+      streak_days: 0,
+      badges: JSON.stringify([]),
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'score-rep-4',
+      rep_id: 'rep-4',
+      points: 1500,
+      streak_days: 12,
+      badges: JSON.stringify(['Admin Champion']),
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'score-rep-5',
+      rep_id: 'rep-5',
+      points: 250,
+      streak_days: 2,
+      badges: JSON.stringify(['Intake Hero']),
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
 };

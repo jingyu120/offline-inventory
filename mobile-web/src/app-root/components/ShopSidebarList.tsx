@@ -178,7 +178,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                       <Box flexDirection="row" alignItems="center" mt="xs">
                         <MapPin
                           size={11}
-                          color={theme.colors.secondaryText}
+                          stroke={theme.colors.secondaryText}
                           style={{ marginRight: 4 }}
                         />
                         <Text
@@ -222,7 +222,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                     <Box flexDirection="row" alignItems="center">
                       <Clock
                         size={12}
-                        color={theme.colors.secondaryText}
+                        stroke={theme.colors.secondaryText}
                         style={{ marginRight: 4 }}
                       />
                       <Text variant="bodySecondary" fontSize={12}>
@@ -247,7 +247,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                           gap: 4,
                         }}
                       >
-                        <Zap size={12} color="#fff" />
+                        <Zap size={12} stroke="#fff" />
                         <Text
                           style={{
                             color: '#fff',
@@ -318,7 +318,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                 >
                   <Clock
                     size={12}
-                    color={theme.colors.secondaryText}
+                    stroke={theme.colors.secondaryText}
                     style={{ marginRight: 6 }}
                   />
                   <Text variant="bodySecondary" fontSize={12}>

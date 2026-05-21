@@ -4,7 +4,7 @@ import jsoncParser from 'jsonc-eslint-parser';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist', '**/node_modules', '**/.expo', '**/tmp'],
+    ignores: ['**/dist', '**/node_modules', '**/.expo', '**/tmp', '**/public'],
   },
   // Global Nx plugin configuration
   ...nx.configs['flat/base'],

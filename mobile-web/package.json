@@ -8,13 +8,11 @@
   "dependencies": {
     "@expo/metro-config": "*",
     "@testing-library/react-native": "*",
-    "@types/lokijs": "^1.5.14",
     "expo": "*",
     "expo-splash-screen": "*",
     "expo-status-bar": "*",
     "expo-system-ui": "*",
     "jest-expo": "*",
-    "lokijs": "^1.5.12",
     "metro-config": "*",
     "metro-resolver": "*",
     "react": "*",

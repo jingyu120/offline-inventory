@@ -40,6 +40,7 @@ export interface ShopRecord {
   assigned_rep_id: string | null;
   lifetime_value: number;
   sentiment_trend: string;
+  price_book_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -89,6 +90,10 @@ export interface InteractionItemRecord {
   quantity: number;
   unit_price_at_sale: number;
   interest_level: string | null;
+  unit_price: number | null;
+  selected_currency: string | null;
+  created_at: number;
+  updated_at: number;
 }
 
 export interface DailyQuotaRecord {
@@ -110,6 +115,99 @@ export interface ItemStockRecord {
   updated_at: number;
 }
 
+export interface PlannedRouteRecord {
+  id: string;
+  rep_id: string;
+  date: string;
+  shop_ids: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CheckInLogRecord {
+  id: string;
+  shop_id: string;
+  rep_id: string;
+  check_in_time: number;
+  latitude: number;
+  longitude: number;
+  verified: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ViberChannelRecord {
+  id: string;
+  user_id: string;
+  viber_profile_id: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PredictionLogRecord {
+  id: string;
+  shop_id: string;
+  predicted_ltv: number;
+  churn_risk: number;
+  stockout_risk: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface RecommendedOrderRecord {
+  id: string;
+  shop_id: string;
+  item_id: string;
+  quantity: number;
+  confidence: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PriceBookRecord {
+  id: string;
+  name: string;
+  region_id: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PriceBookItemRecord {
+  id: string;
+  price_book_id: string;
+  item_id: string;
+  price: number;
+  currency: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ExchangeRateRecord {
+  id: string;
+  from_currency: string;
+  to_currency: string;
+  rate: number;
+  updated_at: number;
+}
+
+export interface RepScoreRecord {
+  id: string;
+  rep_id: string;
+  points: number;
+  streak_days: number;
+  badges: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface PointsLogRecord {
+  id: string;
+  rep_id: string;
+  points_added: number;
+  reason: string;
+  created_at: number;
+}
+
 // ─── Sync Protocol Types ────────────────────────────────────────────
 
 /** Generic WatermelonDB sync change-set for a single table. */
@@ -128,7 +226,16 @@ export type SyncTableName =
   | 'interaction_logs'
   | 'interaction_items'
   | 'daily_quotas'
-  | 'item_stocks';
+  | 'item_stocks'
+  | 'planned_routes'
+  | 'check_in_logs'
+  | 'prediction_logs'
+  | 'recommended_orders'
+  | 'price_books'
+  | 'price_book_items'
+  | 'exchange_rates'
+  | 'rep_scores'
+  | 'points_logs';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -139,4 +246,205 @@ export interface PullChangesResponse {
 /** Push-request body sent by the frontend. */
 export interface PushChangesBody {
   changes: Partial<Record<SyncTableName, WatermelonChangeSet<unknown>>>;
+}
+
+/**
+ * Executes an asynchronous operation, catching any exceptions and returning a
+ * type-safe tuple [result, error].
+ */
+export async function guardAsync<T, E = Error>(
+  promise: Promise<T>,
+): Promise<[T, null] | [null, E]> {
+  try {
+    const data = await promise;
+    return [data, null];
+  } catch (error) {
+    return [null, error as E];
+  }
+}
+
+export interface Region {
+  id: string;
+  name: string;
+  division: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Shop {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  regionId: string;
+  assignedRepId: string | null;
+  lifetimeValue: number;
+  sentimentTrend: string;
+  priceBookId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Contact {
+  id: string;
+  shopId: string;
+  name: string;
+  phoneNumber: string;
+  email: string | null;
+  isPrimary: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Item {
+  id: string;
+  sku: string;
+  name: string;
+  unitPrice: number;
+  category: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface InteractionLog {
+  id: string;
+  shopId: string;
+  repId: string;
+  type: string;
+  commercialStatus: string;
+  notes: string;
+  nextFollowUpDate: number | null;
+  viberScreenshotUrl: string | null;
+  createdAtLocal: number;
+  syncedAtServer: number | null;
+  isOfflineEntry: boolean;
+  deviceId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface InteractionItem {
+  id: string;
+  interactionLogId: string;
+  itemId: string;
+  quantity: number;
+  unitPriceAtSale: number;
+  interestLevel: string | null;
+  unitPrice: number | null;
+  selectedCurrency: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface DailyQuota {
+  id: string;
+  userId: string;
+  targetVisits: number;
+  targetPhone: number;
+  targetViber: number;
+  effectiveFrom: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ItemStock {
+  id: string;
+  itemId: string;
+  quantity: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PlannedRoute {
+  id: string;
+  repId: string;
+  date: string;
+  shopIds: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CheckInLog {
+  id: string;
+  shopId: string;
+  repId: string;
+  checkInTime: number;
+  latitude: number;
+  longitude: number;
+  verified: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ViberChannel {
+  id: string;
+  userId: string;
+  viberProfileId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PredictionLog {
+  id: string;
+  shopId: string;
+  predictedLtv: number;
+  churnRisk: number;
+  stockoutRisk: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RecommendedOrder {
+  id: string;
+  shopId: string;
+  itemId: string;
+  quantity: number;
+  confidence: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PriceBook {
+  id: string;
+  name: string;
+  regionId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PriceBookItem {
+  id: string;
+  priceBookId: string;
+  itemId: string;
+  price: number;
+  currency: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ExchangeRate {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  updatedAt: number;
+}
+
+export interface RepScore {
+  id: string;
+  repId: string;
+  points: number;
+  streakDays: number;
+  badges: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PointsLog {
+  id: string;
+  repId: string;
+  pointsAdded: number;
+  reason: string;
+  createdAt: number;
 }

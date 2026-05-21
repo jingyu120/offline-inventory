@@ -1,42 +1,40 @@
 import {
-  pgTable,
+  sqliteTable,
   text,
   integer,
-  boolean,
-  doublePrecision,
-  bigint,
+  real,
   index,
-} from 'drizzle-orm/pg-core';
+} from 'drizzle-orm/sqlite-core';
 
-export const regions = pgTable(
+export const regions = sqliteTable(
   'regions',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     division: text('division').notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     nameIdx: index('regions_name_idx').on(table.name),
   }),
 );
 
-export const shops = pgTable(
+export const shops = sqliteTable(
   'shops',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     address: text('address').notNull(),
-    latitude: doublePrecision('latitude'),
-    longitude: doublePrecision('longitude'),
+    latitude: real('latitude'),
+    longitude: real('longitude'),
     region_id: text('region_id').notNull(),
     assigned_rep_id: text('assigned_rep_id'),
-    lifetime_value: doublePrecision('lifetime_value').notNull().default(0),
+    lifetime_value: real('lifetime_value').notNull().default(0),
     sentiment_trend: text('sentiment_trend').notNull().default('STABLE'),
     price_book_id: text('price_book_id'),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     nameIdx: index('shops_name_idx').on(table.name),
@@ -47,7 +45,7 @@ export const shops = pgTable(
   }),
 );
 
-export const contacts = pgTable(
+export const contacts = sqliteTable(
   'contacts',
   {
     id: text('id').primaryKey(),
@@ -55,46 +53,48 @@ export const contacts = pgTable(
     name: text('name').notNull(),
     phone_number: text('phone_number').notNull(),
     email: text('email'),
-    is_primary: boolean('is_primary').notNull().default(false),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    is_primary: integer('is_primary', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     shopIdIdx: index('contacts_shop_id_idx').on(table.shop_id),
   }),
 );
 
-export const items = pgTable(
+export const items = sqliteTable(
   'items',
   {
     id: text('id').primaryKey(),
     sku: text('sku').notNull(),
     name: text('name').notNull(),
-    unit_price: doublePrecision('unit_price').notNull(),
+    unit_price: real('unit_price').notNull(),
     category: text('category').notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
   }),
 );
 
-export const item_stocks = pgTable(
+export const item_stocks = sqliteTable(
   'item_stocks',
   {
     id: text('id').primaryKey(),
     item_id: text('item_id').notNull(),
     quantity: integer('quantity').notNull().default(0),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     itemIdIdx: index('item_stocks_item_id_idx').on(table.item_id),
   }),
 );
 
-export const interaction_logs = pgTable(
+export const interaction_logs = sqliteTable(
   'interaction_logs',
   {
     id: text('id').primaryKey(),
@@ -103,14 +103,16 @@ export const interaction_logs = pgTable(
     type: text('type').notNull(),
     commercial_status: text('commercial_status').notNull(),
     notes: text('notes').notNull(),
-    next_follow_up_date: bigint('next_follow_up_date', { mode: 'number' }),
+    next_follow_up_date: integer('next_follow_up_date'),
     viber_screenshot_url: text('viber_screenshot_url'),
-    created_at_local: bigint('created_at_local', { mode: 'number' }).notNull(),
-    synced_at_server: bigint('synced_at_server', { mode: 'number' }),
-    is_offline_entry: boolean('is_offline_entry').notNull().default(false),
+    created_at_local: integer('created_at_local').notNull(),
+    synced_at_server: integer('synced_at_server'),
+    is_offline_entry: integer('is_offline_entry', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     device_id: text('device_id').notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -118,19 +120,19 @@ export const interaction_logs = pgTable(
   }),
 );
 
-export const interaction_items = pgTable(
+export const interaction_items = sqliteTable(
   'interaction_items',
   {
     id: text('id').primaryKey(),
     interaction_log_id: text('interaction_log_id').notNull(),
     item_id: text('item_id').notNull(),
     quantity: integer('quantity').notNull().default(1),
-    unit_price_at_sale: doublePrecision('unit_price_at_sale').notNull(),
+    unit_price_at_sale: real('unit_price_at_sale').notNull(),
     interest_level: text('interest_level'),
-    unit_price: doublePrecision('unit_price'),
+    unit_price: real('unit_price'),
     selected_currency: text('selected_currency').notNull().default('MMK'),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     logIdIdx: index('interaction_items_log_id_idx').on(
@@ -140,7 +142,7 @@ export const interaction_items = pgTable(
   }),
 );
 
-export const daily_quotas = pgTable(
+export const daily_quotas = sqliteTable(
   'daily_quotas',
   {
     id: text('id').primaryKey(),
@@ -148,42 +150,42 @@ export const daily_quotas = pgTable(
     target_visits: integer('target_visits').notNull().default(0),
     target_phone: integer('target_phone').notNull().default(0),
     target_viber: integer('target_viber').notNull().default(0),
-    effective_from: bigint('effective_from', { mode: 'number' }).notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    effective_from: integer('effective_from').notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     userIdIdx: index('daily_quotas_user_id_idx').on(table.user_id),
   }),
 );
 
-export const planned_routes = pgTable(
+export const planned_routes = sqliteTable(
   'planned_routes',
   {
     id: text('id').primaryKey(),
     rep_id: text('rep_id').notNull(),
     date: text('date').notNull(),
-    shop_ids: text('shop_ids').notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    shop_ids: text('shop_ids').notNull(), // JSON string on SQLite
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     repIdIdx: index('planned_routes_rep_id_idx').on(table.rep_id),
   }),
 );
 
-export const check_in_logs = pgTable(
+export const check_in_logs = sqliteTable(
   'check_in_logs',
   {
     id: text('id').primaryKey(),
     shop_id: text('shop_id').notNull(),
     rep_id: text('rep_id').notNull(),
-    check_in_time: bigint('check_in_time', { mode: 'number' }).notNull(),
-    latitude: doublePrecision('latitude').notNull(),
-    longitude: doublePrecision('longitude').notNull(),
-    verified: boolean('verified').notNull().default(false),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    check_in_time: integer('check_in_time').notNull(),
+    latitude: real('latitude').notNull(),
+    longitude: real('longitude').notNull(),
+    verified: integer('verified', { mode: 'boolean' }).notNull().default(false),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     shopIdIdx: index('check_in_logs_shop_id_idx').on(table.shop_id),
@@ -191,32 +193,32 @@ export const check_in_logs = pgTable(
   }),
 );
 
-export const prediction_logs = pgTable(
+export const prediction_logs = sqliteTable(
   'prediction_logs',
   {
     id: text('id').primaryKey(),
     shop_id: text('shop_id').notNull(),
-    predicted_ltv: doublePrecision('predicted_ltv').notNull().default(0),
-    churn_risk: doublePrecision('churn_risk').notNull().default(0),
-    stockout_risk: doublePrecision('stockout_risk').notNull().default(0),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    predicted_ltv: real('predicted_ltv').notNull().default(0),
+    churn_risk: real('churn_risk').notNull().default(0),
+    stockout_risk: real('stockout_risk').notNull().default(0),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     shopIdIdx: index('prediction_logs_shop_id_idx').on(table.shop_id),
   }),
 );
 
-export const recommended_orders = pgTable(
+export const recommended_orders = sqliteTable(
   'recommended_orders',
   {
     id: text('id').primaryKey(),
     shop_id: text('shop_id').notNull(),
     item_id: text('item_id').notNull(),
     quantity: integer('quantity').notNull().default(0),
-    confidence: doublePrecision('confidence').notNull().default(0),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    confidence: real('confidence').notNull().default(0),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     shopIdIdx: index('recommended_orders_shop_id_idx').on(table.shop_id),
@@ -224,30 +226,30 @@ export const recommended_orders = pgTable(
   }),
 );
 
-export const price_books = pgTable(
+export const price_books = sqliteTable(
   'price_books',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     region_id: text('region_id'),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     regionIdIdx: index('price_books_region_id_idx').on(table.region_id),
   }),
 );
 
-export const price_book_items = pgTable(
+export const price_book_items = sqliteTable(
   'price_book_items',
   {
     id: text('id').primaryKey(),
     price_book_id: text('price_book_id').notNull(),
     item_id: text('item_id').notNull(),
-    price: doublePrecision('price').notNull(),
+    price: real('price').notNull(),
     currency: text('currency').notNull().default('MMK'),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     bookIdIdx: index('price_book_items_book_id_idx').on(table.price_book_id),
@@ -255,15 +257,15 @@ export const price_book_items = pgTable(
   }),
 );
 
-export const exchange_rates = pgTable('exchange_rates', {
+export const exchange_rates = sqliteTable('exchange_rates', {
   id: text('id').primaryKey(),
   from_currency: text('from_currency').notNull(),
   to_currency: text('to_currency').notNull(),
-  rate: doublePrecision('rate').notNull(),
-  updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  rate: real('rate').notNull(),
+  updated_at: integer('updated_at').notNull(),
 });
 
-export const rep_scores = pgTable(
+export const rep_scores = sqliteTable(
   'rep_scores',
   {
     id: text('id').primaryKey(),
@@ -271,22 +273,22 @@ export const rep_scores = pgTable(
     points: integer('points').notNull().default(0),
     streak_days: integer('streak_days').notNull().default(0),
     badges: text('badges').notNull().default('[]'),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
-    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
   },
   (table) => ({
     repIdIdx: index('rep_scores_rep_id_idx').on(table.rep_id),
   }),
 );
 
-export const points_logs = pgTable(
+export const points_logs = sqliteTable(
   'points_logs',
   {
     id: text('id').primaryKey(),
     rep_id: text('rep_id').notNull(),
     points_added: integer('points_added').notNull(),
     reason: text('reason').notNull(),
-    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    created_at: integer('created_at').notNull(),
   },
   (table) => ({
     repIdIdx: index('points_logs_rep_id_idx').on(table.rep_id),

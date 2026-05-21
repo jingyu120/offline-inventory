@@ -9,8 +9,10 @@ import {
 } from '../data/repositories';
 import { seedLocalDatabase } from '../data/mockSeeding';
 import { Shop, Contact } from '@burma-inventory/shared-types';
+import { useAuth } from '../utils/auth';
 
 export const useShopsData = () => {
+  const { activeRep } = useAuth();
   const [shops, setShops] = useState<ShopWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,10 @@ export const useShopsData = () => {
   const loadShops = async () => {
     setLoading(true);
     try {
-      const data = await fetchShops(searchQuery);
+      let data = await fetchShops(searchQuery);
+      if (activeRep.role === 'sales' && activeRep.regionId) {
+        data = data.filter((s) => s.regionId === activeRep.regionId);
+      }
       setShops(data);
 
       if (selectedShop) {
@@ -42,7 +47,7 @@ export const useShopsData = () => {
 
   useEffect(() => {
     loadShops();
-  }, [searchQuery]);
+  }, [searchQuery, activeRep.id]);
 
   const selectShop = async (shop: Shop) => {
     setSelectedShop(shop);

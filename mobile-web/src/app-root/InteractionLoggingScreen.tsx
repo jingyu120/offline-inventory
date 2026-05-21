@@ -2,28 +2,29 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ScrollView,
-  TextInput,
   Alert,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Linking,
   useWindowDimensions,
 } from 'react-native';
-import { Box, Text, Button, Card, Theme } from '@burma-inventory/ui-components';
-import { useTheme } from '@shopify/restyle';
-import { Shop, Item, Contact } from '@burma-inventory/shared-types';
-import { AI_PARSE_NOTE_URL, AI_OCR_INVOICE_URL } from '../config';
-import { Q } from '@nozbe/watermelondb';
+import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
+import { Shop, Item, sqliteSchema } from '@burma-inventory/shared-types';
 import { database } from '../database';
+import { eq } from 'drizzle-orm';
 import {
   fetchItemsAndStockLevel,
   createInteractionLog,
+  SelectedItemPayload,
 } from '../data/repositories';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../utils/i18n';
 import { useAuth } from '../utils/auth';
+
+// Import subcomponents
+import { ViberIntegration } from './components/ViberIntegration';
+import { GemmaCopilot } from './components/GemmaCopilot';
+import { AvailableItemsSelector } from './components/AvailableItemsSelector';
+import { SelectedItemsList } from './components/SelectedItemsList';
 
 interface InteractionLoggingScreenProps {
   visible: boolean;
@@ -48,23 +49,96 @@ export function InteractionLoggingScreen({
     { item: Item; quantity: number | string }[]
   >([]);
   const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
-  const [isAiParsing, setIsAiParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isOcrScanning, setIsOcrScanning] = useState(false);
+
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('MMK');
+  const [exchangeRates, setExchangeRates] = useState<any[]>([]);
+  const [priceBookItems, setPriceBookItems] = useState<any[]>([]);
+  const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
+
+  const loadRatesAndBook = async () => {
+    try {
+      const rates = await database.select().from(sqliteSchema.exchange_rates);
+      setExchangeRates(rates);
+
+      if (shop && shop.priceBookId) {
+        const items = await database
+          .select()
+          .from(sqliteSchema.price_book_items)
+          .where(
+            eq(sqliteSchema.price_book_items.price_book_id, shop.priceBookId),
+          );
+        setPriceBookItems(items);
+      } else {
+        setPriceBookItems([]);
+      }
+    } catch (e) {
+      console.error('Failed to load rates or price book items:', e);
+    }
+  };
+
+  const getItemPrice = (item: Item) => {
+    const pbItem = priceBookItems.find((pbi) => pbi.item_id === item.id);
+    let basePrice = item.unitPrice; // standard MMK price
+    let baseCurrency = 'MMK';
+
+    if (pbItem) {
+      basePrice = pbItem.price;
+      baseCurrency = pbItem.currency;
+    }
+
+    if (baseCurrency === selectedCurrency) {
+      return basePrice;
+    }
+
+    // Convert baseCurrency to MMK first
+    let priceInMmk = basePrice;
+    if (baseCurrency !== 'MMK') {
+      const rateToMmk = exchangeRates.find(
+        (r) => r.from_currency === baseCurrency && r.to_currency === 'MMK',
+      );
+      if (rateToMmk) {
+        priceInMmk = basePrice * rateToMmk.rate;
+      }
+    }
+
+    if (selectedCurrency === 'MMK') {
+      return priceInMmk;
+    }
+
+    // Convert MMK to selectedCurrency
+    const rateFromMmk = exchangeRates.find(
+      (r) => r.from_currency === selectedCurrency && r.to_currency === 'MMK',
+    );
+    if (rateFromMmk && rateFromMmk.rate > 0) {
+      return priceInMmk / rateFromMmk.rate;
+    }
+
+    // Default rate falls back if rates are not loaded yet
+    if (selectedCurrency === 'USD') return priceInMmk / 2100;
+    if (selectedCurrency === 'THB') return priceInMmk / 58.5;
+
+    return priceInMmk;
+  };
 
   useEffect(() => {
     if (visible) {
       loadItems();
+      loadRatesAndBook();
     } else {
       resetForm();
     }
   }, [visible]);
 
   useEffect(() => {
+    if (visible) {
+      loadRatesAndBook();
+    }
+  }, [shop]);
+
+  useEffect(() => {
     loadItems();
   }, [skuSearch]);
-
-  const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
 
   const loadItems = async () => {
     try {
@@ -90,186 +164,7 @@ export function InteractionLoggingScreen({
     setSelectedItems([]);
     setScreenshotUri(null);
     setSkuSearch('');
-  };
-
-  const handlePickImage = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert(
-        'Permission required',
-        'Need camera roll permissions to upload screenshot.',
-      );
-      return;
-    }
-
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (
-      !pickerResult.canceled &&
-      pickerResult.assets &&
-      pickerResult.assets.length > 0
-    ) {
-      const uri = pickerResult.assets[0].uri;
-      try {
-        const manipResult = await ImageManipulator.manipulateAsync(
-          uri,
-          [{ resize: { width: 800 } }],
-          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
-        );
-        setScreenshotUri(manipResult.uri);
-      } catch (err) {
-        console.error('Image compression failed', err);
-        setScreenshotUri(uri);
-      }
-    }
-  };
-
-  const handleOpenViber = async () => {
-    if (!shop) return;
-    try {
-      // In a real app we would get the primary contact's phone number
-      const contacts = await database.collections
-        .get('contacts')
-        .query(Q.where('shop_id', shop.id))
-        .fetch();
-      const phone =
-        contacts.length > 0 ? (contacts[0] as Contact).phoneNumber : '';
-      if (phone) {
-        const url = `viber://chat?number=${encodeURIComponent(phone)}`;
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-        } else {
-          Alert.alert(t('error'), t('viberNotInstalled'));
-        }
-      } else {
-        Alert.alert(t('error'), t('noContactFound'));
-      }
-    } catch (e) {
-      console.error(e);
-      Alert.alert(t('error'), t('couldNotOpenViber'));
-    }
-  };
-
-  const handleParseWithGemma = async () => {
-    if (!notes.trim()) {
-      Alert.alert(t('error'), t('enterNotesToParse'));
-      return;
-    }
-    setIsAiParsing(true);
-    try {
-      const response = await fetch(AI_PARSE_NOTE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note: notes }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCommercialStatus(data.commercialStatus);
-
-        // Match SKUs
-        const newSelected = [...selectedItems];
-        for (const aiItem of data.items) {
-          const itemsCol = database.collections.get<Item>('items');
-          const matchedItems = await itemsCol
-            .query(Q.where('sku', aiItem.sku))
-            .fetch();
-          if (
-            matchedItems.length > 0 &&
-            !newSelected.find((i) => i.item.sku === aiItem.sku)
-          ) {
-            newSelected.push({
-              item: matchedItems[0],
-              quantity: aiItem.quantity,
-            });
-          }
-        }
-        setSelectedItems(newSelected);
-
-        if (data.summary) {
-          setNotes(data.summary);
-        }
-        Alert.alert(t('success'), t('gemmaSuccess'));
-      } else {
-        Alert.alert(t('error'), t('gemmaFailed'));
-      }
-    } catch (e) {
-      console.error(e);
-      Alert.alert(t('error'), t('gemmaParseFailed'));
-    } finally {
-      setIsAiParsing(false);
-    }
-  };
-
-  const handleScanInvoiceOCR = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(t('permissionDenied'), t('cameraRollRequired'));
-      return;
-    }
-
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.5,
-    });
-
-    if (pickerResult.canceled || !pickerResult.assets?.length) return;
-
-    const uri = pickerResult.assets[0].uri;
-    setIsOcrScanning(true);
-    try {
-      // Read the image as base64 so we send the real file to the OCR endpoint
-      const { readAsStringAsync, EncodingType } = (await import(
-        'expo-file-system'
-      )) as any;
-      const base64 = await readAsStringAsync(uri, {
-        encoding: EncodingType.Base64,
-      });
-
-      const response = await fetch(AI_OCR_INVOICE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.items.length > 0) {
-          const newSelected = [...selectedItems];
-          for (const aiItem of data.items) {
-            const itemsCol = database.collections.get<Item>('items');
-            const matchedItems = await itemsCol
-              .query(Q.where('id', aiItem.itemId))
-              .fetch();
-            if (
-              matchedItems.length > 0 &&
-              !newSelected.find((i) => i.item.id === aiItem.itemId)
-            ) {
-              newSelected.push({
-                item: matchedItems[0],
-                quantity: aiItem.quantity,
-              });
-            }
-          }
-          setSelectedItems(newSelected);
-          Alert.alert(t('scanSuccess'), data.explanation);
-        } else {
-          Alert.alert(t('scanFailed'), t('ocrNoSkus'));
-        }
-      } else {
-        Alert.alert(t('error'), t('ocrFailedConnect'));
-      }
-    } catch (e) {
-      console.error('OCR scan failed', e);
-      Alert.alert(t('error'), t('ocrRequestFailed'));
-    } finally {
-      setIsOcrScanning(false);
-    }
+    setSelectedCurrency('MMK');
   };
 
   const toggleItem = (item: Item) => {
@@ -282,7 +177,6 @@ export function InteractionLoggingScreen({
   };
 
   const updateQuantity = (itemId: string, quantity: string) => {
-    // Strip non-digit characters. Allow empty string temporarily for editing.
     const qtyStr = quantity.replace(/[^0-9]/g, '');
     setSelectedItems(
       selectedItems.map((i) =>
@@ -309,7 +203,7 @@ export function InteractionLoggingScreen({
     }
 
     // Validate quantity inputs first
-    const validatedItems: { item: Item; quantity: number }[] = [];
+    const validatedItems: SelectedItemPayload[] = [];
     for (const selected of selectedItems) {
       const qty =
         typeof selected.quantity === 'number'
@@ -322,7 +216,13 @@ export function InteractionLoggingScreen({
         );
         return;
       }
-      validatedItems.push({ item: selected.item, quantity: qty });
+      const price = getItemPrice(selected.item);
+      validatedItems.push({
+        item: selected.item,
+        quantity: qty,
+        unitPrice: price,
+        selectedCurrency: selectedCurrency,
+      });
     }
 
     // Validate stock levels before saving
@@ -363,14 +263,6 @@ export function InteractionLoggingScreen({
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
-  const theme = useTheme<Theme>();
-
-  const getLogTypeBtnLabel = (tName: string) => {
-    if (tName === 'PHONE_CALL') return t('phone');
-    if (tName === 'VIBER') return 'Viber';
-    if (tName === 'SHOP_VISIT') return t('typeVisit');
-    return tName.replaceAll('_', ' ');
-  };
 
   const getCommercialStatusBtnLabel = (sName: string) => {
     if (sName === 'FOLLOWED_UP') return t('statusFollowedUp');
@@ -393,10 +285,10 @@ export function InteractionLoggingScreen({
         style={
           isDesktop
             ? ({
-                backgroundColor: 'rgba(15, 23, 42, 0.45)', // Sleek backdrop Slate-900 transparent
+                backgroundColor: 'rgba(15, 23, 42, 0.45)',
                 justifyContent: 'center',
                 alignItems: 'center',
-                backdropFilter: 'blur(8px)', // Glassmorphism backdrop filter on modern browsers!
+                backdropFilter: 'blur(8px)',
               } as any)
             : undefined
         }
@@ -449,82 +341,21 @@ export function InteractionLoggingScreen({
                 </Card>
               )}
 
-              <Text variant="title" mb="s">
-                {t('interactionType')}
-              </Text>
-              <Box flexDirection="row" flexWrap="wrap" mb="m">
-                {['PHONE_CALL', 'VIBER', 'SHOP_VISIT'].map((tVal) => (
-                  <Box key={tVal} mr="s" mb="s">
-                    <Button
-                      title={getLogTypeBtnLabel(tVal)}
-                      variant={type === tVal ? 'primary' : 'outline'}
-                      onPress={() => setType(tVal)}
-                    />
-                  </Box>
-                ))}
-              </Box>
-
-              {type === 'VIBER' && (
-                <Box mb="m" flexDirection="row" alignItems="center">
-                  <Button
-                    title={t('openViberChat')}
-                    variant="secondary"
-                    onPress={handleOpenViber}
-                  />
-                  <Box width={10} />
-                  <Button title={t('uploadProof')} onPress={handlePickImage} />
-                  {screenshotUri && (
-                    <Text
-                      variant="body"
-                      color="secondaryText"
-                      style={{ marginLeft: 10 }}
-                    >
-                      {t('uploaded')}
-                    </Text>
-                  )}
-                </Box>
-              )}
-
-              <Text variant="title" mb="s">
-                {t('gemmaCopilot')}
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: theme.colors.cardBackground,
-                  padding: 12,
-                  borderRadius: theme.borderRadii.m,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderColor,
-                  color: theme.colors.primaryText,
-                  minHeight: 80,
-                  marginBottom: 8,
-                  textAlignVertical: 'top',
-                  outlineWidth: 0,
-                }}
-                multiline
-                placeholder={t('gemmaPlaceholder')}
-                placeholderTextColor={theme.colors.secondaryText}
-                value={notes}
-                onChangeText={setNotes}
+              <ViberIntegration
+                type={type}
+                setType={setType}
+                shop={shop}
+                screenshotUri={screenshotUri}
+                setScreenshotUri={setScreenshotUri}
               />
-              <Box flexDirection="row" justifyContent="space-between" mb="m">
-                <Box style={{ flex: 1, marginRight: 8 }}>
-                  <Button
-                    title={t('parseWithGemma')}
-                    variant="secondary"
-                    isLoading={isAiParsing}
-                    onPress={handleParseWithGemma}
-                  />
-                </Box>
-                <Box style={{ flex: 1 }}>
-                  <Button
-                    title={t('scanInvoiceOcr')}
-                    variant="outline"
-                    isLoading={isOcrScanning}
-                    onPress={handleScanInvoiceOCR}
-                  />
-                </Box>
-              </Box>
+
+              <GemmaCopilot
+                notes={notes}
+                setNotes={setNotes}
+                selectedItems={selectedItems}
+                setSelectedItems={setSelectedItems}
+                setCommercialStatus={setCommercialStatus}
+              />
 
               <Text variant="title" mt="m" mb="s">
                 {t('commercialStatus')}
@@ -549,98 +380,62 @@ export function InteractionLoggingScreen({
               </Box>
 
               <Text variant="title" mb="s">
-                {t('skuTagging')}
+                {t('priceCurrency') || 'Price Currency'}
               </Text>
-              <TextInput
-                style={{
-                  backgroundColor: theme.colors.cardBackground,
-                  padding: 8,
-                  borderRadius: theme.borderRadii.m,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderColor,
-                  color: theme.colors.primaryText,
-                  marginBottom: 8,
-                  outlineWidth: 0,
-                }}
-                placeholder={t('searchSkusPlaceholder')}
-                placeholderTextColor={theme.colors.secondaryText}
-                value={skuSearch}
-                onChangeText={setSkuSearch}
-              />
-              <Box style={{ maxHeight: 150 }} mb="m">
-                <ScrollView nestedScrollEnabled>
-                  {availableItems.map((item) => {
-                    const isSelected = selectedItems.find(
-                      (i) => i.item.id === item.id,
-                    );
-                    return (
+              <Box flexDirection="row" mb="m">
+                {['MMK', 'USD', 'THB'].map((curr) => {
+                  const isSelected = selectedCurrency === curr;
+                  return (
+                    <Box key={curr} mr="s" style={{ flex: 1 }}>
                       <TouchableOpacity
-                        key={item.id}
-                        onPress={() => toggleItem(item)}
+                        onPress={() => setSelectedCurrency(curr)}
+                        activeOpacity={0.7}
                       >
                         <Box
-                          p="s"
-                          bg={isSelected ? 'secondaryButton' : 'mainBackground'}
-                          borderBottomWidth={1}
-                          borderColor="borderColor"
+                          py="s"
+                          px="m"
+                          borderRadius="m"
+                          borderWidth={1}
+                          borderColor={
+                            isSelected ? 'primaryButton' : 'borderColor'
+                          }
+                          bg={isSelected ? 'primaryButton' : 'cardBackground'}
+                          alignItems="center"
+                          justifyContent="center"
                         >
                           <Text
                             variant="body"
+                            fontWeight="bold"
                             color={
-                              isSelected ? 'secondaryButtonText' : 'primaryText'
+                              isSelected ? 'primaryButtonText' : 'primaryText'
                             }
                           >
-                            {item.name} ({item.sku}) - {t('availableStock')}:{' '}
-                            {stocksMap[item.id] !== undefined
-                              ? stocksMap[item.id]
-                              : 0}
+                            {curr}
                           </Text>
                         </Box>
                       </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                    </Box>
+                  );
+                })}
               </Box>
 
-              {selectedItems.length > 0 && (
-                <Box mb="m">
-                  <Text variant="body" fontWeight="bold" mb="s">
-                    {t('selectedQuantities')}
-                  </Text>
-                  {selectedItems.map((si) => (
-                    <Box
-                      key={si.item.id}
-                      flexDirection="row"
-                      alignItems="center"
-                      mb="s"
-                    >
-                      <Text variant="body" style={{ flex: 1 }}>
-                        {si.item.name} ({t('availableStock')}:{' '}
-                        {stocksMap[si.item.id] !== undefined
-                          ? stocksMap[si.item.id]
-                          : 0}
-                        )
-                      </Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: theme.colors.cardBackground,
-                          padding: 4,
-                          width: 60,
-                          borderRadius: theme.borderRadii.s,
-                          borderWidth: 1,
-                          borderColor: theme.colors.borderColor,
-                          color: theme.colors.primaryText,
-                          textAlign: 'center',
-                          outlineWidth: 0,
-                        }}
-                        keyboardType="numeric"
-                        value={si.quantity.toString()}
-                        onChangeText={(val) => updateQuantity(si.item.id, val)}
-                      />
-                    </Box>
-                  ))}
-                </Box>
-              )}
+              <AvailableItemsSelector
+                skuSearch={skuSearch}
+                setSkuSearch={setSkuSearch}
+                availableItems={availableItems}
+                selectedItems={selectedItems}
+                toggleItem={toggleItem}
+                getItemPrice={getItemPrice}
+                selectedCurrency={selectedCurrency}
+                stocksMap={stocksMap}
+              />
+
+              <SelectedItemsList
+                selectedItems={selectedItems}
+                updateQuantity={updateQuantity}
+                getItemPrice={getItemPrice}
+                selectedCurrency={selectedCurrency}
+              />
 
               <Box height={40} />
             </ScrollView>

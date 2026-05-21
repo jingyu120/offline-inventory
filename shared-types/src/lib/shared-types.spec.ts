@@ -10,6 +10,7 @@ import {
   INTERACTION_TYPES,
   COMMERCIAL_STATUSES,
   SENTIMENT_TRENDS,
+  guardAsync,
 } from './shared-types';
 
 describe('shared-types', () => {
@@ -54,6 +55,7 @@ describe('shared-types', () => {
         assigned_rep_id: null,
         lifetime_value: 0,
         sentiment_trend: 'STABLE',
+        price_book_id: null,
         created_at: 10000,
         updated_at: 10000,
       };
@@ -116,6 +118,10 @@ describe('shared-types', () => {
         quantity: 5,
         unit_price_at_sale: 2400,
         interest_level: 'HIGH',
+        unit_price: null,
+        selected_currency: null,
+        created_at: 10000,
+        updated_at: 10000,
       };
       expect(record.unit_price_at_sale).toBe(2400);
     });
@@ -153,6 +159,23 @@ describe('shared-types', () => {
         deleted: [],
       };
       expect(changeset.created).toHaveLength(0);
+    });
+  });
+
+  describe('guardAsync', () => {
+    it('returns [data, null] on successful resolution', async () => {
+      const promise = Promise.resolve('success_val');
+      const [result, error] = await guardAsync(promise);
+      expect(result).toBe('success_val');
+      expect(error).toBeNull();
+    });
+
+    it('returns [null, error] on rejection', async () => {
+      const mockError = new Error('failure_err');
+      const promise = Promise.reject(mockError);
+      const [result, error] = await guardAsync(promise);
+      expect(result).toBeNull();
+      expect(error).toBe(mockError);
     });
   });
 });

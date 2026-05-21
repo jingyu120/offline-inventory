@@ -18,6 +18,7 @@ import {
   InteractionItem,
   Contact,
 } from '@burma-inventory/shared-types';
+import { useAuth } from '../utils/auth';
 
 export interface ProcessedShop {
   id: string;
@@ -34,6 +35,7 @@ export interface ProcessedShop {
 }
 
 export const useGeographicHeatmapData = () => {
+  const { activeRep } = useAuth();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<ProcessedShop[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -165,7 +167,10 @@ export const useGeographicHeatmapData = () => {
       const itemsList = await fetchAllItems();
       setItems(itemsList);
 
-      const shopsList = await fetchShops();
+      let shopsList = await fetchShops();
+      if (activeRep.role === 'sales' && activeRep.regionId) {
+        shopsList = shopsList.filter((s) => s.regionId === activeRep.regionId);
+      }
       const logsList = await fetchInteractionLogs();
       const interactionItemsList = await fetchAllInteractionItems();
 
@@ -183,18 +188,21 @@ export const useGeographicHeatmapData = () => {
       const processed: ProcessedShop[] = shopsList.map((shop) => {
         const shopLogs = logsByShop.get(shop.id) || [];
         const sortedLogs = [...shopLogs].sort(
-          (a, b) => b.createdAtLocal.getTime() - a.createdAtLocal.getTime(),
+          (a, b) => b.createdAtLocal - a.createdAtLocal,
         );
-        const lastContactDate = sortedLogs[0]?.createdAtLocal;
+        const lastContactDateNum = sortedLogs[0]?.createdAtLocal;
+        const lastContactDate = lastContactDateNum
+          ? new Date(lastContactDateNum)
+          : undefined;
 
         return {
           id: shop.id,
           name: shop.name,
           address: shop.address,
-          latitude: shop.latitude,
-          longitude: shop.longitude,
+          latitude: shop.latitude ?? undefined,
+          longitude: shop.longitude ?? undefined,
           regionId: shop.regionId,
-          assignedRepId: shop.assignedRepId,
+          assignedRepId: shop.assignedRepId ?? undefined,
           lifetimeValue: shop.lifetimeValue,
           sentimentTrend: shop.sentimentTrend,
           lastContactDate,
@@ -212,7 +220,7 @@ export const useGeographicHeatmapData = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeRep.id]);
 
   // Filter Logic
   const getFilteredShops = () => {

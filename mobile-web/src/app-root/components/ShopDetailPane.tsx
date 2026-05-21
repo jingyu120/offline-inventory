@@ -1,22 +1,28 @@
 import React from 'react';
-import { ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { ScrollView } from 'react-native';
 import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
-import { Shop, Contact } from '@burma-inventory/shared-types';
-import { LogWithItems } from '../../data/repositories';
+import { Shop, Contact, sqliteSchema } from '@burma-inventory/shared-types';
+import { LogWithItems, mapItem } from '../../data/repositories';
 import { useTranslation } from '../../utils/i18n';
+import { database } from '../../database';
+import { eq } from 'drizzle-orm';
+import { useAuth } from '../../utils/auth';
 import {
-  Phone,
-  MessageSquare,
   MapPin,
   Star,
-  User,
   ArrowLeft,
   Clock,
   TrendingUp,
   TrendingDown,
   DollarSign,
 } from 'lucide-react-native';
+
+import { GPSCheckInCard } from './GPSCheckInCard';
+import { PredictionAnalyticsCard } from './PredictionAnalyticsCard';
+import { RepScorecardCard } from './RepScorecardCard';
+import { ContactsCard } from './ContactsCard';
+import { InteractionsTimeline } from './InteractionsTimeline';
 
 interface ShopDetailPaneProps {
   shop: Shop;
@@ -38,6 +44,142 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 }) => {
   const theme = useTheme<Theme>();
   const { t } = useTranslation();
+  const { activeRep } = useAuth();
+
+  const [hasPlannedRoute, setHasPlannedRoute] = React.useState(false);
+  const [todayCheckIn, setTodayCheckIn] = React.useState<any>(null);
+  const [predictionLog, setPredictionLog] = React.useState<any>(null);
+  const [recommendedOrder, setRecommendedOrder] = React.useState<any>(null);
+  const [recommendedItem, setRecommendedItem] = React.useState<any>(null);
+  const [repScore, setRepScore] = React.useState<any>(null);
+  const [pointsLogs, setPointsLogs] = React.useState<any[]>([]);
+
+  const mapRepScore = (s: any) => ({
+    id: s.id,
+    repId: s.rep_id,
+    points: s.points,
+    streakDays: s.streak_days,
+    badges: s.badges,
+    createdAt: s.created_at,
+    updatedAt: s.updated_at,
+  });
+
+  const mapPointsLog = (l: any) => ({
+    id: l.id,
+    repId: l.rep_id,
+    pointsAdded: l.points_added,
+    reason: l.reason,
+    createdAt: l.created_at,
+  });
+
+  const mapPredictionLog = (p: any) => ({
+    id: p.id,
+    shopId: p.shop_id,
+    predictedLtv: p.predicted_ltv,
+    churnRisk: p.churn_risk,
+    stockoutRisk: p.stockout_risk,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  });
+
+  const mapRecommendedOrder = (r: any) => ({
+    id: r.id,
+    shopId: r.shop_id,
+    itemId: r.item_id,
+    quantity: r.quantity,
+    confidence: r.confidence,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  });
+
+  const mapCheckInLog = (cil: any) => ({
+    id: cil.id,
+    shopId: cil.shop_id,
+    repId: cil.rep_id,
+    checkInTime: cil.check_in_time,
+    latitude: cil.latitude,
+    longitude: cil.longitude,
+    verified: cil.verified,
+    createdAt: cil.created_at,
+    updatedAt: cil.updated_at,
+  });
+
+  const loadDetails = React.useCallback(async () => {
+    try {
+      // 1. Planned routes
+      const prs = await database.select().from(sqliteSchema.planned_routes);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const activeRoute = prs.find(
+        (pr: any) => pr.rep_id === activeRep.id && pr.date === todayStr,
+      );
+      if (activeRoute) {
+        try {
+          const shopIds = JSON.parse(activeRoute.shop_ids);
+          setHasPlannedRoute(shopIds.includes(shop.id));
+        } catch {
+          setHasPlannedRoute(false);
+        }
+      } else {
+        setHasPlannedRoute(false);
+      }
+
+      // 2. Check-in logs
+      const cils = await database.select().from(sqliteSchema.check_in_logs);
+      const todayCi = cils.find((cil: any) => {
+        const cilDate = new Date(cil.check_in_time).toISOString().split('T')[0];
+        return (
+          cil.shop_id === shop.id &&
+          cil.rep_id === activeRep.id &&
+          cilDate === todayStr
+        );
+      });
+      setTodayCheckIn(todayCi ? mapCheckInLog(todayCi) : null);
+
+      // 3. Predictions
+      const preds = await database.select().from(sqliteSchema.prediction_logs);
+      const pred = preds.find((p: any) => p.shop_id === shop.id);
+      setPredictionLog(pred ? mapPredictionLog(pred) : null);
+
+      // 4. Recommendations
+      const recs = await database
+        .select()
+        .from(sqliteSchema.recommended_orders);
+      const rec = recs.find((r: any) => r.shop_id === shop.id);
+      setRecommendedOrder(rec ? mapRecommendedOrder(rec) : null);
+      if (rec) {
+        try {
+          const itemsList = await database
+            .select()
+            .from(sqliteSchema.items)
+            .where(eq(sqliteSchema.items.id, rec.item_id));
+          const item = itemsList[0];
+          setRecommendedItem(item ? mapItem(item) : null);
+        } catch {
+          setRecommendedItem(null);
+        }
+      } else {
+        setRecommendedItem(null);
+      }
+
+      // 5. Rep Scores
+      const scores = await database.select().from(sqliteSchema.rep_scores);
+      const score = scores.find((s: any) => s.rep_id === activeRep.id);
+      setRepScore(score ? mapRepScore(score) : null);
+
+      // 6. Points Logs
+      const logs = await database.select().from(sqliteSchema.points_logs);
+      const filteredLogs = logs
+        .filter((l: any) => l.rep_id === activeRep.id)
+        .sort((a: any, b: any) => b.created_at - a.created_at);
+      setPointsLogs(filteredLogs.slice(0, 5).map(mapPointsLog));
+    } catch (e) {
+      console.error('Failed to load shop details:', e);
+    }
+  }, [shop.id, activeRep.id]);
+
+  React.useEffect(() => {
+    loadDetails();
+  }, [loadDetails]);
 
   const renderTrendBadge = (trend: string) => {
     let bg: keyof Theme['colors'] = 'secondaryButton';
@@ -76,7 +218,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
       >
         <Icon
           size={14}
-          color={theme.colors[textCol]}
+          stroke={theme.colors[textCol]}
           style={{ marginRight: 4 }}
         />
         <Text variant="bodySecondary" fontWeight="bold" color={textCol}>
@@ -84,24 +226,6 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         </Text>
       </Box>
     );
-  };
-
-  const getLogTypeLabel = (type: string) => {
-    if (type === 'SHOP_VISIT') return t('typeVisit');
-    if (type === 'STOCK_DELIVERY' || type === 'ORDER_PLACED')
-      return t('typeOrder');
-    if (type === 'COLLECTION') return t('typeCollection');
-    if (type === 'PHONE_CALL') return t('phone');
-    return type.replaceAll('_', ' ');
-  };
-
-  const getCommercialStatusLabel = (status: string) => {
-    if (status === 'FOLLOWED_UP') return t('statusFollowedUp');
-    if (status === 'ORDER_PLACED' || status === 'CLOSED')
-      return t('statusClosed');
-    if (status === 'NOT_INTERESTED' || status === 'NO_DEAL')
-      return t('statusNoDeal');
-    return status.replaceAll('_', ' ');
   };
 
   return (
@@ -122,7 +246,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                 icon={
                   <ArrowLeft
                     size={16}
-                    color={theme.colors.secondaryButtonText}
+                    stroke={theme.colors.secondaryButtonText}
                   />
                 }
               />
@@ -131,6 +255,18 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           <Text variant="header" fontSize={isDesktop ? 32 : 24}>
             {shop.name}
           </Text>
+          {hasPlannedRoute && (
+            <Box bg="infoBg" px="s" py="xs" borderRadius="s" ml="s">
+              <Text
+                variant="badge"
+                color="info"
+                fontSize={11}
+                fontWeight="bold"
+              >
+                📍 Route Planned
+              </Text>
+            </Box>
+          )}
         </Box>
         <Button
           title={t('logInteraction')}
@@ -150,7 +286,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           <Box width={isDesktop ? '33.3%' : '100%'} p="s">
             <Card flexDirection="row" alignItems="center" p="m">
               <Box bg="infoBg" p="s" borderRadius="m" mr="m">
-                <MapPin size={20} color={theme.colors.info} />
+                <MapPin size={20} stroke={theme.colors.info} />
               </Box>
               <Box flex={1}>
                 <Text variant="bodySecondary">{t('address')}</Text>
@@ -164,7 +300,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           <Box width={isDesktop ? '33.3%' : '50%'} p="s">
             <Card flexDirection="row" alignItems="center" p="m">
               <Box bg="successBg" p="s" borderRadius="m" mr="m">
-                <DollarSign size={20} color={theme.colors.success} />
+                <DollarSign size={20} stroke={theme.colors.success} />
               </Box>
               <Box flex={1}>
                 <Text variant="bodySecondary">{t('lifetimeValue')}</Text>
@@ -178,7 +314,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           <Box width={isDesktop ? '33.3%' : '50%'} p="s">
             <Card flexDirection="row" alignItems="center" p="m">
               <Box bg="warningBg" p="s" borderRadius="m" mr="m">
-                <Star size={20} color={theme.colors.warning} />
+                <Star size={20} stroke={theme.colors.warning} />
               </Box>
               <Box flex={1}>
                 <Text variant="bodySecondary">{t('sentimentTrend')}</Text>
@@ -190,185 +326,30 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           </Box>
         </Box>
 
+        {/* GPS Check-in */}
+        <GPSCheckInCard
+          shop={shop}
+          todayCheckIn={todayCheckIn}
+          loadDetails={loadDetails}
+        />
+
+        {/* Predictive Analytics & AI Recommendations */}
+        <PredictionAnalyticsCard
+          shop={shop}
+          predictionLog={predictionLog}
+          recommendedOrder={recommendedOrder}
+          recommendedItem={recommendedItem}
+          onLogInteraction={onLogInteraction}
+        />
+
+        {/* Gamification Scorecard */}
+        <RepScorecardCard repScore={repScore} pointsLogs={pointsLogs} />
+
         {/* Contacts Section */}
-        <Text variant="title" mb="s">
-          {t('contacts')}
-        </Text>
-        <Box
-          flexDirection="row"
-          flexWrap="wrap"
-          style={{ marginHorizontal: -8 }}
-          mb="l"
-        >
-          {shopContacts.map((c) => (
-            <Box key={c.id} width={isDesktop ? '50%' : '100%'} p="s">
-              <Card
-                p="m"
-                borderLeftWidth={c.isPrimary ? 4 : 0}
-                borderLeftColor="primaryButton"
-              >
-                <Box
-                  flexDirection="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb="s"
-                >
-                  <Box flexDirection="row" alignItems="center">
-                    <User
-                      size={16}
-                      color={theme.colors.secondaryText}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text variant="body" fontWeight="bold">
-                      {c.name}
-                    </Text>
-                  </Box>
-                  {c.isPrimary && (
-                    <Box bg="primaryButton" px="s" py="xs" borderRadius="s">
-                      <Text
-                        variant="badge"
-                        color="primaryButtonText"
-                        fontSize={10}
-                      >
-                        {t('primaryContact')}
-                      </Text>
-                    </Box>
-                  )}
-                </Box>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL(`tel:${c.phoneNumber}`)}
-                  style={{ flexDirection: 'row', alignItems: 'center' }}
-                >
-                  <Phone
-                    size={14}
-                    color={theme.colors.primaryButton}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
-                    variant="bodySecondary"
-                    color="primaryButton"
-                    style={{ textDecorationLine: 'underline' }}
-                  >
-                    {c.phoneNumber}
-                  </Text>
-                </TouchableOpacity>
-              </Card>
-            </Box>
-          ))}
-          {shopContacts.length === 0 && (
-            <Box p="m">
-              <Text variant="bodySecondary">{t('noContacts')}</Text>
-            </Box>
-          )}
-        </Box>
+        <ContactsCard shopContacts={shopContacts} isDesktop={isDesktop} />
 
         {/* Recent Interactions Timeline */}
-        <Text variant="title" mb="s">
-          {t('recentInteractions')}
-        </Text>
-        {shopLogsWithItems.map(({ log, items }) => {
-          let statusColor: keyof Theme['colors'] = 'secondaryText';
-          let statusBg: keyof Theme['colors'] = 'secondaryButton';
-          if (log.commercialStatus === 'ORDER_PLACED') {
-            statusColor = 'successText';
-            statusBg = 'successBg';
-          } else if (log.commercialStatus === 'INTERESTED') {
-            statusColor = 'infoText';
-            statusBg = 'infoBg';
-          } else if (log.commercialStatus === 'NOT_INTERESTED') {
-            statusColor = 'dangerText';
-            statusBg = 'dangerBg';
-          }
-
-          const isViber = log.type === 'VIBER';
-          const LogIcon = isViber
-            ? MessageSquare
-            : log.type === 'PHONE_CALL'
-              ? Phone
-              : MapPin;
-
-          return (
-            <Card key={log.id} mb="m" p="m">
-              <Box
-                flexDirection="row"
-                justifyContent="space-between"
-                alignItems="center"
-                mb="s"
-              >
-                <Box flexDirection="row" alignItems="center">
-                  <Box bg="secondaryBackground" p="s" borderRadius="s" mr="s">
-                    <LogIcon size={16} color={theme.colors.primaryText} />
-                  </Box>
-                  <Text variant="body" fontWeight="bold">
-                    {getLogTypeLabel(log.type)}
-                  </Text>
-                </Box>
-                <Box flexDirection="row" alignItems="center">
-                  <Clock
-                    size={12}
-                    color={theme.colors.secondaryText}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text variant="bodySecondary">
-                    {new Date(log.createdAtLocal).toLocaleDateString()}
-                  </Text>
-                </Box>
-              </Box>
-
-              <Box mb="s" flexDirection="row">
-                <Box bg={statusBg} px="s" py="xs" borderRadius="s">
-                  <Text variant="badge" color={statusColor} fontSize={11}>
-                    {getCommercialStatusLabel(log.commercialStatus)}
-                  </Text>
-                </Box>
-              </Box>
-
-              <Text variant="body" style={{ lineHeight: 20 }}>
-                {log.notes}
-              </Text>
-
-              {items.length > 0 && (
-                <Box
-                  mt="m"
-                  pt="m"
-                  borderTopWidth={1}
-                  borderTopColor="borderColor"
-                >
-                  <Text variant="bodySecondary" fontWeight="bold" mb="s">
-                    {t('skusTagged')}
-                  </Text>
-                  <Box flexDirection="row" flexWrap="wrap">
-                    {items.map((item) => (
-                      <Box
-                        key={item.id}
-                        bg="secondaryBackground"
-                        px="s"
-                        py="xs"
-                        borderRadius="s"
-                        mr="s"
-                        mb="s"
-                        flexDirection="row"
-                        alignItems="center"
-                      >
-                        <Text variant="bodySecondary" fontWeight="bold">
-                          {item.quantity}x
-                        </Text>
-                        <Text variant="bodySecondary" style={{ marginLeft: 4 }}>
-                          {item.name} ({item.sku})
-                        </Text>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Card>
-          );
-        })}
-        {shopLogsWithItems.length === 0 && (
-          <Card p="m" alignItems="center">
-            <Text variant="bodySecondary">{t('noRecentInteractions')}</Text>
-          </Card>
-        )}
+        <InteractionsTimeline shopLogsWithItems={shopLogsWithItems} />
       </ScrollView>
     </Box>
   );

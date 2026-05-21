@@ -1,16 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  TouchableOpacity,
-  useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useGeographicHeatmapData } from '../hooks/useGeographicHeatmapData';
 import { MapFilterPanel } from './components/MapFilterPanel';
 import { MapDetailPane } from './components/MapDetailPane';
 import { useTranslation } from '../utils/i18n';
 import { tileDb } from '../utils/tileDb';
+
+// Import subcomponents
+import { MapLegend } from './components/MapLegend';
+import { MapHeaderFloating } from './components/MapHeaderFloating';
 
 // Helper to dynamically load Leaflet from CDN to avoid React 19 dependency conflicts
 const loadLeaflet = (callback: () => void) => {
@@ -61,9 +60,6 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
   const {
     loading,
-    shops,
-    regions,
-    items,
     selectedRegion,
     setSelectedRegion,
     selectedRep,
@@ -83,6 +79,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
     cacheProgress,
     cacheTotal,
     preCacheOfflineMap,
+    regions,
+    items,
   } = useGeographicHeatmapData();
 
   // 1. Load Leaflet Asset Libraries
@@ -287,62 +285,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
             )}
 
             {/* Map Color Recency Legend */}
-            <Box
-              style={{
-                position: 'absolute',
-                bottom: 12,
-                left: 12,
-                backgroundColor: 'rgba(255,255,255,0.92)',
-                padding: 10,
-                borderRadius: 8,
-                zIndex: 1000,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-              }}
-            >
-              <Text variant="bodySecondary" fontWeight="bold" mb="xs">
-                {t('lastContactRecency')}
-              </Text>
-              <Box flexDirection="row" alignItems="center" mb="xs">
-                <Box
-                  width={12}
-                  height={12}
-                  bg="transparent"
-                  style={{ backgroundColor: '#22C55E', borderRadius: 6 }}
-                  mr="s"
-                />
-                <Text variant="bodySecondary">{t('activeContact')}</Text>
-              </Box>
-              <Box flexDirection="row" alignItems="center" mb="xs">
-                <Box
-                  width={12}
-                  height={12}
-                  bg="transparent"
-                  style={{ backgroundColor: '#4ADE80', borderRadius: 6 }}
-                  mr="s"
-                />
-                <Text variant="bodySecondary">{t('recentContact')}</Text>
-              </Box>
-              <Box flexDirection="row" alignItems="center" mb="xs">
-                <Box
-                  width={12}
-                  height={12}
-                  bg="transparent"
-                  style={{ backgroundColor: '#EAB308', borderRadius: 6 }}
-                  mr="s"
-                />
-                <Text variant="bodySecondary">{t('warningContact')}</Text>
-              </Box>
-              <Box flexDirection="row" alignItems="center">
-                <Box
-                  width={12}
-                  height={12}
-                  bg="transparent"
-                  style={{ backgroundColor: '#FF3B30', borderRadius: 6 }}
-                  mr="s"
-                />
-                <Text variant="bodySecondary">{t('neglectedContact')}</Text>
-              </Box>
-            </Box>
+            <MapLegend bottom={12} />
           </Box>
 
           {/* Right Side: Context Ledger Sidebar */}
@@ -408,60 +351,12 @@ export const GeographicHeatmapScreen: React.FC = () => {
         />
       )}
 
-      {/* Floating Header Badge */}
-      <Box
-        style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          right: 12,
-          zIndex: 1100,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Box
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.95)',
-            borderRadius: 20,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
-          }}
-        >
-          <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#1E293B' }}>
-            📍 {filteredShops.length} {t('shops')}
-          </Text>
-        </Box>
-
-        {/* Floating Filter Toggle Button */}
-        <TouchableOpacity
-          onPress={() => setFilterVisible((v) => !v)}
-          style={{
-            backgroundColor: filterVisible
-              ? '#5A31F4'
-              : 'rgba(255,255,255,0.95)',
-            borderRadius: 20,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <Text
-            style={{
-              fontWeight: 'bold',
-              fontSize: 13,
-              color: filterVisible ? '#fff' : '#1E293B',
-            }}
-          >
-            {filterVisible ? '✕ Close' : '⚙️ Filter'}
-          </Text>
-        </TouchableOpacity>
-      </Box>
+      {/* Floating Header Badge and filter toggle */}
+      <MapHeaderFloating
+        filteredShopsCount={filteredShops.length}
+        filterVisible={filterVisible}
+        setFilterVisible={setFilterVisible}
+      />
 
       {/* Collapsible Filter Panel Overlay */}
       {filterVisible && (
@@ -498,38 +393,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
       )}
 
       {/* Map Color Recency Legend (bottom-left) */}
-      <Box
-        style={{
-          position: 'absolute',
-          bottom: selectedShop ? 280 : 16,
-          left: 12,
-          backgroundColor: 'rgba(255,255,255,0.92)',
-          padding: 8,
-          borderRadius: 8,
-          zIndex: 1000,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-        }}
-      >
-        {[
-          { color: '#22C55E', label: t('activeContact') },
-          { color: '#EAB308', label: t('warningContact') },
-          { color: '#FF3B30', label: t('neglectedContact') },
-        ].map((item) => (
-          <Box key={item.color} flexDirection="row" alignItems="center" mb="xs">
-            <Box
-              width={10}
-              height={10}
-              bg="transparent"
-              style={{
-                backgroundColor: item.color,
-                borderRadius: 5,
-                marginRight: 6,
-              }}
-            />
-            <Text style={{ fontSize: 10, color: '#475569' }}>{item.label}</Text>
-          </Box>
-        ))}
-      </Box>
+      <MapLegend bottom={selectedShop ? 280 : 16} />
 
       {/* Selected Shop Bottom Sheet */}
       {selectedShop && (

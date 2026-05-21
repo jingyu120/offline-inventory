@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma';
+import { guardAsync } from '@burma-inventory/shared-types';
 import type {
   PullChangesResponse,
   PushChangesBody,
@@ -86,6 +87,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       assigned_rep_id: s.assignedRepId,
       lifetime_value: toNum(s.lifetimeValue),
       sentiment_trend: s.sentimentTrend,
+      price_book_id: s.priceBookId,
       ...mapTimestampsRecord(s),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,6 +101,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       assignedRepId: s.assigned_rep_id,
       lifetimeValue: s.lifetime_value,
       sentimentTrend: s.sentiment_trend,
+      priceBookId: s.price_book_id,
       ...mapTimestampsPrisma(s),
     }),
   },
@@ -201,6 +204,8 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       quantity: i.quantity,
       unit_price_at_sale: toNum(i.unitPriceAtSale),
       interest_level: i.interestLevel,
+      unit_price: toNum(i.unitPrice),
+      selected_currency: i.selectedCurrency,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,6 +216,8 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       quantity: i.quantity,
       unitPriceAtSale: i.unit_price_at_sale,
       interestLevel: i.interest_level,
+      unitPrice: i.unit_price,
+      selectedCurrency: i.selected_currency,
       ...mapTimestampsPrisma(i),
     }),
   },
@@ -256,6 +263,207 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       itemId: s.item_id,
       quantity: s.quantity,
       ...mapTimestampsPrisma(s),
+    }),
+  },
+  planned_routes: {
+    delegate: 'plannedRoute',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      rep_id: r.repId,
+      date: r.date,
+      shop_ids: r.shopIds,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      repId: r.rep_id,
+      date: r.date,
+      shopIds: r.shop_ids,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  check_in_logs: {
+    delegate: 'checkInLog',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      shop_id: r.shopId,
+      rep_id: r.repId,
+      check_in_time: r.checkInTime.getTime(),
+      latitude: r.latitude,
+      longitude: r.longitude,
+      verified: r.verified,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      shopId: r.shop_id,
+      repId: r.rep_id,
+      checkInTime: new Date(r.check_in_time),
+      latitude: r.latitude,
+      longitude: r.longitude,
+      verified: r.verified,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  prediction_logs: {
+    delegate: 'predictionLog',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      shop_id: r.shopId,
+      predicted_ltv: r.predictedLtv,
+      churn_risk: r.churnRisk,
+      stockout_risk: r.stockoutRisk,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      shopId: r.shop_id,
+      predictedLtv: r.predicted_ltv,
+      churnRisk: r.churn_risk,
+      stockoutRisk: r.stockout_risk,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  recommended_orders: {
+    delegate: 'recommendedOrder',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      shop_id: r.shopId,
+      item_id: r.itemId,
+      quantity: r.quantity,
+      confidence: r.confidence,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      shopId: r.shop_id,
+      itemId: r.item_id,
+      quantity: r.quantity,
+      confidence: r.confidence,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  price_books: {
+    delegate: 'priceBook',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      name: r.name,
+      region_id: r.regionId,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      name: r.name,
+      regionId: r.region_id,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  price_book_items: {
+    delegate: 'priceBookItem',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      price_book_id: r.priceBookId,
+      item_id: r.itemId,
+      price: toNum(r.price),
+      currency: r.currency,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      priceBookId: r.price_book_id,
+      itemId: r.item_id,
+      price: r.price,
+      currency: r.currency,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  exchange_rates: {
+    delegate: 'exchangeRate',
+    softDelete: false,
+    hasTimestamps: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      from_currency: r.fromCurrency,
+      to_currency: r.toCurrency,
+      rate: toNum(r.rate),
+      updated_at: r.updatedAt.getTime(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      fromCurrency: r.from_currency,
+      toCurrency: r.to_currency,
+      rate: r.rate,
+      updatedAt: new Date(r.updated_at),
+    }),
+  },
+  rep_scores: {
+    delegate: 'repScore',
+    softDelete: false,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      rep_id: r.repId,
+      points: r.points,
+      streak_days: r.streakDays,
+      badges: r.badges,
+      ...mapTimestampsRecord(r),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      repId: r.rep_id,
+      points: r.points,
+      streakDays: r.streak_days,
+      badges: r.badges,
+      ...mapTimestampsPrisma(r),
+    }),
+  },
+  points_logs: {
+    delegate: 'pointsLog',
+    softDelete: false,
+    hasTimestamps: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (r: any) => ({
+      id: r.id,
+      rep_id: r.repId,
+      points_added: r.pointsAdded,
+      reason: r.reason,
+      created_at: r.createdAt.getTime(),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (r: any) => ({
+      id: r.id,
+      repId: r.rep_id,
+      pointsAdded: r.points_added,
+      reason: r.reason,
+      createdAt: new Date(r.created_at),
     }),
   },
 };
@@ -344,69 +552,79 @@ export class SyncService {
   // ── Push ──────────────────────────────────────────────────────────
 
   async pushChanges(changes: PushChangesBody['changes']): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      // Process tables in registry order (FK-safe)
-      for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
-        const changeset = (changes as Record<string, unknown>)[tableName] as
-          | WatermelonChangeSet<{ id: string }>
-          | undefined;
-        if (!changeset) continue;
+    const [, error] = await guardAsync(
+      this.prisma.$transaction(async (tx) => {
+        // Process tables in registry order (FK-safe)
+        for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
+          const changeset = (changes as Record<string, unknown>)[tableName] as
+            | WatermelonChangeSet<{ id: string }>
+            | undefined;
+          if (!changeset) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const model = (tx as any)[cfg.delegate];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const model = (tx as any)[cfg.delegate];
 
-        // Creates
-        if (changeset.created.length > 0) {
-          await model.createMany({
-            data: changeset.created.map(cfg.toPrisma),
-            skipDuplicates: true,
-          });
+          // Creates
+          if (changeset.created.length > 0) {
+            await model.createMany({
+              data: changeset.created.map(cfg.toPrisma),
+              skipDuplicates: true,
+            });
 
-          // Automatically deduct stock levels when orders/quantities are created
-          if (tableName === 'interaction_items') {
-            for (const item of changeset.created.map(cfg.toPrisma)) {
-              await tx.itemStock
-                .update({
-                  where: { itemId: item.itemId },
-                  data: {
-                    quantity: { decrement: item.quantity },
-                  },
-                })
-                .catch((err: any) => {
-                  this.logger.warn(
-                    `Could not deduct stock for item ID ${item.itemId}: ${err.message}`,
-                  );
-                });
+            // Automatically deduct stock levels when orders/quantities are created
+            if (tableName === 'interaction_items') {
+              for (const item of changeset.created.map(cfg.toPrisma)) {
+                await tx.itemStock
+                  .update({
+                    where: { itemId: item.itemId },
+                    data: {
+                      quantity: { decrement: item.quantity },
+                    },
+                  })
+                  .catch((err: any) => {
+                    this.logger.warn(
+                      `Could not deduct stock for item ID ${item.itemId}: ${err.message}`,
+                    );
+                  });
+              }
             }
           }
-        }
 
-        // Updates
-        for (const record of changeset.updated) {
-          await model.update({
-            where: { id: record.id },
-            data: cfg.toPrisma(record),
-          });
-        }
-
-        // Deletes
-        if (changeset.deleted.length > 0) {
-          if (cfg.softDelete) {
-            await model.updateMany({
-              where: { id: { in: changeset.deleted } },
-              data: { deletedAt: new Date() },
-            });
-          } else {
-            await model.deleteMany({
-              where: { id: { in: changeset.deleted } },
+          // Updates
+          for (const record of changeset.updated) {
+            await model.update({
+              where: { id: record.id },
+              data: cfg.toPrisma(record),
             });
           }
-        }
 
-        this.logger.debug(
-          `[${tableName}] +${changeset.created.length} ~${changeset.updated.length} -${changeset.deleted.length}`,
-        );
-      }
-    });
+          // Deletes
+          if (changeset.deleted.length > 0) {
+            if (cfg.softDelete) {
+              await model.updateMany({
+                where: { id: { in: changeset.deleted } },
+                data: { deletedAt: new Date() },
+              });
+            } else {
+              await model.deleteMany({
+                where: { id: { in: changeset.deleted } },
+              });
+            }
+          }
+
+          this.logger.debug(
+            `[${tableName}] +${changeset.created.length} ~${changeset.updated.length} -${changeset.deleted.length}`,
+          );
+        }
+      }),
+    );
+
+    if (error) {
+      this.logger.error(
+        `Failed to push sync changes: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 }

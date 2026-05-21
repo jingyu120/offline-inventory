@@ -6,11 +6,52 @@ export interface RepUser {
   id: string;
   name: string;
   username: string;
+  role: 'sales' | 'manager' | 'admin' | 'intake';
+  regionId?: string | null;
+  regionName?: string | null;
 }
 
 export const REPS: RepUser[] = [
-  { id: 'rep-1', name: 'Ko Min', username: 'rep1' },
-  { id: 'rep-2', name: 'Ko Hla', username: 'rep2' },
+  {
+    id: 'rep-1',
+    name: 'Ko Min',
+    username: 'rep1',
+    role: 'sales',
+    regionId: 'region-yangon',
+    regionName: 'Yangon',
+  },
+  {
+    id: 'rep-2',
+    name: 'Ko Hla',
+    username: 'rep2',
+    role: 'sales',
+    regionId: 'region-mandalay',
+    regionName: 'Mandalay',
+  },
+  {
+    id: 'rep-3',
+    name: 'Ma Thida',
+    username: 'rep3',
+    role: 'manager',
+    regionId: null,
+    regionName: 'All Regions',
+  },
+  {
+    id: 'rep-4',
+    name: 'U Hlaing',
+    username: 'rep4',
+    role: 'admin',
+    regionId: null,
+    regionName: 'All Access',
+  },
+  {
+    id: 'rep-5',
+    name: 'Daw Khin',
+    username: 'rep5',
+    role: 'intake',
+    regionId: null,
+    regionName: 'Warehouse',
+  },
 ];
 
 interface AuthContextType {

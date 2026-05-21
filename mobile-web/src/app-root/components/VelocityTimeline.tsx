@@ -78,7 +78,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
         >
           <AlertTriangle
             size={18}
-            color={theme.colors.dangerText}
+            stroke={theme.colors.dangerText}
             style={{ marginRight: 8 }}
           />
           <Box flex={1}>
@@ -103,7 +103,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
         >
           <CheckCircle
             size={18}
-            color={theme.colors.successText}
+            stroke={theme.colors.successText}
             style={{ marginRight: 8 }}
           />
           <Text variant="body" color="successText" fontWeight="bold">
@@ -123,7 +123,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
         >
           <Clock
             size={18}
-            color={theme.colors.warningText}
+            stroke={theme.colors.warningText}
             style={{ marginRight: 8 }}
           />
           <Text variant="body" color="warningText" fontWeight="bold">
@@ -191,7 +191,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
         {stats.logCount === 0 && (
           <Box py="xl" alignItems="center">
             <Box mb="s">
-              <FileText size={32} color={theme.colors.secondaryText} />
+              <FileText size={32} stroke={theme.colors.secondaryText} />
             </Box>
             <Text variant="bodySecondary">{t('noLogsForDay')}</Text>
           </Box>

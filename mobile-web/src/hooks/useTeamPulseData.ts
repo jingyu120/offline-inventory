@@ -151,11 +151,9 @@ export const useTeamPulseData = () => {
     // Get active quota
     const repQuotas = quotas
       .filter(
-        (q) =>
-          q.userId === repId &&
-          q.effectiveFrom.getTime() <= targetDayEnd.getTime(),
+        (q) => q.userId === repId && q.effectiveFrom <= targetDayEnd.getTime(),
       )
-      .sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime());
+      .sort((a, b) => b.effectiveFrom - a.effectiveFrom);
 
     const targetQuota = repQuotas[0]
       ? repQuotas[0].targetVisits +
@@ -173,13 +171,12 @@ export const useTeamPulseData = () => {
     // Sliding window batch dumping check: 5 logs in <15 minutes
     let batchFlagged = false;
     const sortedLogs = [...dayLogs].sort(
-      (a, b) => a.createdAtLocal.getTime() - b.createdAtLocal.getTime(),
+      (a, b) => a.createdAtLocal - b.createdAtLocal,
     );
 
     for (let i = 0; i < sortedLogs.length - 4; i++) {
       const diffMs =
-        sortedLogs[i + 4].createdAtLocal.getTime() -
-        sortedLogs[i].createdAtLocal.getTime();
+        sortedLogs[i + 4].createdAtLocal - sortedLogs[i].createdAtLocal;
       if (diffMs <= 15 * 60 * 1000) {
         batchFlagged = true;
         break;

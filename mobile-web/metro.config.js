@@ -20,6 +20,16 @@ const SINGLETON_PACKAGES = [
   'react-native-web',
 ];
 
+// Native-only packages that must NEVER be bundled on web. They import the
+// React Native bridge (BatchedBridge) which crashes in the browser.
+// When platform === 'web' these are redirected to an empty stub module.
+const NATIVE_ONLY_PACKAGES = [
+  '@powersync/react-native',
+  '@powersync/op-sqlite',
+  '@op-engineering/op-sqlite',
+  'react-native-quick-sqlite',
+];
+
 /**
  * Metro configuration
  * https://reactnative.dev/docs/metro
@@ -27,14 +37,56 @@ const SINGLETON_PACKAGES = [
  * @type {import('metro-config').MetroConfig}
  */
 const customConfig = {
-  cacheVersion: 'mobile-web-v3',
+  cacheVersion: 'mobile-web-v4',
   transformer: {
     babelTransformerPath: require.resolve('react-native-svg-transformer'),
   },
+  server: {
+    enhanceMiddleware: (middleware) => {
+      return (req, res, next) => {
+        const originalSetHeader = res.setHeader;
+        res.setHeader = function (name, value) {
+          if (name.toLowerCase() === 'cross-origin-embedder-policy') {
+            return originalSetHeader.call(this, name, 'require-corp');
+          }
+          if (name.toLowerCase() === 'cross-origin-opener-policy') {
+            return originalSetHeader.call(this, name, 'same-origin');
+          }
+          return originalSetHeader.call(this, name, value);
+        };
+
+        const originalWriteHead = res.writeHead;
+        res.writeHead = function (statusCode, statusMessage, headers) {
+          res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+          res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+          let actualHeaders = headers;
+          if (typeof statusMessage === 'object' && !headers) {
+            actualHeaders = statusMessage;
+            statusMessage = undefined;
+          }
+          if (actualHeaders) {
+            actualHeaders['Cross-Origin-Embedder-Policy'] = 'require-corp';
+            actualHeaders['Cross-Origin-Opener-Policy'] = 'same-origin';
+          }
+          return originalWriteHead.call(
+            this,
+            statusCode,
+            statusMessage,
+            actualHeaders,
+          );
+        };
+
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        return middleware(req, res, next);
+      };
+    },
+  },
   resolver: {
-    assetExts: assetExts.filter((ext) => ext !== 'svg'),
+    assetExts: [...assetExts.filter((ext) => ext !== 'svg'), 'wasm'],
     sourceExts: [...sourceExts, 'cjs', 'mjs', 'svg'],
     extraNodeModules: {
+      // Stub out Node-only packages that must never be bundled by Metro
       'better-sqlite3': path.resolve(__dirname, 'empty.js'),
     },
   },
@@ -53,6 +105,40 @@ const nxConfig = withNxMetro(mergeConfig(defaultConfig, customConfig), {
 const nxResolveRequest = nxConfig.resolver?.resolveRequest;
 
 nxConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Monorepo node_modules relative resolution helper
+  if (moduleName.startsWith('./node_modules/')) {
+    const relativePath = moduleName.replace(/^\.\/node_modules\//, '');
+    const absolutePath = path.resolve(
+      monorepoRoot,
+      'node_modules',
+      relativePath,
+    );
+    const fs = require('fs');
+    const extensions = ['.ts', '.tsx', '.js', '.jsx', '.json'];
+    for (const ext of extensions) {
+      const p = absolutePath + ext;
+      if (fs.existsSync(p)) {
+        return { filePath: p, type: 'sourceFile' };
+      }
+    }
+    if (fs.existsSync(absolutePath)) {
+      return { filePath: absolutePath, type: 'sourceFile' };
+    }
+  }
+
+  // Web guard: stub native-only packages to empty module to prevent BatchedBridge crash
+  if (platform === 'web') {
+    const isNativeOnly = NATIVE_ONLY_PACKAGES.some(
+      (pkg) => moduleName === pkg || moduleName.startsWith(pkg + '/'),
+    );
+    if (isNativeOnly) {
+      return {
+        filePath: path.resolve(__dirname, 'empty.js'),
+        type: 'sourceFile',
+      };
+    }
+  }
+
   const isSingleton = SINGLETON_PACKAGES.some(
     (pkg) => moduleName === pkg || moduleName.startsWith(pkg + '/'),
   );
