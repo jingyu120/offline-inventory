@@ -6,14 +6,20 @@ To transition the family business's marketing operations from a reactive, chat-r
 
 ## Strategic Roadmap
 
-The revamp is divided into four distinct phases, prioritizing infrastructure stability and core data collection before moving to advanced visualization and oversight.
+The revamp is divided into distinct phases, prioritizing infrastructure stability and core data collection before moving to advanced visualization, automated workflows, and forecasting.
 
-| Phase       | Title                           | Focus                                      | Key Deliverable                            | Status             |
-| :---------- | :------------------------------ | :----------------------------------------- | :----------------------------------------- | :----------------- |
-| **Phase 1** | **Foundational Infrastructure** | Offline-first sync & Master Data           | Reliable Sync Server + Shop/SKU Ledger     | **100% Completed** |
-| **Phase 2** | **Interaction Logging**         | **Gemma 4 AI Copilot** & Field Reporting   | 30-sec Voice/Text Form + Viber Integration | **100% Completed** |
-| **Phase 3** | **Geographic Heatmap**          | **Gemma 4 Sentiment Analytics** & Mapping  | Map-based Relationship Dashboard           | **100% Completed** |
-| **Phase 4** | **Manager Oversight**           | **Gemma 4 EOD Summarization** & Compliance | Team Pulse Grid + Automated Digests        | **100% Completed** |
+| Phase        | Title                           | Focus                                      | Key Deliverable                            | Status             |
+| :----------- | :------------------------------ | :----------------------------------------- | :----------------------------------------- | :----------------- |
+| **Phase 1**  | **Foundational Infrastructure** | Offline-first sync & Master Data           | Reliable Sync Server + Shop/SKU Ledger     | **100% Completed** |
+| **Phase 2**  | **Interaction Logging**         | **Gemma 4 AI Copilot** & Field Reporting   | 30-sec Voice/Text Form + Viber Integration | **100% Completed** |
+| **Phase 3**  | **Geographic Heatmap**          | **Gemma 4 Sentiment Analytics** & Mapping  | Map-based Relationship Dashboard           | **100% Completed** |
+| **Phase 4**  | **Manager Oversight**           | **Gemma 4 EOD Summarization** & Compliance | Team Pulse Grid + Automated Digests        | **100% Completed** |
+| **Phase 5**  | **Route Optimization**          | GPS Dispatch & Routing                     | Offline Route Maps & Check-In Validation   | **Planned**        |
+| **Phase 6**  | **Viber Chatbot Automation**    | Automated Data Entry                       | Direct Viber NLP Logging & Alerts          | **Planned**        |
+| **Phase 7**  | **Predictive Analytics**        | Demand & Churn Forecasting                 | Recommended Order Engine & Churn Alerts    | **Planned**        |
+| **Phase 8**  | **Asynchronous Image Sync**     | Decoupled Media Transfers                  | Background Upload Queue & WiFi Filtering   | **Planned**        |
+| **Phase 9**  | **Multi-Currency Price Books**  | Financial Context & Pricing                | Multi-Currency Orders & Region Price Books | **Planned**        |
+| **Phase 10** | **Gamified Rep Engagement**     | Driving User Adoption                      | Points Engine, Streaks, & Leaderboards     | **Planned**        |
 
 ---
 
@@ -34,6 +40,30 @@ The "Strategic View". We translate raw logs into a geographic "Relationship Heat
 ### [Phase 4: Leadership Oversight](./04_Phase4_Leadership_Oversight.md) - **Completed**
 
 The "Operational Engine". This phase adds the layer of accountability. Automated digests, "Team Pulse" grids for quota tracking, and velocity analysis to prevent data dumping at the end of the day.
+
+### [Phase 5: Route Optimization & Scheduling](./05_Phase5_Route_Optimization.md) - **Planned**
+
+Optimizes travel paths for reps. Maps daily check-in tasks based on store coordinates, highlights neglected clients, and supports offline route access with distance-based check-in verification.
+
+### [Phase 6: Automated Viber Chatbot](./06_Phase6_Automated_Viber_Chatbot.md) - **Planned**
+
+Leverages conversational chat interfaces to record customer interactions using Viber. Reps text reports to the bot, which automatically parses transactions using Gemma AI, and pushes notifications directly to managers.
+
+### [Phase 7: Predictive Analytics & Forecasting](./07_Phase7_Predictive_Analytics_Forecasting.md) - **Planned**
+
+Calculates SKU order frequency and historical demand per shop to predict stockouts, flags stores at risk of churn, and projects LTV growth metrics onto management dashboards.
+
+### [Phase 8: Asynchronous Image Sync](./08_Phase8_Asynchronous_Image_Sync.md) - **Planned**
+
+Decoupled queues uploading binary attachments (proof-of-work screenshot uploads) independently from core metadata synchronization loops. Prevents blocking client operations and saves mobile network bandwidth.
+
+### [Phase 9: Multi-Currency & Regional Price Books](./09_Phase9_Multi_Currency_Price_Books.md) - **Planned**
+
+Extends offline transactions to support multi-currency ordering (MMK, USD, THB), caches regional client-level price sheets, and synchronizes daily exchange rates for automated localized conversion calculations.
+
+### [Phase 10: Gamified Representative Engagement](./10_Phase10_Gamified_Rep_Engagement.md) - **Planned**
+
+Drives compliance and prompt reporting behavior using scoring rules. Awards points for real-time entries, applies multipliers for consecutive streaks, enforces data-dumping penalties, and displays live performance leaderboards.
 
 ---
 

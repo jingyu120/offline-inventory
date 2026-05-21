@@ -1,96 +1,84 @@
-# BurmaInventory
+# Burma Inventory System
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A lightweight, offline-first Sales & Inventory Relationship Manager built for regional sales representatives and management. The system transitions family-run operations away from chaotic chat-group reporting (Viber) to a structured, data-driven database, ensuring resilience against frequent network dropouts and electrical blackouts.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+---
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## 💡 How the App Works
 
-## Run tasks
+1. **Local Logging**: Sales reps visit or message shops and log their interactions (calls, Viber, in-person visits) in under 30 seconds.
+2. **Offline-First Resilience**: If the internet or electricity is down, records are stored securely in local database storage.
+3. **Seamless Synchronization**: The application continuously monitors network status and background syncs queued records to the server database.
+4. **Viber Integration**: Reps deep-link directly into Viber conversations and upload compressed proof-of-work chat screenshots.
+5. **Relationship Heatmap**: Managers view an interactive, color-coded map showing account health (Neglected vs Active) based on contact recency.
+6. **Oversight Dashboard**: Management tracks rep compliance via a daily grid and receives EOD summary reports compiled by local Gemma AI services.
 
-To run tasks with Nx use:
+---
 
-```sh
-npx nx <target> <project-name>
+## 🏗️ Project Architecture
+
+This application is built in a TypeScript monorepo managed with **Nx**:
+
+- **[mobile-web/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web)**: The frontend React Native/Expo app. Adapts between **Katana Cloud Inventory** (Desktop table/grid views) and **Sortly** (Mobile touch card views).
+- **[sync-server/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/sync-server)**: Express + Prisma API server processing synchronized changes, scheduled EOD cron tasks, and local Gemma AI parsing.
+- **[ui-components/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/ui-components)**: Shared UI components built with `@shopify/restyle`.
+- **[shared-types/](file:///Users/justin.zhang/Desktop/burma/burma-inventory/shared-types)**: Common data types and interfaces.
+
+Refer to the [**ARCHITECTURE.md**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.md**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/GUIDING_PRINCIPLES.md) files for more information.
+
+---
+
+## ⚡ Setup & Execution
+
+### Prerequisites
+
+- Node.js (v18+)
+- Docker (for local PostgreSQL database)
+
+### Installation
+
+Install dependencies in the root directory:
+
+```bash
+npm install
 ```
 
-For example:
+### Running the Services
 
-```sh
-npx nx build myproject
-```
+1. **Start the Database**:
+   Launch the containerized Postgres database:
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+   ```bash
+   npm run db:up
+   ```
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+2. **Run Sync Server**:
+   Start the sync backend in development mode:
 
-## Add new projects
+   ```bash
+   npx nx serve sync-server
+   ```
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+3. **Run Client Application**:
+   Start the Expo development server:
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
-```
+   ```bash
+   npx nx start mobile-web
+   ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+4. **Run Code Validation**:
+   Validate code formatting, lint rules, types, and unit tests:
+   ```bash
+   npm run check
+   ```
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+---
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
-```
+## 📘 Future Roadmaps & Plans
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+Refer to the [**documentation/revamp/**](file:///Users/justin.zhang/Desktop/burma/burma-inventory/documentation/revamp) directory for full development history and future implementation specs:
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- `00_Master_Plan.md`: Revamp phases and goals.
+- `05_Phase5_Route_Optimization.md`: Intelligent routing coordinates.
+- `06_Phase6_Automated_Viber_Chatbot.md`: Auto-replies and data entry via chat.
+- `07_Phase7_Predictive_Analytics_Forecasting.md`: AI demand planning.

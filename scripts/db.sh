@@ -89,14 +89,16 @@ cmd_fresh() {
 
 # ── Main ─────────────────────────────────────────
 case "${1:-help}" in
+  ensure)   ensure_docker ;;
   wipe)     cmd_wipe ;;
   push)     cmd_push ;;
   generate) cmd_generate ;;
   reset)    cmd_reset ;;
   fresh)    cmd_fresh ;;
   *)
-    echo "Usage: $0 {wipe|push|generate|reset|fresh}"
+    echo "Usage: $0 {ensure|wipe|push|generate|reset|fresh}"
     echo ""
+    echo "  ensure   - Start Docker container if not running"
     echo "  wipe     - Drop all tables in the database"
     echo "  push     - Apply Prisma schema to database"
     echo "  generate - Generate Prisma client"
