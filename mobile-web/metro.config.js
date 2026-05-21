@@ -13,7 +13,12 @@ const monorepoRoot = path.resolve(__dirname, '..');
 // walking up from the importing file, so mobile-web/node_modules/react gets
 // picked up before the root copy. We override this AFTER withNxMetro so our
 // resolver composes on top of whatever NX sets (rather than being overwritten).
-const SINGLETON_PACKAGES = ['react', 'react-dom', 'react-native', 'react-native-web'];
+const SINGLETON_PACKAGES = [
+  'react',
+  'react-dom',
+  'react-native',
+  'react-native-web',
+];
 
 /**
  * Metro configuration
@@ -56,7 +61,7 @@ nxConfig.resolver.resolveRequest = (context, moduleName, platform) => {
     try {
       const resolved = require.resolve(moduleName, { paths: [monorepoRoot] });
       return { filePath: resolved, type: 'sourceFile' };
-    } catch (_) {
+    } catch {
       // fall through to normal resolution
     }
   }

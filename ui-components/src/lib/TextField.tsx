@@ -1,5 +1,5 @@
-import React from 'react';
-import { TextInput, TextInputProps } from 'react-native';
+import React, { useState } from 'react';
+import { TextInput, TextInputProps, Platform } from 'react-native';
 import { Box, Text } from './Primitives';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from './theme';
@@ -9,30 +9,78 @@ export interface TextFieldProps extends TextInputProps {
   error?: string;
 }
 
-export function TextField({ label, error, style, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  style,
+  onFocus,
+  onBlur,
+  ...rest
+}: TextFieldProps) {
   const theme = useTheme<Theme>();
-  
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <Box my="s">
-      {label && <Text variant="body" fontWeight="500" mb="s">{label}</Text>}
+      {label && (
+        <Text
+          variant="bodySecondary"
+          fontWeight="600"
+          mb="xs"
+          color="primaryText"
+        >
+          {label}
+        </Text>
+      )}
       <TextInput
         style={[
           {
-            backgroundColor: theme.colors.mainBackground,
+            backgroundColor: theme.colors.cardBackground,
             borderRadius: theme.borderRadii.m,
             paddingHorizontal: theme.spacing.m,
-            paddingVertical: 12,
-            fontSize: 16,
+            paddingVertical: 10,
+            fontSize: 15,
             borderWidth: 1,
-            borderColor: error ? theme.colors.errorText : theme.colors.borderColor,
+            borderColor: error
+              ? theme.colors.errorText
+              : isFocused
+                ? theme.colors.primaryButton
+                : theme.colors.borderColor,
             color: theme.colors.primaryText,
-          },
-          style
+            outlineWidth: 0, // Avoid default thick outline on web browser focus
+            ...(Platform.OS === 'web'
+              ? {
+                  boxShadow: isFocused
+                    ? `0px 1px 2px ${theme.colors.primaryButton}1A`
+                    : 'none',
+                }
+              : {
+                  shadowColor: isFocused
+                    ? theme.colors.primaryButton
+                    : 'transparent',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isFocused ? 0.1 : 0,
+                  shadowRadius: 2,
+                }),
+          } as any,
+          style,
         ]}
         placeholderTextColor={theme.colors.secondaryText}
+        onFocus={(e) => {
+          setIsFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setIsFocused(false);
+          onBlur?.(e);
+        }}
         {...rest}
       />
-      {error && <Text variant="error" mt="s">{error}</Text>}
+      {error && (
+        <Text variant="error" mt="xs">
+          {error}
+        </Text>
+      )}
     </Box>
   );
 }

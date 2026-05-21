@@ -86,8 +86,22 @@ model Item {
   deletedAt DateTime? @map("deleted_at")
 
   interactionItems InteractionItem[]
+  stock            ItemStock?
 
   @@map("items")
+}
+
+model ItemStock {
+  id        String   @id @default(uuid())
+  itemId    String   @unique @map("item_id")
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("item_stocks")
 }
 
 model InteractionLog {
@@ -121,6 +135,9 @@ model InteractionItem {
   quantity           Int      @default(1)
   unitPriceAtSale    Decimal  @db.Decimal(10, 2) @map("unit_price_at_sale")
   interestLevel      String?  @map("interest_level") // E.g., "HIGH", "MEDIUM", "LOW"
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
   interaction        InteractionLog @relation(fields: [interactionLogId], references: [id], onDelete: Cascade)
   item               Item           @relation(fields: [itemId], references: [id])

@@ -1,44 +1,79 @@
 import { createTheme } from '@shopify/restyle';
 
 const palette = {
-  purpleLight: '#8C6FF7',
-  purplePrimary: '#5A31F4',
-  purpleDark: '#3F22AB',
+  // Brand Colors (Indigo)
+  brandLight: '#EEF2F6', // Very soft indigo-gray
+  brandPrimary: '#4F46E5', // Indigo 600
+  brandDark: '#3730A3', // Indigo 800
+  brandAccent: '#818CF8', // Indigo 400
 
-  greenLight: '#56DCBA',
-  greenPrimary: '#0ECD9D',
-  greenDark: '#0A906E',
+  // Neutral Slate scale
+  slate50: '#F8FAFC',
+  slate100: '#F1F5F9',
+  slate200: '#E2E8F0',
+  slate300: '#CBD5E1',
+  slate400: '#94A3B8',
+  slate500: '#64748B',
+  slate700: '#334155',
+  slate800: '#1E293B',
+  slate900: '#0F172A',
 
-  black: '#0B0B0B',
-  white: '#F0F2F3',
   pureWhite: '#FFFFFF',
 
-  grayLight: '#EAEAEA',
-  grayMedium: '#9A9A9A',
-  grayDark: '#4A4A4A',
+  // Statuses
+  successBg: '#D1FAE5', // Emerald 100
+  successText: '#065F46', // Emerald 800
+  successPrimary: '#10B981', // Emerald 500
 
-  danger: '#FF3B30',
-  dangerLight: '#FFD4D2',
+  warningBg: '#FEF3C7', // Amber 100
+  warningText: '#92400E', // Amber 800
+  warningPrimary: '#F59E0B', // Amber 500
+
+  dangerBg: '#FEE2E2', // Red 100
+  dangerText: '#991B1B', // Red 800
+  dangerPrimary: '#EF4444', // Red 500
+
+  infoBg: '#E0F2FE', // Sky 100
+  infoText: '#0369A1', // Sky 800
+  infoPrimary: '#0284C7', // Sky 600
 };
 
 export const theme = createTheme({
   colors: {
-    mainBackground: palette.white,
-    secondaryBackground: palette.grayLight,
+    mainBackground: palette.slate50,
+    secondaryBackground: palette.slate100,
     cardBackground: palette.pureWhite,
-    primaryText: palette.black,
-    secondaryText: palette.grayDark,
-    primaryButton: palette.purplePrimary,
+    primaryText: palette.slate900,
+    secondaryText: palette.slate500,
+    primaryButton: palette.brandPrimary,
     primaryButtonText: palette.pureWhite,
-    secondaryButton: palette.grayLight,
-    secondaryButtonText: palette.black,
-    borderColor: palette.grayLight,
-    errorText: palette.danger,
-    errorBackground: palette.dangerLight,
-    warning: '#EAB308', // Amber-500
-    success: '#22C55E', // Green-500
+    secondaryButton: palette.slate100,
+    secondaryButtonText: palette.slate700,
+    borderColor: palette.slate200,
+    errorText: palette.dangerText,
+    errorBackground: palette.dangerBg,
+
+    // Status colors
+    success: palette.successPrimary,
+    successBg: palette.successBg,
+    successText: palette.successText,
+
+    warning: palette.warningPrimary,
+    warningBg: palette.warningBg,
+    warningText: palette.warningText,
+
+    danger: palette.dangerPrimary,
+    dangerBg: palette.dangerBg,
+    dangerText: palette.dangerText,
+
+    info: palette.infoPrimary,
+    infoBg: palette.infoBg,
+    infoText: palette.infoText,
+
     transparent: 'transparent',
     pureWhite: palette.pureWhite,
+    slate200: palette.slate200,
+    slate300: palette.slate300,
   },
   spacing: {
     none: 0,
@@ -67,26 +102,40 @@ export const theme = createTheme({
   textVariants: {
     header: {
       fontWeight: 'bold',
-      fontSize: 34,
+      fontSize: 28,
+      lineHeight: 34,
       color: 'primaryText',
     },
     title: {
-      fontWeight: 'bold',
-      fontSize: 24,
+      fontWeight: '600',
+      fontSize: 20,
+      lineHeight: 26,
       color: 'primaryText',
     },
-    body: {
+    subtitle: {
+      fontWeight: '500',
       fontSize: 16,
-      lineHeight: 24,
+      lineHeight: 22,
+      color: 'secondaryText',
+    },
+    body: {
+      fontSize: 15,
+      lineHeight: 22,
       color: 'primaryText',
     },
     bodySecondary: {
-      fontSize: 14,
+      fontSize: 13,
+      lineHeight: 18,
       color: 'secondaryText',
     },
     button: {
       fontWeight: '600',
-      fontSize: 16,
+      fontSize: 15,
+      textAlign: 'center',
+    },
+    badge: {
+      fontWeight: '600',
+      fontSize: 12,
       textAlign: 'center',
     },
     error: {
@@ -94,9 +143,26 @@ export const theme = createTheme({
       color: 'errorText',
     },
     defaults: {
-      // We can define a default text variant here.
+      fontSize: 15,
+      color: 'primaryText',
     },
   },
 });
+
+export const darkTheme = {
+  ...theme,
+  colors: {
+    ...theme.colors,
+    mainBackground: palette.slate900,
+    secondaryBackground: palette.slate800,
+    cardBackground: palette.slate800,
+    primaryText: palette.pureWhite,
+    secondaryText: palette.slate400,
+    borderColor: palette.slate700,
+    primaryButton: palette.brandAccent,
+    secondaryButton: palette.slate700,
+    secondaryButtonText: palette.slate200,
+  },
+};
 
 export type Theme = typeof theme;

@@ -7,6 +7,7 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class PrismaService
@@ -27,6 +28,33 @@ export class PrismaService
   async onModuleInit() {
     await this.$connect();
     this.logger.log('Connected to PostgreSQL');
+
+    // Seed default reps to prevent sync foreign key errors when database is fresh.
+    // Passwords are bcrypt-hashed; update:{} means re-runs are no-ops (idempotent).
+    try {
+      const hashedPassword = await bcrypt.hash('changeme-rep-default', 10);
+      await (this as any).user.upsert({
+        where: { id: 'rep-1' },
+        update: {},
+        create: {
+          id: 'rep-1',
+          username: 'rep1',
+          password: hashedPassword,
+        },
+      });
+      await (this as any).user.upsert({
+        where: { id: 'rep-2' },
+        update: {},
+        create: {
+          id: 'rep-2',
+          username: 'rep2',
+          password: hashedPassword,
+        },
+      });
+      this.logger.log('Seeded default reps (rep-1, rep-2) successfully');
+    } catch (error: any) {
+      this.logger.error('Failed to seed default reps:', error.message || error);
+    }
   }
 
   async onModuleDestroy() {

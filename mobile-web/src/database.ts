@@ -10,6 +10,7 @@ import {
   InteractionLog,
   InteractionItem,
   DailyQuota,
+  ItemStock,
 } from '@burma-inventory/shared-types';
 import { Platform } from 'react-native';
 
@@ -41,5 +42,6 @@ export const database = new Database({
     InteractionLog,
     InteractionItem,
     DailyQuota,
+    ItemStock,
   ],
 });

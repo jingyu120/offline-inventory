@@ -2,9 +2,8 @@ import { synchronize } from '@nozbe/watermelondb/sync';
 import { database } from './database';
 import axios from 'axios';
 
-// Read from environment or use default for local development
-const SYNC_API_URL =
-  process.env['SYNC_API_URL'] || 'http://localhost:3000/api/sync';
+import { SYNC_API_URL } from './config';
+import { SyncConflictManager } from './utils/SyncConflictManager';
 
 const SYNC_TIMEOUT_MS = 30_000; // 30s timeout for low-signal zones
 
@@ -30,6 +29,8 @@ export async function syncData() {
         },
       );
     },
-    migrationsEnabledAtVersion: 1,
+    conflictResolver: async (table, local, remote, _resolved) => {
+      return SyncConflictManager.registerConflict(table, local._raw, remote);
+    },
   });
 }

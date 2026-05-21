@@ -102,6 +102,14 @@ export interface DailyQuotaRecord {
   updated_at: number;
 }
 
+export interface ItemStockRecord {
+  id: string;
+  item_id: string;
+  quantity: number;
+  created_at: number;
+  updated_at: number;
+}
+
 // ─── Sync Protocol Types ────────────────────────────────────────────
 
 /** Generic WatermelonDB sync change-set for a single table. */
@@ -119,7 +127,8 @@ export type SyncTableName =
   | 'items'
   | 'interaction_logs'
   | 'interaction_items'
-  | 'daily_quotas';
+  | 'daily_quotas'
+  | 'item_stocks';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {

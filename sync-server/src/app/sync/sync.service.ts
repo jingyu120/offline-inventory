@@ -35,6 +35,20 @@ const toEpoch = (d: Date | null | undefined): number | null =>
 const toNum = (d: any): number =>
   typeof d === 'number' ? d : (d?.toNumber?.() ?? 0);
 
+/** Helper: maps standard timestamps to watermelon schema record */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapTimestampsRecord = (r: any) => ({
+  created_at: r.createdAt.getTime(),
+  updated_at: r.updatedAt.getTime(),
+});
+
+/** Helper: maps standard timestamps to prisma model */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapTimestampsPrisma = (r: any) => ({
+  createdAt: new Date(r.created_at),
+  updatedAt: new Date(r.updated_at),
+});
+
 // ─── Registry ───────────────────────────────────────────────────────
 // Order matters for push (FK dependencies: regions → shops → contacts, etc.)
 const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
@@ -47,16 +61,14 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       id: r.id,
       name: r.name,
       division: r.division,
-      created_at: r.createdAt.getTime(),
-      updated_at: r.updatedAt.getTime(),
+      ...mapTimestampsRecord(r),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (r: any) => ({
       id: r.id,
       name: r.name,
       division: r.division,
-      createdAt: new Date(r.created_at),
-      updatedAt: new Date(r.updated_at),
+      ...mapTimestampsPrisma(r),
     }),
   },
   shops: {
@@ -74,8 +86,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       assigned_rep_id: s.assignedRepId,
       lifetime_value: toNum(s.lifetimeValue),
       sentiment_trend: s.sentimentTrend,
-      created_at: s.createdAt.getTime(),
-      updated_at: s.updatedAt.getTime(),
+      ...mapTimestampsRecord(s),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (s: any) => ({
@@ -88,8 +99,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       assignedRepId: s.assigned_rep_id,
       lifetimeValue: s.lifetime_value,
       sentimentTrend: s.sentiment_trend,
-      createdAt: new Date(s.created_at),
-      updatedAt: new Date(s.updated_at),
+      ...mapTimestampsPrisma(s),
     }),
   },
   contacts: {
@@ -104,8 +114,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       phone_number: c.phoneNumber,
       email: c.email,
       is_primary: c.isPrimary,
-      created_at: c.createdAt.getTime(),
-      updated_at: c.updatedAt.getTime(),
+      ...mapTimestampsRecord(c),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (c: any) => ({
@@ -115,8 +124,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       phoneNumber: c.phone_number,
       email: c.email,
       isPrimary: c.is_primary,
-      createdAt: new Date(c.created_at),
-      updatedAt: new Date(c.updated_at),
+      ...mapTimestampsPrisma(c),
     }),
   },
   items: {
@@ -130,8 +138,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       name: i.name,
       unit_price: toNum(i.unitPrice),
       category: i.category,
-      created_at: i.createdAt.getTime(),
-      updated_at: i.updatedAt.getTime(),
+      ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (i: any) => ({
@@ -140,8 +147,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       name: i.name,
       unitPrice: i.unit_price,
       category: i.category,
-      createdAt: new Date(i.created_at),
-      updatedAt: new Date(i.updated_at),
+      ...mapTimestampsPrisma(i),
     }),
   },
   interaction_logs: {
@@ -162,8 +168,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       synced_at_server: toEpoch(l.syncedAtServer),
       is_offline_entry: l.isOfflineEntry,
       device_id: l.deviceId,
-      created_at: l.createdAt.getTime(),
-      updated_at: l.updatedAt.getTime(),
+      ...mapTimestampsRecord(l),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (l: any) => ({
@@ -181,14 +186,13 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       syncedAtServer: new Date(),
       isOfflineEntry: l.is_offline_entry,
       deviceId: l.device_id,
-      createdAt: new Date(l.created_at),
-      updatedAt: new Date(l.updated_at),
+      ...mapTimestampsPrisma(l),
     }),
   },
   interaction_items: {
     delegate: 'interactionItem',
-    softDelete: false, // Join table — hard delete
-    hasTimestamps: false,
+    softDelete: true,
+    hasTimestamps: true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toRecord: (i: any) => ({
       id: i.id,
@@ -197,6 +201,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       quantity: i.quantity,
       unit_price_at_sale: toNum(i.unitPriceAtSale),
       interest_level: i.interestLevel,
+      ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (i: any) => ({
@@ -206,6 +211,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       quantity: i.quantity,
       unitPriceAtSale: i.unit_price_at_sale,
       interestLevel: i.interest_level,
+      ...mapTimestampsPrisma(i),
     }),
   },
   daily_quotas: {
@@ -220,8 +226,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       target_phone: q.targetPhone,
       target_viber: q.targetViber,
       effective_from: q.effectiveFrom.getTime(),
-      created_at: q.createdAt.getTime(),
-      updated_at: q.updatedAt.getTime(),
+      ...mapTimestampsRecord(q),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     toPrisma: (q: any) => ({
@@ -231,8 +236,26 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       targetPhone: q.target_phone,
       targetViber: q.target_viber,
       effectiveFrom: new Date(q.effective_from),
-      createdAt: new Date(q.created_at),
-      updatedAt: new Date(q.updated_at),
+      ...mapTimestampsPrisma(q),
+    }),
+  },
+  item_stocks: {
+    delegate: 'itemStock',
+    softDelete: true,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (s: any) => ({
+      id: s.id,
+      item_id: s.itemId,
+      quantity: s.quantity,
+      ...mapTimestampsRecord(s),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (s: any) => ({
+      id: s.id,
+      itemId: s.item_id,
+      quantity: s.quantity,
+      ...mapTimestampsPrisma(s),
     }),
   },
 };
@@ -262,9 +285,11 @@ export class SyncService {
         return { created: all.map(cfg.toRecord), updated: [], deleted: [] };
       }
 
-      const [created, updated, deleted] = await Promise.all([
+      const [newRecords, updated, softDeleted] = await Promise.all([
+        // Fetch ALL records created since last pull (regardless of deletion status)
+        // so records that were created AND deleted in the same window are captured.
         model.findMany({
-          where: { createdAt: { gt: since }, deletedAt: null },
+          where: { createdAt: { gt: since } },
         }),
         model.findMany({
           where: {
@@ -280,6 +305,21 @@ export class SyncService {
             })
           : Promise.resolve([]),
       ]);
+
+      // Partition new records: those already soft-deleted go to deleted[], not created[]
+      const softDeletedIds = new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        softDeleted.map((r: any) => r.id),
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const created = newRecords.filter((r: any) => !softDeletedIds.has(r.id));
+      // Records created AND deleted in same window: add their IDs to deleted list
+      const newlyDeleted = newRecords
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((r: any) => softDeletedIds.has(r.id))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => ({ id: r.id }));
+      const deleted = [...softDeleted, ...newlyDeleted];
 
       return {
         created: created.map(cfg.toRecord),
@@ -307,9 +347,8 @@ export class SyncService {
     await this.prisma.$transaction(async (tx) => {
       // Process tables in registry order (FK-safe)
       for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const changeset = (changes as any)[tableName] as
-          | WatermelonChangeSet<any>
+        const changeset = (changes as Record<string, unknown>)[tableName] as
+          | WatermelonChangeSet<{ id: string }>
           | undefined;
         if (!changeset) continue;
 
@@ -322,6 +361,24 @@ export class SyncService {
             data: changeset.created.map(cfg.toPrisma),
             skipDuplicates: true,
           });
+
+          // Automatically deduct stock levels when orders/quantities are created
+          if (tableName === 'interaction_items') {
+            for (const item of changeset.created.map(cfg.toPrisma)) {
+              await tx.itemStock
+                .update({
+                  where: { itemId: item.itemId },
+                  data: {
+                    quantity: { decrement: item.quantity },
+                  },
+                })
+                .catch((err: any) => {
+                  this.logger.warn(
+                    `Could not deduct stock for item ID ${item.itemId}: ${err.message}`,
+                  );
+                });
+            }
+          }
         }
 
         // Updates

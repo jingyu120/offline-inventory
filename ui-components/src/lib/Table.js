@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, ScrollView } from 'react-native';
+import { FlatList, Platform, ScrollView } from 'react-native';
 import { Box, Text } from './Primitives';
 export function Table({ data, columns, keyExtractor }) {
   const renderHeader = () => (
@@ -56,11 +56,17 @@ export function Table({ data, columns, keyExtractor }) {
         bg="cardBackground"
         borderRadius="m"
         p="m"
-        shadowColor="primaryText"
-        shadowOffset={{ width: 0, height: 2 }}
-        shadowOpacity={0.05}
-        shadowRadius={8}
         elevation={2}
+        style={
+          Platform.OS === 'web'
+            ? { boxShadow: '0px 2px 8px rgba(0,0,0,0.05)' }
+            : {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+              }
+        }
       >
         {renderHeader()}
         <FlatList

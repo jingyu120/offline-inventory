@@ -46,19 +46,22 @@ cmd_push() {
   # Use docker exec to run SQL directly — avoids Prisma CLI auth issues on macOS
   # Generate SQL from Prisma schema
   echo "Applying schema via Prisma..."
-  
-  # Set the password explicitly so Prisma Rust engine can auth
-  docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" \
-    -c "ALTER USER ${DB_USER} PASSWORD 'postgres';" > /dev/null 2>&1
 
-  npx prisma db push --schema "$SCHEMA_PATH" --accept-data-loss 2>&1 || {
+  # Explicit URL with gssencmode=disable bypasses macOS Kerberos/GSSAPI auth failures
+  DB_URL="postgresql://postgres:postgres@localhost:5433/inventory_db?schema=public&gssencmode=disable"
+
+  npx prisma db push \
+    --schema "$SCHEMA_PATH" \
+    --url "$DB_URL" \
+    --accept-data-loss 2>&1 || {
     warn "Prisma db push failed (known macOS Kerberos issue)."
     warn "Falling back to docker exec method..."
-    
-    # Generate a migration SQL and apply it
+
+    # Generate a migration SQL and apply it via docker exec
     npx prisma migrate diff \
       --from-empty \
       --to-schema "$SCHEMA_PATH" \
+      --url "$DB_URL" \
       --script \
       | docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME"
     log "Schema applied via SQL fallback"

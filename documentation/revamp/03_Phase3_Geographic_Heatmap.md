@@ -46,8 +46,9 @@ Visualize market distribution and relationship health on an interactive map to e
 
 ---
 
-## Current Status & Progress - **Planned**
+## Current Status & Progress - **100% Completed**
 
-- **Database Backbone**: Partially complete. Geolocation attributes (`latitude`, `longitude`) are already included in the `Shop` models in SQLite and Prisma schema files to support plotting.
-- **Next Steps**: Integrating Google Maps / Leaflet mapping libraries and designing the dashboard layouts.
-
+- **Dynamic Interactive Map**: Implemented `GeographicHeatmapScreen.tsx` integrating OpenStreetMap/Leaflet dynamically. Plots all shops with color-coded recency pins (Green/Yellow/Red) and LTV-scaled bubble sizes.
+- **Strategic Filtering Toolbar**: Added multi-select filters for SKU interests, assigned reps, regions, and recency toggles.
+- **Detailed Account Side Panel**: Configured a slide-out profile panel showcasing shop info, contacts, historical log timeline, and Gemma 4 computed relationship sentiment trends.
+- **Server-side Gemma 4 Sentiment Analysis**: Exposed an `/api/ai/analyze-sentiment` endpoint on NestJS sync-server that processes notes and outputs semantic trends (IMPROVING/STABLE/DECLINING) and churn risk recommendations.

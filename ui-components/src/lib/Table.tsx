@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, ScrollView } from 'react-native';
+import { FlatList, Platform, ScrollView } from 'react-native';
 import { Box, Text } from './Primitives';
 
 export interface ColumnDef<T> {
@@ -21,9 +21,9 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
   const renderHeader = () => (
     <Box
       flexDirection="row"
-      borderBottomWidth={2}
+      borderBottomWidth={1}
       borderBottomColor="borderColor"
-      paddingBottom="s"
+      paddingBottom="m"
       marginBottom="s"
     >
       {columns.map((col) => (
@@ -32,8 +32,18 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
           width={col.width}
           flex={col.flex || (col.width ? undefined : 1)}
           px="s"
+          justifyContent="center"
         >
-          <Text variant="bodySecondary" fontWeight="bold">
+          <Text
+            variant="bodySecondary"
+            fontWeight="700"
+            color="secondaryText"
+            style={{
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              fontSize: 11,
+            }}
+          >
             {col.header}
           </Text>
         </Box>
@@ -47,6 +57,7 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
       borderBottomWidth={1}
       borderBottomColor="borderColor"
       py="m"
+      alignItems="center"
     >
       {columns.map((col) => (
         <Box
@@ -70,17 +81,28 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
   );
 
   return (
-    <ScrollView horizontal bounces={false}>
+    <ScrollView
+      horizontal
+      bounces={false}
+      contentContainerStyle={{ flexGrow: 1, minWidth: '100%' }}
+    >
       <Box
+        flex={1}
         minWidth={600}
         bg="cardBackground"
         borderRadius="m"
         p="m"
-        shadowColor="primaryText"
-        shadowOffset={{ width: 0, height: 2 }}
-        shadowOpacity={0.05}
-        shadowRadius={8}
-        elevation={2}
+        elevation={1}
+        style={
+          Platform.OS === 'web'
+            ? { boxShadow: '0px 2px 6px rgba(0,0,0,0.03)' }
+            : {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.03,
+                shadowRadius: 6,
+              }
+        }
       >
         {renderHeader()}
         <FlatList

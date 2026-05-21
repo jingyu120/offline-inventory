@@ -99,6 +99,8 @@ export class InteractionItem extends Model {
   @field('quantity') quantity!: number;
   @field('unit_price_at_sale') unitPriceAtSale!: number;
   @field('interest_level') interestLevel?: string;
+  @readonly @date('created_at') createdAt!: Date;
+  @readonly @date('updated_at') updatedAt!: Date;
 }
 
 export class DailyQuota extends Model {
@@ -110,6 +112,19 @@ export class DailyQuota extends Model {
   @field('target_phone') targetPhone!: number;
   @field('target_viber') targetViber!: number;
   @date('effective_from') effectiveFrom!: Date;
+  @readonly @date('created_at') createdAt!: Date;
+  @readonly @date('updated_at') updatedAt!: Date;
+}
+
+export class ItemStock extends Model {
+  // @ts-expect-error - WatermelonDB decorators conflict with TS class properties
+  static table = 'item_stocks';
+  static override associations = {
+    items: { type: 'belongs_to', key: 'item_id' },
+  } as const;
+
+  @field('item_id') itemId!: string;
+  @field('quantity') quantity!: number;
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;
 }
