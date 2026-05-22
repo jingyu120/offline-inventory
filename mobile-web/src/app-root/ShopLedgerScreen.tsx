@@ -7,6 +7,7 @@ import { ShopDetailPane } from './components/ShopDetailPane';
 import { useTranslation } from '../utils/i18n';
 import { InteractionLoggingScreen } from './InteractionLoggingScreen';
 import { Shop } from '@burma-inventory/shared-types';
+import { DesignPatternGallery } from './components/DesignPatternGallery';
 
 export function ShopLedgerScreen() {
   const { width } = useWindowDimensions();
@@ -81,10 +82,13 @@ export function ShopLedgerScreen() {
               onLogInteraction={handleLogInteraction}
             />
           ) : (
-            <Box flex={1} justifyContent="center" alignItems="center">
-              <Text variant="bodySecondary" fontSize={16}>
-                {t('selectShopToAudit')}
-              </Text>
+            <Box flex={1} p="m" justifyContent="space-between">
+              <Box flex={1} justifyContent="center" alignItems="center" mb="m">
+                <Text variant="bodySecondary" fontSize={16} mb="m">
+                  {t('selectShopToAudit')}
+                </Text>
+              </Box>
+              <DesignPatternGallery />
             </Box>
           )}
         </Box>

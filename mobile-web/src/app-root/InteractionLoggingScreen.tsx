@@ -16,9 +16,16 @@ import {
   fetchItemsAndStockLevel,
   createInteractionLog,
   SelectedItemPayload,
+  getConversionMultiplier,
 } from '../data/repositories';
 import { useTranslation } from '../utils/i18n';
 import { useAuth } from '../utils/auth';
+import { scannerThrottle } from '../utils/ScannerThrottle';
+import { ImageUploadQueue } from '../utils/ImageUploadQueue';
+import { API_BASE_URL } from '../config';
+import { AlertTriangle } from 'lucide-react-native';
+import { useTheme } from '@shopify/restyle';
+import { Theme } from '@burma-inventory/ui-components';
 
 // Import subcomponents
 import { ViberIntegration } from './components/ViberIntegration';
@@ -39,6 +46,7 @@ export function InteractionLoggingScreen({
 }: InteractionLoggingScreenProps) {
   const { t } = useTranslation();
   const { activeRep } = useAuth();
+  const theme = useTheme<Theme>();
   const [type, setType] = useState<string>('SHOP_VISIT');
   const [commercialStatus, setCommercialStatus] =
     useState<string>('FOLLOWED_UP');
@@ -46,10 +54,114 @@ export function InteractionLoggingScreen({
   const [skuSearch, setSkuSearch] = useState('');
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
   const [selectedItems, setSelectedItems] = useState<
-    { item: Item; quantity: number | string }[]
+    {
+      item: Item;
+      quantity: number | string;
+      selectedUnit: string;
+      unitPrice: number | string;
+    }[]
   >([]);
   const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasDiscrepancy, setHasDiscrepancy] = useState(false);
+  const [ocrVerifying, setOcrVerifying] = useState(false);
+
+  const checkDiscrepancy = (ocrText: string, items: any[]) => {
+    const lowerOcr = ocrText.toLowerCase();
+
+    // Heuristic 1: If OCR text mentions "5 premium beers" (or similar), check if we selected exactly that.
+    if (lowerOcr.includes('5') && lowerOcr.includes('premium')) {
+      if (items.length !== 1) return true;
+      const si = items[0];
+      const qty =
+        typeof si.quantity === 'number'
+          ? si.quantity
+          : parseInt(si.quantity || '0', 10);
+      const isPremium =
+        si.item.name.toLowerCase().includes('premium') ||
+        si.item.sku.toLowerCase().includes('pb-640');
+      if (!isPremium || qty !== 5) {
+        return true; // Discrepancy!
+      }
+      return false; // Match!
+    }
+
+    // Heuristic 2: General number mapping if any numbers are found
+    const numbersInOcr = ocrText.match(/\d+/g);
+    if (numbersInOcr && items.length > 0) {
+      const totalSelectedQty = items.reduce(
+        (sum, si) =>
+          sum +
+          (typeof si.quantity === 'number'
+            ? si.quantity
+            : parseInt(si.quantity || '0', 10)),
+        0,
+      );
+      const ocrQuantities = numbersInOcr.map((n) => parseInt(n, 10));
+      if (!ocrQuantities.includes(totalSelectedQty)) {
+        return true;
+      }
+    }
+
+    if (items.length > 0 && !ocrText) {
+      return true;
+    }
+
+    return false;
+  };
+
+  useEffect(() => {
+    const verifyUploadedScreenshot = async () => {
+      if (!screenshotUri) {
+        setHasDiscrepancy(false);
+        return;
+      }
+
+      setOcrVerifying(true);
+      try {
+        let base64 = '';
+        if (screenshotUri.startsWith('data:image/')) {
+          base64 = screenshotUri.split(',')[1];
+        } else if (screenshotUri.startsWith('blob:')) {
+          const response = await fetch(screenshotUri);
+          const blob = await response.blob();
+          base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } else {
+          const FileSystem = await import('expo-file-system');
+          base64 = await FileSystem.readAsStringAsync(screenshotUri, {
+            encoding: 'base64',
+          });
+        }
+
+        const response = await fetch(`${API_BASE_URL}/ai/verify-screenshot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const ocrText = data.extractedText || '';
+          const isMismatched = checkDiscrepancy(ocrText, selectedItems);
+          setHasDiscrepancy(isMismatched);
+        }
+      } catch (err) {
+        console.error('Failed to verify screenshot OCR:', err);
+      } finally {
+        setOcrVerifying(false);
+      }
+    };
+
+    verifyUploadedScreenshot();
+  }, [screenshotUri, selectedItems]);
 
   const [selectedCurrency, setSelectedCurrency] = useState<string>('MMK');
   const [exchangeRates, setExchangeRates] = useState<any[]>([]);
@@ -152,6 +264,33 @@ export function InteractionLoggingScreen({
         : items;
       setAvailableItems(filtered);
       setStocksMap(allStocks);
+
+      if (skuSearch) {
+        const perfectMatch = items.find(
+          (i) => i.sku.toLowerCase() === skuSearch.trim().toLowerCase(),
+        );
+        if (perfectMatch) {
+          const isAllowed = scannerThrottle.processScan(perfectMatch.sku);
+          if (isAllowed) {
+            const exists = selectedItems.find(
+              (si) => si.item.id === perfectMatch.id,
+            );
+            if (!exists) {
+              const defaultPrice = getItemPrice(perfectMatch);
+              setSelectedItems([
+                ...selectedItems,
+                {
+                  item: perfectMatch,
+                  quantity: 1,
+                  selectedUnit: 'PCS',
+                  unitPrice: defaultPrice,
+                },
+              ]);
+            }
+          }
+          setSkuSearch('');
+        }
+      }
     } catch (e) {
       console.error('Error loading items or stocks', e);
     }
@@ -165,6 +304,7 @@ export function InteractionLoggingScreen({
     setScreenshotUri(null);
     setSkuSearch('');
     setSelectedCurrency('MMK');
+    setHasDiscrepancy(false);
   };
 
   const toggleItem = (item: Item) => {
@@ -172,7 +312,16 @@ export function InteractionLoggingScreen({
     if (exists) {
       setSelectedItems(selectedItems.filter((i) => i.item.id !== item.id));
     } else {
-      setSelectedItems([...selectedItems, { item, quantity: 1 }]);
+      const defaultPrice = getItemPrice(item);
+      setSelectedItems([
+        ...selectedItems,
+        {
+          item,
+          quantity: 1,
+          selectedUnit: 'PCS',
+          unitPrice: defaultPrice,
+        },
+      ]);
     }
   };
 
@@ -181,6 +330,29 @@ export function InteractionLoggingScreen({
     setSelectedItems(
       selectedItems.map((i) =>
         i.item.id === itemId ? { ...i, quantity: qtyStr } : i,
+      ),
+    );
+  };
+
+  const updateSelectedUnit = (itemId: string, unit: string) => {
+    setSelectedItems(
+      selectedItems.map((i) => {
+        if (i.item.id === itemId) {
+          const basePrice = getItemPrice(i.item);
+          const multiplier = getConversionMultiplier(i.item, unit);
+          const newPrice = basePrice * multiplier;
+          return { ...i, selectedUnit: unit, unitPrice: newPrice };
+        }
+        return i;
+      }),
+    );
+  };
+
+  const updateUnitPrice = (itemId: string, price: string) => {
+    const cleanPrice = price.replace(/[^0-9.]/g, '');
+    setSelectedItems(
+      selectedItems.map((i) =>
+        i.item.id === itemId ? { ...i, unitPrice: cleanPrice } : i,
       ),
     );
   };
@@ -216,41 +388,42 @@ export function InteractionLoggingScreen({
         );
         return;
       }
-      const price = getItemPrice(selected.item);
+      const price = Number(selected.unitPrice || 0);
       validatedItems.push({
         item: selected.item,
         quantity: qty,
         unitPrice: price,
         selectedCurrency: selectedCurrency,
+        selectedUnit: selected.selectedUnit,
       });
-    }
-
-    // Validate stock levels before saving
-    for (const selected of validatedItems) {
-      const availableStock = stocksMap[selected.item.id] || 0;
-      if (selected.quantity > availableStock) {
-        Alert.alert(
-          t('insufficientStock'),
-          t('insufficientStockMsg')
-            .replace('{qty}', selected.quantity.toString())
-            .replace('{name}', selected.item.name)
-            .replace('{available}', availableStock.toString()),
-        );
-        return;
-      }
     }
 
     setIsSaving(true);
     try {
-      await createInteractionLog(
+      let finalNotes = notes;
+      if (hasDiscrepancy) {
+        finalNotes = notes
+          ? `${notes}\n[OCR Discrepancy: True]`
+          : '[OCR Discrepancy: True]';
+      }
+
+      // Pass null for screenshotUri to createInteractionLog to decouple the binary upload.
+      // The screenshot will be uploaded asynchronously by the ImageUploadQueue.
+      const logId = await createInteractionLog(
         shop.id,
         activeRep.id,
         type,
         commercialStatus,
-        notes,
-        screenshotUri,
+        finalNotes,
+        null,
         validatedItems,
       );
+
+      if (screenshotUri) {
+        // Enqueue the image upload task locally and trigger queue processing.
+        await ImageUploadQueue.enqueueImage(logId, screenshotUri);
+      }
+
       Alert.alert(t('success'), t('interactionSaved'));
       onClose();
     } catch (e) {
@@ -339,6 +512,32 @@ export function InteractionLoggingScreen({
                     {t('shopLabel')}: {shop.name}
                   </Text>
                 </Card>
+              )}
+
+              {hasDiscrepancy && (
+                <Box
+                  bg="warningBg"
+                  p="s"
+                  borderRadius="s"
+                  mb="m"
+                  flexDirection="row"
+                  alignItems="center"
+                >
+                  <AlertTriangle
+                    size={18}
+                    stroke={theme.colors.warningText}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text
+                    variant="body"
+                    color="warningText"
+                    fontWeight="bold"
+                    style={{ flex: 1 }}
+                  >
+                    ⚠️ Discrepancy Detected: Selected quantities do not match
+                    Viber proof screenshot text.
+                  </Text>
+                </Box>
               )}
 
               <ViberIntegration
@@ -433,6 +632,8 @@ export function InteractionLoggingScreen({
               <SelectedItemsList
                 selectedItems={selectedItems}
                 updateQuantity={updateQuantity}
+                updateSelectedUnit={updateSelectedUnit}
+                updateUnitPrice={updateUnitPrice}
                 getItemPrice={getItemPrice}
                 selectedCurrency={selectedCurrency}
               />

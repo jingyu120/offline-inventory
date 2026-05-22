@@ -340,6 +340,9 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           recommendedOrder={recommendedOrder}
           recommendedItem={recommendedItem}
           onLogInteraction={onLogInteraction}
+          historicalNotes={shopLogsWithItems
+            .map((l) => l.log.notes)
+            .filter(Boolean)}
         />
 
         {/* Gamification Scorecard */}

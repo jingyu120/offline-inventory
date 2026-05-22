@@ -56,6 +56,7 @@ describe('shared-types', () => {
         lifetime_value: 0,
         sentiment_trend: 'STABLE',
         price_book_id: null,
+        price_tier: 'Retailer',
         created_at: 10000,
         updated_at: 10000,
       };
@@ -83,6 +84,11 @@ describe('shared-types', () => {
         name: 'Premium Beer',
         unit_price: 2500,
         category: 'Beverage',
+        brand_id: null,
+        thickness: null,
+        weight: null,
+        unit_type: 'PCS',
+        conversion_factor: 1,
         created_at: 10000,
         updated_at: 10000,
       };
@@ -120,6 +126,7 @@ describe('shared-types', () => {
         interest_level: 'HIGH',
         unit_price: null,
         selected_currency: null,
+        selected_unit: 'PCS',
         created_at: 10000,
         updated_at: 10000,
       };

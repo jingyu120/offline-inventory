@@ -274,6 +274,7 @@ export const useTeamPulseData = () => {
     triggerEodCompilation,
     applyQuotaAdjustments,
     getRepDayStats,
+    loadDatabaseData,
   };
 };
 export type UseTeamPulseDataReturn = ReturnType<typeof useTeamPulseData>;

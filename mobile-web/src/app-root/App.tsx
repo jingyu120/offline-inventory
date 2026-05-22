@@ -17,7 +17,10 @@ import { ToastProvider } from './components/ToastProvider';
 import { LanguageProvider } from '../utils/i18n';
 import { syncData } from '../sync';
 import { powerSyncDb } from '../database';
-import { useWindowDimensions } from 'react-native';
+import { useWindowDimensions, Platform, Alert } from 'react-native';
+import * as Device from 'expo-device';
+import * as Location from 'expo-location';
+import { ImageUploadQueue } from '../utils/ImageUploadQueue';
 import { AuthProvider, useAuth } from '../utils/auth';
 import { NavBar, ROLE_SCREENS } from './components/NavBar';
 import { SyncStatusBar } from './components/SyncStatusBar';
@@ -35,6 +38,47 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [pendingChanges, setPendingChanges] = useState(0);
+
+  React.useEffect(() => {
+    // 1. Process pending image uploads from background queue on startup
+    ImageUploadQueue.processQueue().catch((err) => {
+      console.error('[App] Background upload queue error:', err);
+    });
+
+    // 2. Perform Hardware Profile & Location Checks
+    const runProfileChecks = async () => {
+      if (Platform.OS === 'web') {
+        if (isDesktop) {
+          console.log(
+            '[App] Environment: Running in Desktop Web view. Native location check-ins and device sensors are disabled.',
+          );
+          return;
+        }
+      }
+
+      try {
+        const isPhysDevice = Device.isDevice;
+        console.log(
+          `[App] Device Check: Physical Device = ${isPhysDevice}, Model = ${Device.modelName || 'Unknown'}`,
+        );
+      } catch (e) {
+        console.warn('[App] Failed to check physical device status:', e);
+      }
+
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn(
+            '[App] Foreground location permission not granted. GPS check-ins will log as unverified.',
+          );
+        }
+      } catch (e) {
+        console.warn('[App] Failed to verify/request location permissions:', e);
+      }
+    };
+
+    runProfileChecks();
+  }, [isDesktop]);
 
   const refreshPendingCount = React.useCallback(async () => {
     try {

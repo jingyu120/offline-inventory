@@ -71,7 +71,7 @@ Return ONLY raw JSON. No markdown formatting, no explanation.`,
     return {
       commercialStatus,
       items,
-      summary: note.substring(0, 50),
+      summary: note,
     };
   }
 

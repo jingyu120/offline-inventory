@@ -20,6 +20,9 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     sqliteSchema.exchange_rates,
     sqliteSchema.rep_scores,
     sqliteSchema.points_logs,
+    sqliteSchema.brands,
+    sqliteSchema.stock_locations,
+    sqliteSchema.stock_balances,
   ];
 
   for (const table of tables) {
@@ -32,7 +35,47 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
 
   const now = Date.now();
 
-  // 1. Seed Regions
+  // 1. Seed Brands (Shera, Gator, Karat, VRH, SCG Smart Board, Knauf)
+  await db.insert(sqliteSchema.brands).values([
+    {
+      id: 'brand-shera',
+      name: 'Shera',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'brand-gator',
+      name: 'Gator',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'brand-karat',
+      name: 'Karat',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'brand-vrh',
+      name: 'VRH',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'brand-scg',
+      name: 'SCG Smart Board',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'brand-knauf',
+      name: 'Knauf',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // 2. Seed Regions
   await db.insert(sqliteSchema.regions).values([
     {
       id: 'region-yangon',
@@ -50,7 +93,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     },
   ]);
 
-  // 2. Seed Price Books
+  // 3. Seed Price Books
   await db.insert(sqliteSchema.price_books).values([
     {
       id: 'pb-yangon',
@@ -68,47 +111,95 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     },
   ]);
 
-  // 3. Seed Items
+  // 4. Seed Building Material Items
   await db.insert(sqliteSchema.items).values([
     {
       id: 'item-1',
-      sku: 'SKU-PB-640',
-      name: 'Myanmar Premium Beer 640ml',
-      unit_price: 3200,
-      category: 'Beverage',
+      sku: 'SKU-SH-6MM',
+      name: 'Shera Fiber Cement Board 6mm',
+      unit_price: 15000,
+      category: 'Fiber Cement',
+      brand_id: 'brand-shera',
+      thickness: '6mm',
+      weight: '15kg',
+      unit_type: 'PAL',
+      conversion_factor: 120,
       created_at: now,
       updated_at: now,
     },
     {
       id: 'item-2',
-      sku: 'SKU-RG-320',
-      name: 'Red Gem Energy Drink 320ml',
-      unit_price: 1500,
-      category: 'Energy Drink',
+      sku: 'SKU-GT-PVC-12',
+      name: 'Gator PVC Pipe 1/2 inch',
+      unit_price: 4500,
+      category: 'Plumbing',
+      brand_id: 'brand-gator',
+      thickness: '2mm',
+      weight: '1.5kg',
+      unit_type: 'PK',
+      conversion_factor: 25,
       created_at: now,
       updated_at: now,
     },
     {
       id: 'item-3',
-      sku: 'SKU-WS-1000',
-      name: 'Golden Water Bottle 1L',
-      unit_price: 800,
-      category: 'Water',
+      sku: 'SKU-KR-WC',
+      name: 'Karat Ceramic Water Closet',
+      unit_price: 180000,
+      category: 'Sanitaryware',
+      brand_id: 'brand-karat',
+      thickness: null,
+      weight: '28kg',
+      unit_type: 'PCS',
+      conversion_factor: 1,
       created_at: now,
       updated_at: now,
     },
     {
       id: 'item-4',
-      sku: 'SKU-SS-500',
-      name: 'Silver Soda Can 500ml',
-      unit_price: 1200,
-      category: 'Beverage',
+      sku: 'SKU-VR-FC',
+      name: 'VRH Stainless steel Faucet',
+      unit_price: 35000,
+      category: 'Fittings',
+      brand_id: 'brand-vrh',
+      thickness: null,
+      weight: '0.8kg',
+      unit_type: 'PK',
+      conversion_factor: 10,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'item-5',
+      sku: 'SKU-SCG-8MM',
+      name: 'SCG Smart Board 8mm',
+      unit_price: 22000,
+      category: 'Fiber Cement',
+      brand_id: 'brand-scg',
+      thickness: '8mm',
+      weight: '22kg',
+      unit_type: 'PAL',
+      conversion_factor: 100,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'item-6',
+      sku: 'SKU-KN-GP-9MM',
+      name: 'Knauf Gypsum Board 9mm',
+      unit_price: 12500,
+      category: 'Drywall',
+      brand_id: 'brand-knauf',
+      thickness: '9mm',
+      weight: '18kg',
+      unit_type: 'PAL',
+      conversion_factor: 80,
       created_at: now,
       updated_at: now,
     },
   ]);
 
-  // 4. Seed Item Stocks
+  // 5. Seed Item Stocks
   await db.insert(sqliteSchema.item_stocks).values([
     {
       id: 'stock-1',
@@ -138,14 +229,30 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       created_at: now,
       updated_at: now,
     },
+    {
+      id: 'stock-5',
+      item_id: 'item-5',
+      quantity: 120,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'stock-6',
+      item_id: 'item-6',
+      quantity: 180,
+      created_at: now,
+      updated_at: now,
+    },
   ]);
 
-  // 5. Seed Price Book Items
+  // 6. Seed Price Book Items
   const items = [
-    { id: 'item-1', unitPrice: 3200 },
-    { id: 'item-2', unitPrice: 1500 },
-    { id: 'item-3', unitPrice: 800 },
-    { id: 'item-4', unitPrice: 1200 },
+    { id: 'item-1', unitPrice: 15000 },
+    { id: 'item-2', unitPrice: 4500 },
+    { id: 'item-3', unitPrice: 180000 },
+    { id: 'item-4', unitPrice: 35000 },
+    { id: 'item-5', unitPrice: 22000 },
+    { id: 'item-6', unitPrice: 12500 },
   ];
 
   for (const item of items) {
@@ -171,7 +278,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     ]);
   }
 
-  // 6. Seed Exchange Rates
+  // 7. Seed Exchange Rates
   await db.insert(sqliteSchema.exchange_rates).values([
     {
       id: 'er-usd-mmk',
@@ -189,7 +296,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     },
   ]);
 
-  // 7. Seed Shops
+  // 8. Seed Shops
   await db.insert(sqliteSchema.shops).values([
     {
       id: 'shop-1',
@@ -386,7 +493,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       shop_id: 'shop-1',
       rep_id: 'rep-1',
       type: 'SHOP_VISIT',
-      notes: 'Kyaw ordered beer.',
+      notes: 'Kyaw ordered Shera boards.',
       d: 0,
       h: 9,
     },
@@ -395,7 +502,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       shop_id: 'shop-3',
       rep_id: 'rep-1',
       type: 'PHONE_CALL',
-      notes: 'Followed up on bottle orders.',
+      notes: 'Followed up on board orders.',
       d: 0,
       h: 11,
     },
@@ -595,7 +702,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       shop_id: 'shop-2',
       rep_id: 'rep-2',
       type: 'SHOP_VISIT',
-      notes: 'Daw Mya ordered red gem.',
+      notes: 'Daw Mya ordered Gator PVC pipes.',
       d: 1,
       h: 9,
     },
@@ -774,7 +881,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       interaction_log_id: 'log-r1-d0-1',
       item_id: 'item-1',
       quantity: 5,
-      unit_price_at_sale: 3200,
+      unit_price_at_sale: 15000,
       interest_level: 'HIGH',
       created_at: now,
       updated_at: now,

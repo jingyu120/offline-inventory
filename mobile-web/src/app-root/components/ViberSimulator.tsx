@@ -17,7 +17,7 @@ import {
 } from 'lucide-react-native';
 import { database } from '../../database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 interface Message {
   id: string;
@@ -31,7 +31,7 @@ export function ViberSimulator() {
     {
       id: 'welcome',
       sender: 'bot',
-      text: '🇲🇲 Viber Chatbot Simulator Active.\n\nType "?help" to list valid queries or type "?info [Shop Name]" to query shop status, churn analytics, and AI SKU order recommendations directly.',
+      text: '🇲🇲 Viber Chatbot Simulator Active.\n\nType "?help" to list valid queries, "?info [Shop Name]" to query shop status, or "?order [qty] [item] for [shop]" to draft an invoice.',
       timestamp: new Date(),
     },
   ]);
@@ -58,7 +58,7 @@ export function ViberSimulator() {
     setTimeout(async () => {
       let botResponse = '';
       if (input.toLowerCase() === '?help') {
-        botResponse = `🤖 *Viber Bot Instructions*:\n\n1. *?info [Shop Name]*: Query detailed profile for a shop.\n   Example: \`?info City Mart Junction City\`\n2. *?help*: Display this instructions dialog.`;
+        botResponse = `🤖 *Viber Bot Instructions*:\n\n1. *?info [Shop Name]*: Query detailed profile for a shop.\n   Example: \`?info City Mart Junction City\`\n2. *?order [qty] [item] for [shop]*: Draft an order intake invoice.\n   Example: \`?order 10 Premium Beer for City Mart Junction City\`\n3. *?help*: Display this instructions dialog.`;
       } else if (input.toLowerCase().startsWith('?info ')) {
         const queryShopName = input.substring(6).trim();
         try {
@@ -101,6 +101,78 @@ export function ViberSimulator() {
           console.error(e);
           botResponse =
             '⚠️ Database query failed while searching for shop details.';
+        }
+      } else if (input.toLowerCase().startsWith('?order ')) {
+        const match = input.match(/^\?order\s+(\d+)\s+(.+?)\s+for\s+(.+)$/i);
+        if (match) {
+          const qtyStr = match[1];
+          const itemName = match[2].trim();
+          const shopName = match[3].trim();
+
+          try {
+            const shops = await database.select().from(sqliteSchema.shops);
+            const foundShop = shops.find((s: any) =>
+              s.name.toLowerCase().includes(shopName.toLowerCase()),
+            );
+
+            if (!foundShop) {
+              botResponse = `❌ Shop "${shopName}" was not found in the database.`;
+            } else {
+              const items = await database.select().from(sqliteSchema.items);
+              const foundItem = items.find(
+                (i: any) =>
+                  i.name.toLowerCase().includes(itemName.toLowerCase()) ||
+                  i.sku.toLowerCase().includes(itemName.toLowerCase()),
+              );
+
+              if (!foundItem) {
+                botResponse = `❌ Item "${itemName}" was not found in the database.`;
+              } else {
+                // Check stock levels
+                const stocks = await database
+                  .select()
+                  .from(sqliteSchema.item_stocks)
+                  .where(eq(sqliteSchema.item_stocks.item_id, foundItem.id));
+                const stockQty = stocks.length > 0 ? stocks[0].quantity : 0;
+
+                // Price book item
+                let unitPrice = foundItem.unit_price;
+                let priceTierName = 'Standard Retailer';
+                if (foundShop.price_book_id) {
+                  const pbItems = await database
+                    .select()
+                    .from(sqliteSchema.price_book_items)
+                    .where(
+                      and(
+                        eq(
+                          sqliteSchema.price_book_items.price_book_id,
+                          foundShop.price_book_id,
+                        ),
+                        eq(sqliteSchema.price_book_items.item_id, foundItem.id),
+                      ),
+                    );
+                  if (pbItems.length > 0) {
+                    unitPrice = pbItems[0].price;
+                    priceTierName =
+                      foundShop.price_book_id === 'pb-mandalay'
+                        ? 'Wholesale (10% off)'
+                        : 'Standard Retailer';
+                  }
+                }
+
+                const parsedQty = parseInt(qtyStr, 10);
+                const subtotal = unitPrice * parsedQty;
+
+                botResponse = `📋 *Intake Invoice Draft Generated*\n• Shop: ${foundShop.name}\n• Price Tier: ${priceTierName}\n• Item: ${foundItem.name}\n• Qty: ${parsedQty} units\n• Subtotal: K${subtotal.toLocaleString()}\n• Stock Status: ${stockQty >= parsedQty ? `Available (Stock: ${stockQty})` : `⚠️ Stockout Warning (Stock: ${stockQty})`}`;
+              }
+            }
+          } catch (err) {
+            console.error(err);
+            botResponse =
+              '⚠️ Database query failed while generating intake invoice.';
+          }
+        } else {
+          botResponse = `❌ Invalid order format. Expected:\n\`?order [qty] [item] for [shop]\`\nExample: \`?order 10 Premium Beer for City Mart\``;
         }
       } else {
         botResponse = `🤖 *Gemma AI Bot*:\nCommand not recognized. Type "?help" for a list of available query triggers.`;

@@ -3,8 +3,9 @@ import { TouchableOpacity } from 'react-native';
 import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Shop } from '@burma-inventory/shared-types';
-import { Zap } from 'lucide-react-native';
+import { Zap, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useToast } from './ToastProvider';
+import { API_BASE_URL } from '../../config';
 
 interface PredictionAnalyticsCardProps {
   shop: Shop;
@@ -12,6 +13,7 @@ interface PredictionAnalyticsCardProps {
   recommendedOrder: any;
   recommendedItem: any;
   onLogInteraction?: (shop: Shop) => void;
+  historicalNotes?: string[];
 }
 
 export const PredictionAnalyticsCard: React.FC<
@@ -22,9 +24,47 @@ export const PredictionAnalyticsCard: React.FC<
   recommendedOrder,
   recommendedItem,
   onLogInteraction,
+  historicalNotes = [],
 }) => {
   const theme = useTheme<Theme>();
   const { showToast } = useToast();
+
+  const [sentimentTrend, setSentimentTrend] = React.useState<
+    'IMPROVING' | 'STABLE' | 'DECLINING' | null
+  >(null);
+  const [sentimentExplanation, setSentimentExplanation] =
+    React.useState<string>('');
+  const [loadingSentiment, setLoadingSentiment] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchSentimentAnalysis = async () => {
+      if (!historicalNotes || historicalNotes.length === 0) {
+        setSentimentTrend('STABLE');
+        setSentimentExplanation(
+          'No historical interaction logs available to analyze.',
+        );
+        return;
+      }
+      setLoadingSentiment(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/ai/analyze-sentiment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: historicalNotes }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSentimentTrend(data.sentimentTrend);
+          setSentimentExplanation(data.explanation);
+        }
+      } catch (err) {
+        console.error('Failed to fetch sentiment analysis:', err);
+      } finally {
+        setLoadingSentiment(false);
+      }
+    };
+    fetchSentimentAnalysis();
+  }, [historicalNotes]);
 
   if (!predictionLog) return null;
 
@@ -160,6 +200,90 @@ export const PredictionAnalyticsCard: React.FC<
               </Text>
             </TouchableOpacity>
           </Box>
+        </Box>
+      )}
+
+      {loadingSentiment && (
+        <Box mt="m" py="s" alignItems="center">
+          <Text variant="bodySecondary">
+            🔮 Loading Gemma Churn Analysis...
+          </Text>
+        </Box>
+      )}
+
+      {!loadingSentiment && sentimentTrend && (
+        <Box
+          mt="m"
+          p="m"
+          borderRadius="m"
+          bg={
+            sentimentTrend === 'DECLINING'
+              ? 'dangerBg'
+              : sentimentTrend === 'IMPROVING'
+                ? 'successBg'
+                : 'warningBg'
+          }
+          borderColor={
+            sentimentTrend === 'DECLINING'
+              ? 'dangerText'
+              : sentimentTrend === 'IMPROVING'
+                ? 'successText'
+                : 'warningText'
+          }
+          borderWidth={1}
+        >
+          <Box flexDirection="row" alignItems="center" mb="xs">
+            {sentimentTrend === 'DECLINING' ? (
+              <TrendingDown
+                size={18}
+                stroke={theme.colors.dangerText}
+                style={{ marginRight: 8 }}
+              />
+            ) : sentimentTrend === 'IMPROVING' ? (
+              <TrendingUp
+                size={18}
+                stroke={theme.colors.successText}
+                style={{ marginRight: 8 }}
+              />
+            ) : (
+              <Zap
+                size={18}
+                stroke={theme.colors.warningText}
+                style={{ marginRight: 8 }}
+              />
+            )}
+            <Text
+              variant="body"
+              fontWeight="bold"
+              style={{
+                color:
+                  sentimentTrend === 'DECLINING'
+                    ? theme.colors.dangerText
+                    : sentimentTrend === 'IMPROVING'
+                      ? theme.colors.successText
+                      : theme.colors.warningText,
+              }}
+            >
+              {sentimentTrend === 'DECLINING'
+                ? 'High Churn Risk Trend'
+                : sentimentTrend === 'IMPROVING'
+                  ? 'Low Churn Risk Trend'
+                  : 'Stable / Neutral Trend'}
+            </Text>
+          </Box>
+          <Text
+            variant="bodySecondary"
+            style={{
+              color:
+                sentimentTrend === 'DECLINING'
+                  ? theme.colors.dangerText
+                  : sentimentTrend === 'IMPROVING'
+                    ? theme.colors.successText
+                    : theme.colors.warningText,
+            }}
+          >
+            {sentimentExplanation}
+          </Text>
         </Box>
       )}
     </Card>

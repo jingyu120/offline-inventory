@@ -13,6 +13,7 @@ import { Shop } from '@burma-inventory/shared-types';
 import { useTheme } from '@shopify/restyle';
 import { Clock, MapPin, Zap } from 'lucide-react-native';
 import { useTranslation } from '../../utils/i18n';
+import { DesignPatternGallery } from './DesignPatternGallery';
 
 interface ShopSidebarListProps {
   shops: ShopWithDetails[];
@@ -332,6 +333,11 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
         {shops.length === 0 && (
           <Box p="m" alignItems="center" mt="xl">
             <Text variant="bodySecondary">{t('noShopsFound')}</Text>
+          </Box>
+        )}
+        {!isDesktop && (
+          <Box mt="m">
+            <DesignPatternGallery />
           </Box>
         )}
       </ScrollView>

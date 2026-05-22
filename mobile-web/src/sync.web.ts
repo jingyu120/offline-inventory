@@ -1,15 +1,16 @@
 /**
- * sync.web.ts — Web platform sync stub.
+ * sync.web.ts — Web platform sync driver.
  *
- * PowerSync sync is native-only. On web we provide no-op implementations so
- * the app compiles and runs without the React Native bridge.
+ * Direct HTTP delta sync that performs incremental pull and push operations.
  */
+import { syncData as engineSyncData } from './utils/syncEngine';
 
 export async function syncData(): Promise<void> {
-  // No-op on web — PowerSync replication only applies to native builds.
-  console.info(
-    '[Web] syncData() called — PowerSync sync is not available on web.',
-  );
+  try {
+    await engineSyncData();
+  } catch (error) {
+    console.error('[Web] Sync failed:', error);
+  }
 }
 
 export const syncConnector = null;

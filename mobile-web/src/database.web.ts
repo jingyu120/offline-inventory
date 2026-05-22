@@ -1,36 +1,102 @@
 /**
  * database.web.ts — Web platform database provider.
  *
- * On web we use expo-sqlite (SQLite WASM via Origin Private File System) with
- * Drizzle ORM directly. PowerSync and @powersync/react-native are native-only
- * and must NOT be imported here — doing so pulls in the React Native bridge
- * which crashes the web build.
+ * On web we use sql.js (SQLite WASM) loaded from a CDN with an IndexedDB fallback
+ * for persistence. PowerSync and @powersync/react-native are native-only and
+ * must NOT be imported here.
  */
-import * as ExpoSQLite from 'expo-sqlite';
+import initSqlJs from 'sql.js';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 
 let realDb: any = null;
 let initPromise: Promise<any> | null = null;
 
-function createProxyDb(expoDb: any) {
+// Helper to open IndexedDB
+function openIndexedDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('BurmaInventoryDB', 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('sqlite_files')) {
+        db.createObjectStore('sqlite_files');
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Load SQLite file from IndexedDB
+async function loadDbFromIndexedDB(): Promise<Uint8Array | null> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('sqlite_files', 'readonly');
+      const store = transaction.objectStore('sqlite_files');
+      const request = store.get('burma_inventory.sqlite');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    console.warn('Failed to load from IndexedDB, starting fresh:', err);
+    return null;
+  }
+}
+
+// Save SQLite file to IndexedDB
+async function saveDbToIndexedDB(data: Uint8Array): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('sqlite_files', 'readwrite');
+      const store = transaction.objectStore('sqlite_files');
+      const request = store.put(data, 'burma_inventory.sqlite');
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    console.error('Failed to save to IndexedDB:', err);
+  }
+}
+
+function createProxyDb(sqljsDb: any) {
   return drizzle(
     async (sql, params, method) => {
-      const statement = await expoDb.prepareAsync(sql);
       try {
         if (method === 'run') {
-          await statement.executeAsync(params);
+          sqljsDb.run(sql, params);
+          const data = sqljsDb.export();
+          await saveDbToIndexedDB(data);
           return { rows: [] };
         }
-        const result = await statement.executeForRawResultAsync(params);
-        const rows = await result.getAllAsync();
+
+        const stmt = sqljsDb.prepare(sql);
+        stmt.bind(params);
+        const rows: any[] = [];
+        while (stmt.step()) {
+          const rowVal = stmt.get();
+          console.log('[Proxy SQL.js Query]', sql, '-> Row:', rowVal);
+          rows.push(rowVal);
+        }
+        stmt.free();
+
+        // If it was a write query executed via execute, trigger auto-export
+        const isWrite = /insert|update|delete|create|drop|alter|vacuum/i.test(
+          sql,
+        );
+        if (isWrite) {
+          const data = sqljsDb.export();
+          await saveDbToIndexedDB(data);
+        }
+
         if (method === 'get') {
           return { rows: rows[0] };
         }
         return { rows };
       } catch (err) {
         console.error(
-          'Proxy DB Query Error:',
+          'SQL.js Proxy Query Error:',
           err,
           '\nSQL:',
           sql,
@@ -38,18 +104,16 @@ function createProxyDb(expoDb: any) {
           params,
         );
         throw err;
-      } finally {
-        await statement.finalizeAsync();
       }
     },
     { schema: sqliteSchema },
   );
 }
 
-async function createTablesAndSeedIfEmpty(expoDb: any) {
+async function createTablesAndSeedIfEmpty(sqljsDb: any) {
   try {
     // Create tables if they do not exist
-    await expoDb.execAsync(`
+    sqljsDb.run(`
       CREATE TABLE IF NOT EXISTS regions (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
@@ -68,6 +132,7 @@ async function createTablesAndSeedIfEmpty(expoDb: any) {
         lifetime_value REAL NOT NULL DEFAULT 0,
         sentiment_trend TEXT NOT NULL DEFAULT 'STABLE',
         price_book_id TEXT,
+        price_tier TEXT NOT NULL DEFAULT 'Retailer',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -87,6 +152,11 @@ async function createTablesAndSeedIfEmpty(expoDb: any) {
         name TEXT NOT NULL,
         unit_price REAL NOT NULL,
         category TEXT NOT NULL,
+        brand_id TEXT,
+        thickness TEXT,
+        weight TEXT,
+        unit_type TEXT NOT NULL DEFAULT 'PCS',
+        conversion_factor REAL NOT NULL DEFAULT 1,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -122,6 +192,7 @@ async function createTablesAndSeedIfEmpty(expoDb: any) {
         interest_level TEXT,
         unit_price REAL,
         selected_currency TEXT NOT NULL DEFAULT 'MMK',
+        selected_unit TEXT NOT NULL DEFAULT 'PCS',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -211,18 +282,55 @@ async function createTablesAndSeedIfEmpty(expoDb: any) {
         reason TEXT NOT NULL,
         created_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS brands (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS stock_locations (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS stock_balances (
+        id TEXT PRIMARY KEY NOT NULL,
+        item_id TEXT NOT NULL,
+        location_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS image_upload_queue (
+        id TEXT PRIMARY KEY NOT NULL,
+        local_file_path TEXT NOT NULL,
+        interaction_log_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Check if shops table is empty
-    const shopsCountResult = (await expoDb.getFirstAsync(
-      'SELECT COUNT(*) as count FROM shops;',
-    )) as { count: number } | null;
+    let isEmpty = true;
+    const stmt = sqljsDb.prepare('SELECT COUNT(*) as count FROM shops;');
+    if (stmt.step()) {
+      const res = stmt.getAsObject();
+      if (Number(res.count) > 0) {
+        isEmpty = false;
+      }
+    }
+    stmt.free();
 
-    if (!shopsCountResult || shopsCountResult.count === 0) {
+    if (isEmpty) {
       console.log('Local SQLite database is empty. Auto-seeding mock data...');
-      const tempDb = createProxyDb(expoDb);
+      const tempDb = createProxyDb(sqljsDb);
       const { seedLocalDatabase } = await import('./data/mockSeeding');
       await seedLocalDatabase(tempDb);
+      // Save database to IndexedDB after seeding
+      const data = sqljsDb.export();
+      await saveDbToIndexedDB(data);
     }
   } catch (err) {
     console.error('Error creating database schema or seeding:', err);
@@ -233,12 +341,20 @@ async function getRealDb() {
   if (realDb) return realDb;
   if (!initPromise) {
     initPromise = (async () => {
-      // Use async open to avoid blocking the main thread during WASM worker/compilation startup
-      const expoDb = await ExpoSQLite.openDatabaseAsync(
-        'burma_inventory.sqlite',
-      );
-      await createTablesAndSeedIfEmpty(expoDb);
-      realDb = createProxyDb(expoDb);
+      const SQL = await initSqlJs({
+        locateFile: (file: string) => `/${file}`,
+      });
+      const savedData = await loadDbFromIndexedDB();
+      let sqljsDb;
+      if (savedData) {
+        sqljsDb = new SQL.Database(savedData);
+      } else {
+        sqljsDb = new SQL.Database();
+      }
+      await createTablesAndSeedIfEmpty(sqljsDb);
+      (window as any)._sqljsDb = sqljsDb;
+      (window as any)._db = createProxyDb(sqljsDb);
+      realDb = (window as any)._db;
       return realDb;
     })();
   }
@@ -298,7 +414,7 @@ export type DatabaseType = typeof database;
 /**
  * powerSyncDb stub — exposes just enough surface area so that callers in
  * App.tsx that call powerSyncDb.onChange / powerSyncDb.getUploadQueueStats
- * don't crash on web. These are no-ops on web since there is no sync service.
+ * don't crash on web.
  */
 export const powerSyncDb = {
   getUploadQueueStats: async () => ({ count: 0 }),

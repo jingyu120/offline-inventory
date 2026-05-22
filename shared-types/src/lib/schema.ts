@@ -35,6 +35,7 @@ export const shops = pgTable(
     lifetime_value: doublePrecision('lifetime_value').notNull().default(0),
     sentiment_trend: text('sentiment_trend').notNull().default('STABLE'),
     price_book_id: text('price_book_id'),
+    price_tier: text('price_tier').notNull().default('Retailer'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -72,6 +73,13 @@ export const items = pgTable(
     name: text('name').notNull(),
     unit_price: doublePrecision('unit_price').notNull(),
     category: text('category').notNull(),
+    brand_id: text('brand_id'),
+    thickness: text('thickness'),
+    weight: text('weight'),
+    unit_type: text('unit_type').notNull().default('PCS'),
+    conversion_factor: doublePrecision('conversion_factor')
+      .notNull()
+      .default(1),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -129,6 +137,7 @@ export const interaction_items = pgTable(
     interest_level: text('interest_level'),
     unit_price: doublePrecision('unit_price'),
     selected_currency: text('selected_currency').notNull().default('MMK'),
+    selected_unit: text('selected_unit').notNull().default('PCS'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -290,5 +299,49 @@ export const points_logs = pgTable(
   },
   (table) => ({
     repIdIdx: index('points_logs_rep_id_idx').on(table.rep_id),
+  }),
+);
+
+export const brands = pgTable(
+  'brands',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    nameIdx: index('brands_name_idx').on(table.name),
+  }),
+);
+
+export const stock_locations = pgTable(
+  'stock_locations',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    nameIdx: index('stock_locations_name_idx').on(table.name),
+  }),
+);
+
+export const stock_balances = pgTable(
+  'stock_balances',
+  {
+    id: text('id').primaryKey(),
+    item_id: text('item_id').notNull(),
+    location_id: text('location_id').notNull(),
+    quantity: integer('quantity').notNull().default(0),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    itemIdIdx: index('stock_balances_item_id_idx').on(table.item_id),
+    locationIdIdx: index('stock_balances_location_id_idx').on(
+      table.location_id,
+    ),
   }),
 );

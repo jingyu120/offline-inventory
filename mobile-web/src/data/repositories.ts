@@ -53,6 +53,7 @@ export const mapShop = (s: any): Shop => ({
   lifetimeValue: s.lifetime_value,
   sentimentTrend: s.sentiment_trend,
   priceBookId: s.price_book_id,
+  priceTier: s.price_tier,
   createdAt: s.created_at,
   updatedAt: s.updated_at,
 });
@@ -74,6 +75,11 @@ export const mapItem = (i: any): Item => ({
   name: i.name,
   unitPrice: i.unit_price,
   category: i.category,
+  brandId: i.brand_id,
+  thickness: i.thickness,
+  weight: i.weight,
+  unitType: i.unit_type,
+  conversionFactor: i.conversion_factor,
   createdAt: i.created_at,
   updatedAt: i.updated_at,
 });
@@ -104,6 +110,7 @@ export const mapInteractionItem = (ii: any): InteractionItem => ({
   interestLevel: ii.interest_level,
   unitPrice: ii.unit_price,
   selectedCurrency: ii.selected_currency,
+  selectedUnit: ii.selected_unit,
   createdAt: ii.created_at,
   updatedAt: ii.updated_at,
 });
@@ -260,6 +267,7 @@ export interface SelectedItemPayload {
   quantity: number;
   unitPrice?: number;
   selectedCurrency?: string;
+  selectedUnit?: string;
 }
 
 function generateId(): string {
@@ -269,6 +277,24 @@ function generateId(): string {
   );
 }
 
+export const getConversionMultiplier = (
+  item: Item,
+  selectedUnit: string,
+): number => {
+  if (!selectedUnit || selectedUnit === 'PCS') return 1;
+  if (selectedUnit === item.unitType) return item.conversionFactor || 1;
+  switch (selectedUnit) {
+    case 'PK':
+      return 10;
+    case 'BAGS':
+      return 40;
+    case 'PAL':
+      return 100;
+    default:
+      return 1;
+  }
+};
+
 export const createInteractionLog = async (
   shopId: string,
   repId: string,
@@ -277,11 +303,12 @@ export const createInteractionLog = async (
   notes: string,
   screenshotUri: string | null,
   selectedItems: SelectedItemPayload[],
-): Promise<void> => {
+): Promise<string> => {
+  let newLogId = '';
   const [, error] = await guardAsync(
     (async () => {
       const now = Date.now();
-      const newLogId = generateId();
+      newLogId = generateId();
 
       // Insert Interaction Log
       await database.insert(sqliteSchema.interaction_logs).values({
@@ -299,35 +326,37 @@ export const createInteractionLog = async (
         updated_at: now,
       });
 
-      // Insert Interaction Items and update Stock
+      // Insert Interaction Items (with conversions, bypassing stock subtraction)
       for (const selected of selectedItems) {
         const newiiId = generateId();
+        const selectedUnit = selected.selectedUnit || 'PCS';
+        const multiplier = getConversionMultiplier(selected.item, selectedUnit);
+
+        // Dynamically compute quantities in base units during insertion
+        const baseQuantity = selected.quantity * multiplier;
+
+        // Calculate base unit price at sale
+        const negotiatedPrice =
+          selected.unitPrice !== undefined
+            ? selected.unitPrice
+            : selected.item.unitPrice * multiplier;
+        const baseUnitPriceAtSale = negotiatedPrice / multiplier;
+
         await database.insert(sqliteSchema.interaction_items).values({
           id: newiiId,
           interaction_log_id: newLogId,
           item_id: selected.item.id,
-          quantity: selected.quantity,
-          unit_price_at_sale: selected.unitPrice || selected.item.unitPrice,
-          unit_price: selected.unitPrice || selected.item.unitPrice,
+          quantity: baseQuantity,
+          unit_price_at_sale: baseUnitPriceAtSale,
+          unit_price: selected.item.unitPrice,
           selected_currency: selected.selectedCurrency || 'MMK',
+          selected_unit: selectedUnit,
           created_at: now,
           updated_at: now,
         });
 
-        // Update Stock
-        const stockRecords = await database
-          .select()
-          .from(sqliteSchema.item_stocks)
-          .where(eq(sqliteSchema.item_stocks.item_id, selected.item.id));
-
-        if (stockRecords.length > 0) {
-          const stockRecord = stockRecords[0];
-          const newQty = Math.max(0, stockRecord.quantity - selected.quantity);
-          await database
-            .update(sqliteSchema.item_stocks)
-            .set({ quantity: newQty, updated_at: now })
-            .where(eq(sqliteSchema.item_stocks.id, stockRecord.id));
-        }
+        // NOTE: Stock ledger subtraction bypassed in this phase.
+        // Orders are treated purely as 'Requested Bookings' or sales leads.
       }
     })(),
   );
@@ -336,6 +365,7 @@ export const createInteractionLog = async (
     console.error('Database mutation failed in createInteractionLog:', error);
     throw error;
   }
+  return newLogId;
 };
 
 export const fetchRegions = async (): Promise<Region[]> => {

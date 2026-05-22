@@ -41,6 +41,7 @@ export interface ShopRecord {
   lifetime_value: number;
   sentiment_trend: string;
   price_book_id: string | null;
+  price_tier: string;
   created_at: number;
   updated_at: number;
 }
@@ -62,6 +63,11 @@ export interface ItemRecord {
   name: string;
   unit_price: number;
   category: string;
+  brand_id: string | null;
+  thickness: string | null;
+  weight: string | null;
+  unit_type: string;
+  conversion_factor: number;
   created_at: number;
   updated_at: number;
 }
@@ -92,6 +98,7 @@ export interface InteractionItemRecord {
   interest_level: string | null;
   unit_price: number | null;
   selected_currency: string | null;
+  selected_unit: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -208,6 +215,29 @@ export interface PointsLogRecord {
   created_at: number;
 }
 
+export interface BrandRecord {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StockLocationRecord {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StockBalanceRecord {
+  id: string;
+  item_id: string;
+  location_id: string;
+  quantity: number;
+  created_at: number;
+  updated_at: number;
+}
+
 // ─── Sync Protocol Types ────────────────────────────────────────────
 
 /** Generic WatermelonDB sync change-set for a single table. */
@@ -235,7 +265,10 @@ export type SyncTableName =
   | 'price_book_items'
   | 'exchange_rates'
   | 'rep_scores'
-  | 'points_logs';
+  | 'points_logs'
+  | 'brands'
+  | 'stock_locations'
+  | 'stock_balances';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -282,6 +315,7 @@ export interface Shop {
   lifetimeValue: number;
   sentimentTrend: string;
   priceBookId: string | null;
+  priceTier: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -303,6 +337,11 @@ export interface Item {
   name: string;
   unitPrice: number;
   category: string;
+  brandId: string | null;
+  thickness: string | null;
+  weight: string | null;
+  unitType: string;
+  conversionFactor: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -333,6 +372,7 @@ export interface InteractionItem {
   interestLevel: string | null;
   unitPrice: number | null;
   selectedCurrency: string | null;
+  selectedUnit: string | null;
   createdAt: number;
   updatedAt: number;
 }

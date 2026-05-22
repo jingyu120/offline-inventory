@@ -54,6 +54,7 @@ model Shop {
   lifetimeValue  Decimal  @default(0) @db.Decimal(12, 2) @map("lifetime_value")
   sentimentTrend String   @default("STABLE") @map("sentiment_trend") // E.g., "IMPROVING", "STABLE", "DECLINING"
   priceBookId    String?  @map("price_book_id")
+  priceTier      String   @default("Retailer") @map("price_tier")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
@@ -87,17 +88,24 @@ model Contact {
 }
 
 model Item {
-  id        String   @id @default(uuid())
-  sku       String   @unique // E.g., "SKU-PB-640"
-  name      String
-  unitPrice Decimal  @db.Decimal(10, 2) @map("unit_price")
-  category  String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id               String   @id @default(uuid())
+  sku              String   @unique // E.g., "SKU-PB-640"
+  name             String
+  unitPrice        Decimal  @db.Decimal(10, 2) @map("unit_price")
+  category         String
+  brandId          String?  @map("brand_id")
+  thickness        String?
+  weight           String?
+  unitType         String   @default("PCS") @map("unit_type")
+  conversionFactor Float    @default(1.0) @map("conversion_factor")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
 
+  brand             Brand?             @relation(fields: [brandId], references: [id])
   interactionItems  InteractionItem[]
   stock             ItemStock?
+  stockBalances     StockBalance[]
   priceBookItems    PriceBookItem[]
   recommendedOrders RecommendedOrder[]
 
@@ -150,6 +158,7 @@ model InteractionItem {
   interestLevel      String?  @map("interest_level") // E.g., "HIGH", "MEDIUM", "LOW"
   unitPrice          Decimal? @db.Decimal(10, 2) @map("unit_price")
   selectedCurrency   String?  @default("MMK") @map("selected_currency")
+  selectedUnit       String   @default("PCS") @map("selected_unit")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
   deletedAt          DateTime? @map("deleted_at")
@@ -311,4 +320,59 @@ model PointsLog {
 
   @@map("points_logs")
 }
+
+model Brand {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  items     Item[]
+
+  @@map("brands")
+}
+
+model StockLocation {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  balances  StockBalance[]
+
+  @@map("stock_locations")
+}
+
+model StockBalance {
+  id         String   @id @default(uuid())
+  itemId     String   @map("item_id")
+  locationId String   @map("location_id")
+  quantity   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  location   StockLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, locationId])
+  @@map("stock_balances")
+}
+
+model SyncAuditLog {
+  id             String   @id @default(uuid())
+  deviceId       String   @map("device_id")
+  userId         String?  @map("user_id") // Optional rep user
+  action         String   // "PULL" or "PUSH"
+  recordsPulled  Int      @default(0) @map("records_pulled")
+  recordsPushed  Int      @default(0) @map("records_pushed")
+  status         String   // "SUCCESS" or "FAILED"
+  errorMessage   String?  @map("error_message") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("sync_audit_logs")
+}
+
 

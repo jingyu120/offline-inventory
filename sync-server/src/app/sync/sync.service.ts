@@ -88,6 +88,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       lifetime_value: toNum(s.lifetimeValue),
       sentiment_trend: s.sentimentTrend,
       price_book_id: s.priceBookId,
+      price_tier: s.priceTier,
       ...mapTimestampsRecord(s),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +103,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       lifetimeValue: s.lifetime_value,
       sentimentTrend: s.sentiment_trend,
       priceBookId: s.price_book_id,
+      priceTier: s.price_tier,
       ...mapTimestampsPrisma(s),
     }),
   },
@@ -141,6 +143,11 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       name: i.name,
       unit_price: toNum(i.unitPrice),
       category: i.category,
+      brand_id: i.brandId,
+      thickness: i.thickness,
+      weight: i.weight,
+      unit_type: i.unitType,
+      conversion_factor: i.conversionFactor,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,6 +157,11 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       name: i.name,
       unitPrice: i.unit_price,
       category: i.category,
+      brandId: i.brand_id,
+      thickness: i.thickness,
+      weight: i.weight,
+      unitType: i.unit_type,
+      conversionFactor: i.conversion_factor,
       ...mapTimestampsPrisma(i),
     }),
   },
@@ -206,6 +218,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       interest_level: i.interestLevel,
       unit_price: toNum(i.unitPrice),
       selected_currency: i.selectedCurrency,
+      selected_unit: i.selectedUnit,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -218,6 +231,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       interestLevel: i.interest_level,
       unitPrice: i.unit_price,
       selectedCurrency: i.selected_currency,
+      selectedUnit: i.selected_unit,
       ...mapTimestampsPrisma(i),
     }),
   },
@@ -466,6 +480,61 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       createdAt: new Date(r.created_at),
     }),
   },
+  brands: {
+    delegate: 'brand',
+    softDelete: true,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (b: any) => ({
+      id: b.id,
+      name: b.name,
+      ...mapTimestampsRecord(b),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (b: any) => ({
+      id: b.id,
+      name: b.name,
+      ...mapTimestampsPrisma(b),
+    }),
+  },
+  stock_locations: {
+    delegate: 'stockLocation',
+    softDelete: true,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (l: any) => ({
+      id: l.id,
+      name: l.name,
+      ...mapTimestampsRecord(l),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (l: any) => ({
+      id: l.id,
+      name: l.name,
+      ...mapTimestampsPrisma(l),
+    }),
+  },
+  stock_balances: {
+    delegate: 'stockBalance',
+    softDelete: true,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (b: any) => ({
+      id: b.id,
+      item_id: b.itemId,
+      location_id: b.locationId,
+      quantity: b.quantity,
+      ...mapTimestampsRecord(b),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (b: any) => ({
+      id: b.id,
+      itemId: b.item_id,
+      locationId: b.location_id,
+      quantity: b.quantity,
+      ...mapTimestampsPrisma(b),
+    }),
+  },
 };
 
 // ─── Service ────────────────────────────────────────────────────────
@@ -478,7 +547,11 @@ export class SyncService {
 
   // ── Pull ──────────────────────────────────────────────────────────
 
-  async pullChanges(lastPulledAt: number): Promise<PullChangesResponse> {
+  async pullChanges(
+    lastPulledAt: number,
+    deviceId?: string,
+    userId?: string,
+  ): Promise<PullChangesResponse> {
     const since = new Date(lastPulledAt || 0);
 
     const pullOne = async (
@@ -503,7 +576,7 @@ export class SyncService {
           where: {
             updatedAt: { gt: since },
             createdAt: { lte: since },
-            deletedAt: null,
+            ...(cfg.softDelete ? { deletedAt: null } : {}),
           },
         }),
         cfg.softDelete
@@ -541,9 +614,31 @@ export class SyncService {
     const results = await Promise.all(entries.map(([, cfg]) => pullOne(cfg)));
 
     const changes: Record<string, WatermelonChangeSet<unknown>> = {};
+    let totalPulled = 0;
     entries.forEach(([tableName], i) => {
       changes[tableName] = results[i];
+      totalPulled +=
+        results[i].created.length +
+        results[i].updated.length +
+        results[i].deleted.length;
     });
+
+    if (deviceId) {
+      await this.prisma.syncAuditLog
+        .create({
+          data: {
+            deviceId,
+            userId: userId || null,
+            action: 'PULL',
+            recordsPulled: totalPulled,
+            recordsPushed: 0,
+            status: 'SUCCESS',
+          },
+        })
+        .catch((err) => {
+          this.logger.error(`Failed to write pull audit log: ${err.message}`);
+        });
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { changes: changes as any, timestamp: Date.now() };
@@ -551,7 +646,21 @@ export class SyncService {
 
   // ── Push ──────────────────────────────────────────────────────────
 
-  async pushChanges(changes: PushChangesBody['changes']): Promise<void> {
+  async pushChanges(
+    changes: PushChangesBody['changes'],
+    deviceId?: string,
+    userId?: string,
+  ): Promise<void> {
+    let totalPushed = 0;
+    for (const changeset of Object.values(changes || {})) {
+      if (!changeset) continue;
+      const c = changeset as any;
+      totalPushed +=
+        (c.created?.length || 0) +
+        (c.updated?.length || 0) +
+        (c.deleted?.length || 0);
+    }
+
     const [, error] = await guardAsync(
       this.prisma.$transaction(async (tx) => {
         // Process tables in registry order (FK-safe)
@@ -572,6 +681,8 @@ export class SyncService {
             });
 
             // Automatically deduct stock levels when orders/quantities are created
+            // Omitted for now: Treat all orders purely as 'Requested Bookings' or sales leads
+            /*
             if (tableName === 'interaction_items') {
               for (const item of changeset.created.map(cfg.toPrisma)) {
                 await tx.itemStock
@@ -588,14 +699,71 @@ export class SyncService {
                   });
               }
             }
+            */
           }
 
           // Updates
           for (const record of changeset.updated) {
-            await model.update({
-              where: { id: record.id },
-              data: cfg.toPrisma(record),
-            });
+            const incomingPrisma = cfg.toPrisma(record);
+            const existing = await model
+              .findUnique({ where: { id: record.id } })
+              .catch(() => null);
+
+            if (!existing) {
+              // If the record doesn't exist on the server yet, create it
+              await model
+                .create({
+                  data: incomingPrisma,
+                })
+                .catch((err: any) => {
+                  this.logger.warn(
+                    `Could not create missing update record ${record.id}: ${err.message}`,
+                  );
+                });
+              continue;
+            }
+
+            const incomingTime =
+              incomingPrisma.updatedAt instanceof Date
+                ? incomingPrisma.updatedAt.getTime()
+                : 0;
+            const existingTime =
+              existing.updatedAt instanceof Date
+                ? existing.updatedAt.getTime()
+                : 0;
+
+            if (incomingTime > existingTime) {
+              // Client is newer: patch all incoming fields
+              await model.update({
+                where: { id: record.id },
+                data: incomingPrisma,
+              });
+            } else {
+              // Server is newer (conflict): only patch fields that are null/empty on the server
+              const patchData: Record<string, any> = {};
+              for (const [key, val] of Object.entries(incomingPrisma)) {
+                if (val !== undefined && val !== null) {
+                  const existingVal = existing[key];
+                  if (
+                    existingVal === null ||
+                    existingVal === undefined ||
+                    existingVal === ''
+                  ) {
+                    patchData[key] = val;
+                  }
+                }
+              }
+
+              // Keep server's newer updatedAt
+              patchData.updatedAt = existing.updatedAt;
+
+              if (Object.keys(patchData).length > 1) {
+                await model.update({
+                  where: { id: record.id },
+                  data: patchData,
+                });
+              }
+            }
           }
 
           // Deletes
@@ -619,6 +787,24 @@ export class SyncService {
       }),
     );
 
+    if (deviceId) {
+      await this.prisma.syncAuditLog
+        .create({
+          data: {
+            deviceId,
+            userId: userId || null,
+            action: 'PUSH',
+            recordsPulled: 0,
+            recordsPushed: totalPushed,
+            status: error ? 'FAILED' : 'SUCCESS',
+            errorMessage: error ? (error as Error).message : null,
+          },
+        })
+        .catch((err) => {
+          this.logger.error(`Failed to write push audit log: ${err.message}`);
+        });
+    }
+
     if (error) {
       this.logger.error(
         `Failed to push sync changes: ${(error as Error).message}`,
@@ -626,5 +812,207 @@ export class SyncService {
       );
       throw error;
     }
+  }
+
+  async updateInteractionLogScreenshot(
+    interactionLogId: string,
+    filename: string,
+  ): Promise<string> {
+    const url = `/api/sync/uploads/${filename}`;
+    const existing = await this.prisma.interactionLog
+      .findUnique({
+        where: { id: interactionLogId },
+      })
+      .catch(() => null);
+
+    if (existing) {
+      await this.prisma.interactionLog.update({
+        where: { id: interactionLogId },
+        data: {
+          viberScreenshotUrl: url,
+          updatedAt: new Date(),
+        },
+      });
+      this.logger.log(
+        `[SyncService] Updated interaction log ${interactionLogId} screenshot URL to ${url}`,
+      );
+    } else {
+      this.logger.log(
+        `[SyncService] Screenshot uploaded for ${interactionLogId}, but log does not exist on server yet. URL ${url} will sync via client push.`,
+      );
+    }
+
+    return url;
+  }
+
+  async getSyncLogs() {
+    const logs = await this.prisma.syncAuditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    const userIds = [
+      ...new Set(logs.map((l) => l.userId).filter(Boolean)),
+    ] as string[];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, username: true, role: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return logs.map((l) => ({
+      ...l,
+      user: l.userId ? userMap.get(l.userId) : null,
+    }));
+  }
+
+  async importOdoo(
+    csvText: string,
+  ): Promise<{ importedCount: number; warnings: string[] }> {
+    const parseCSV = (text: string): any[] => {
+      const lines = text.split(/\r?\n/);
+      if (lines.length <= 1) return [];
+
+      const headers = lines[0]
+        .split(',')
+        .map((h) => h.trim().replace(/^["']|["']$/g, ''));
+      const parsedRows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values: string[] = [];
+        let insideQuote = false;
+        let currentVal = '';
+
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"' || char === "'") {
+            insideQuote = !insideQuote;
+          } else if (char === ',' && !insideQuote) {
+            values.push(currentVal.trim());
+            currentVal = '';
+          } else {
+            currentVal += char;
+          }
+        }
+        values.push(currentVal.trim());
+
+        const rowData: Record<string, string> = {};
+        headers.forEach((header, index) => {
+          let val = values[index] || '';
+          val = val.replace(/^["']|["']$/g, '');
+          rowData[header] = val;
+        });
+        parsedRows.push(rowData);
+      }
+      return parsedRows;
+    };
+
+    const rows = parseCSV(csvText);
+    let importedCount = 0;
+    const warnings: string[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = row['Name'] || row['name'];
+      const address = row['Address'] || row['address'];
+      const regionName = row['Region'] || row['region'];
+      const division = row['Division'] || row['division'] || 'Unknown Division';
+      const contactName =
+        row['ContactName'] ||
+        row['contactName'] ||
+        row['Contact Name'] ||
+        row['contact_name'];
+      const phoneNumber =
+        row['PhoneNumber'] ||
+        row['phoneNumber'] ||
+        row['Phone Number'] ||
+        row['phone_number'];
+      const email = row['Email'] || row['email'];
+      const priceTier =
+        row['PriceTier'] ||
+        row['priceTier'] ||
+        row['Price Tier'] ||
+        row['price_tier'] ||
+        'Retailer';
+      const ltvVal =
+        row['LifetimeValue'] ||
+        row['lifetimeValue'] ||
+        row['Lifetime Value'] ||
+        row['lifetime_value'] ||
+        '0';
+
+      if (!name || !phoneNumber) {
+        warnings.push(
+          `Row ${i + 2}: Skipped due to missing Name or Phone Number.`,
+        );
+        continue;
+      }
+
+      // Check duplicate phone number in DB
+      const existingContact = await this.prisma.contact.findFirst({
+        where: { phoneNumber },
+      });
+
+      if (existingContact) {
+        const existingShop = await this.prisma.shop
+          .findUnique({
+            where: { id: existingContact.shopId },
+            select: { name: true },
+          })
+          .catch(() => null);
+        warnings.push(
+          `Row ${i + 2}: Skipped duplicate phone number '${phoneNumber}' (exists for contact '${
+            existingContact.name
+          }' at shop '${existingShop?.name || 'Unknown'}').`,
+        );
+        continue;
+      }
+
+      // Resolve Region
+      let region = null;
+      if (regionName) {
+        region = await this.prisma.region.findFirst({
+          where: { name: regionName },
+        });
+
+        if (!region) {
+          region = await this.prisma.region.create({
+            data: {
+              name: regionName,
+              division: division,
+            },
+          });
+        }
+      }
+
+      const finalRegionId = region ? region.id : 'region-yangon';
+
+      // Create Shop
+      const shop = await this.prisma.shop.create({
+        data: {
+          name,
+          address: address || 'No Address',
+          regionId: finalRegionId,
+          priceTier: priceTier,
+          lifetimeValue: parseFloat(ltvVal) || 0.0,
+        },
+      });
+
+      // Create Contact
+      await this.prisma.contact.create({
+        data: {
+          shopId: shop.id,
+          name: contactName || 'Primary Contact',
+          phoneNumber,
+          email: email || null,
+          isPrimary: true,
+        },
+      });
+
+      importedCount++;
+    }
+
+    return { importedCount, warnings };
   }
 }

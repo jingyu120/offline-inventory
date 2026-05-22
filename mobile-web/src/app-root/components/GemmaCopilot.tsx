@@ -61,6 +61,64 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
             newSelected.push({
               item: mapItem(matchedItems[0]),
               quantity: aiItem.quantity,
+              selectedUnit: 'PCS',
+              unitPrice: matchedItems[0].unit_price || 0,
+            });
+          }
+        }
+        setSelectedItems(newSelected);
+
+        if (data.summary) {
+          setNotes(data.summary);
+        }
+        Alert.alert(t('success'), t('gemmaSuccess'));
+      } else {
+        Alert.alert(t('error'), t('gemmaFailed'));
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert(t('error'), t('gemmaParseFailed'));
+    } finally {
+      setIsAiParsing(false);
+    }
+  };
+
+  const handleSimulatedVoiceNote = async () => {
+    const transcripts = [
+      'We visited Junction City Mart. Client ordered 5 Premium Beer 640ml. However, they complain about monsoonal delivery delays and are looking at competitor options.',
+      'Spoke with the manager at Hledan Wholesale. They complain about late deliveries and expensive price tags, but finally ordered 5 Premium Beer 640ml.',
+      'At City Mart, they placed an order for 5 Premium Beer 640ml and expressed great interest in the upcoming cider promotions.',
+    ];
+    const randomIndex = Math.floor(Math.random() * transcripts.length);
+    const selectedTranscript = transcripts[randomIndex];
+    setNotes(selectedTranscript);
+    setIsAiParsing(true);
+    try {
+      const response = await fetch(AI_PARSE_NOTE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: selectedTranscript }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCommercialStatus(data.commercialStatus);
+
+        // Match SKUs
+        const newSelected = [...selectedItems];
+        for (const aiItem of data.items) {
+          const matchedItems = await database
+            .select()
+            .from(sqliteSchema.items)
+            .where(eq(sqliteSchema.items.sku, aiItem.sku));
+          if (
+            matchedItems.length > 0 &&
+            !newSelected.find((i) => i.item.sku === aiItem.sku)
+          ) {
+            newSelected.push({
+              item: mapItem(matchedItems[0]),
+              quantity: aiItem.quantity,
+              selectedUnit: 'PCS',
+              unitPrice: matchedItems[0].unit_price || 0,
             });
           }
         }
@@ -125,6 +183,8 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
               newSelected.push({
                 item: mapItem(matchedItems[0]),
                 quantity: aiItem.quantity,
+                selectedUnit: 'PCS',
+                unitPrice: matchedItems[0].unit_price || 0,
               });
             }
           }
@@ -168,6 +228,14 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
         value={notes}
         onChangeText={setNotes}
       />
+      <Box mb="s">
+        <Button
+          title="🎤 Sim. Voice Note"
+          variant="primary"
+          isLoading={isAiParsing}
+          onPress={handleSimulatedVoiceNote}
+        />
+      </Box>
       <Box flexDirection="row" justifyContent="space-between" mb="m">
         <Box style={{ flex: 1, marginRight: 8 }}>
           <Button
