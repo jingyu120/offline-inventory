@@ -141,6 +141,8 @@ model InteractionLog {
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
   deletedAt          DateTime? @map("deleted_at")
+  aiVerificationStatus String?  @map("ai_verification_status")
+  aiVerificationNotes  String?  @map("ai_verification_notes") @db.Text
 
   shop               Shop              @relation(fields: [shopId], references: [id])
   rep                User              @relation(fields: [repId], references: [id])

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { SyncService } from './sync.service';
 import type { PushChangesBody } from '@burma-inventory/shared-types';
+import { AiService } from '../ai/ai.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname, join } from 'path';
 import { Response } from 'express';
@@ -35,7 +36,10 @@ const storage = multer.diskStorage({
 
 @Controller('sync')
 export class SyncController {
-  constructor(private readonly syncService: SyncService) {}
+  constructor(
+    private readonly syncService: SyncService,
+    private readonly aiService: AiService,
+  ) {}
 
   @Get()
   async pullChanges(
@@ -94,6 +98,14 @@ export class SyncController {
       interactionLogId,
       file.filename,
     );
+
+    // Trigger local asynchronous multimodal screenshot auditing
+    const fullPath = join(process.cwd(), 'uploads', file.filename);
+    this.aiService
+      .processScreenshot(interactionLogId, fullPath)
+      .catch((err) => {
+        console.error('[SyncController] processScreenshot error:', err);
+      });
 
     return { success: true, viberScreenshotUrl: url };
   }
