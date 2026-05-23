@@ -19,6 +19,13 @@ fail() { echo -e "${RED}  ✗ $1${NC}" >&2; exit 1; }
 echo -e "${BOLD}🔍 Burma Inventory — Pre-commit Checks${NC}"
 echo "────────────────────────────────────────"
 
+# 0. Format Code
+step "Formatting code"
+npx nx format:write 2>&1 \
+  && git add -u \
+  && pass "Formatting completed and changes staged" \
+  || fail "Formatting failed"
+
 # 1. TypeCheck
 step "TypeCheck (all projects)"
 npx nx run-many -t typecheck --skip-nx-cache --tui-auto-exit=true --nx-bail 2>&1 \
