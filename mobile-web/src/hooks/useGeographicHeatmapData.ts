@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import axios from 'axios';
-import { AI_ANALYZE_SENTIMENT_URL } from '../config';
+import { AI_ANALYZE_SENTIMENT_URL, SYNC_API_URL } from '../config';
 import { tileDb } from '../utils/tileDb';
 import {
   fetchRegions,
@@ -95,7 +95,7 @@ export const useGeographicHeatmapData = () => {
       { name: 'Taunggyi', lat: 20.7888, lon: 97.0337 },
     ];
 
-    const zooms = [11, 12];
+    const zooms = [6, 7, 8, 11, 12];
     const tileRequests: { z: number; x: number; y: number }[] = [];
 
     // Build unique tile list to download
@@ -121,11 +121,9 @@ export const useGeographicHeatmapData = () => {
     setCacheTotal(tileRequests.length);
 
     let completed = 0;
-    const subdomains = ['a', 'b', 'c'];
 
     for (const tile of tileRequests) {
-      const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
-      const url = `https://${sub}.tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
+      const url = `${SYNC_API_URL}/tiles/${tile.z}/${tile.x}/${tile.y}.png`;
       const key = `tile-${tile.z}-${tile.x}-${tile.y}`;
 
       try {
@@ -285,7 +283,16 @@ export const useGeographicHeatmapData = () => {
     }
   };
 
-  const filteredShops = getFilteredShops();
+  const filteredShops = useMemo(() => {
+    return getFilteredShops();
+  }, [
+    shops,
+    selectedRegion,
+    selectedRep,
+    selectedSku,
+    rawInteractionItems,
+    neglectedOnly,
+  ]);
 
   return {
     loading,

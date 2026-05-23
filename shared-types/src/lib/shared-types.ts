@@ -68,6 +68,10 @@ export interface ItemRecord {
   weight: string | null;
   unit_type: string;
   conversion_factor: number;
+  color: string | null;
+  material_sub_type: string | null;
+  hardware_finish: string | null;
+  is_in_deficit: boolean;
   created_at: number;
   updated_at: number;
 }
@@ -76,6 +80,7 @@ export interface InteractionLogRecord {
   id: string;
   shop_id: string;
   rep_id: string;
+  project_id: string | null;
   type: string;
   commercial_status: string;
   notes: string;
@@ -99,6 +104,7 @@ export interface InteractionItemRecord {
   unit_price: number | null;
   selected_currency: string | null;
   selected_unit: string | null;
+  stock_condition: string;
   created_at: number;
   updated_at: number;
 }
@@ -342,6 +348,10 @@ export interface Item {
   weight: string | null;
   unitType: string;
   conversionFactor: number;
+  color: string | null;
+  materialSubType: string | null;
+  hardwareFinish: string | null;
+  isInDeficit: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -350,6 +360,7 @@ export interface InteractionLog {
   id: string;
   shopId: string;
   repId: string;
+  projectId: string | null;
   type: string;
   commercialStatus: string;
   notes: string;
@@ -373,6 +384,7 @@ export interface InteractionItem {
   unitPrice: number | null;
   selectedCurrency: string | null;
   selectedUnit: string | null;
+  stockCondition: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -392,6 +404,20 @@ export interface ItemStock {
   id: string;
   itemId: string;
   quantity: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProjectRecord {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
   createdAt: number;
   updatedAt: number;
 }

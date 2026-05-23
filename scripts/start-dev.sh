@@ -37,9 +37,9 @@ echo "📡 Launching development services..."
 # Disable interactive terminal UI to prevent garbled/messy terminal rendering
 export NX_TUI=false
 
-# CI=1 puts Metro bundler into non-interactive mode, disabling the progress
-# bar redraws that cause garbled multi-line output when streaming logs.
-export CI=1
+# We do NOT set CI=1 here because it disables Metro's file watcher and hot reloading.
+# To pick up dev changes without restarting the app, Metro must run in watch mode.
+# export CI=1
 
 # Set trap to kill all background jobs spawned by this script on exit
 trap 'echo -e "\n🛑 Stopping all services..."; kill $(jobs -p) 2>/dev/null || true' EXIT

@@ -11,12 +11,14 @@ interface SelectedItemsListProps {
     quantity: number | string;
     selectedUnit: string;
     unitPrice: number | string;
+    stockCondition: string;
   }[];
   updateQuantity: (itemId: string, quantity: string) => void;
   updateSelectedUnit: (itemId: string, unit: string) => void;
   updateUnitPrice: (itemId: string, price: string) => void;
   getItemPrice: (item: Item) => number;
   selectedCurrency: string;
+  updateStockCondition: (itemId: string, condition: string) => void;
 }
 
 export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
@@ -26,6 +28,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
   updateUnitPrice,
   getItemPrice,
   selectedCurrency,
+  updateStockCondition,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
@@ -137,6 +140,50 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                           }
                         >
                           {unit}
+                        </Text>
+                      </Box>
+                    </TouchableOpacity>
+                  );
+                })}
+              </Box>
+            </Box>
+
+            {/* Row 2.5: Stock Condition Selector */}
+            <Box
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="space-between"
+              mb="s"
+            >
+              <Text variant="bodySecondary">Condition:</Text>
+              <Box flexDirection="row">
+                {['GOOD', 'BAD', 'WET'].map((cond) => {
+                  const isSelected = (si.stockCondition || 'GOOD') === cond;
+                  return (
+                    <TouchableOpacity
+                      key={cond}
+                      onPress={() => updateStockCondition(si.item.id, cond)}
+                      activeOpacity={0.7}
+                      style={{ marginLeft: 4 }}
+                    >
+                      <Box
+                        px="s"
+                        py="xs"
+                        borderRadius="s"
+                        borderWidth={1}
+                        borderColor={
+                          isSelected ? 'primaryButton' : 'borderColor'
+                        }
+                        bg={isSelected ? 'primaryButton' : 'cardBackground'}
+                      >
+                        <Text
+                          variant="badge"
+                          fontWeight="bold"
+                          color={
+                            isSelected ? 'primaryButtonText' : 'secondaryText'
+                          }
+                        >
+                          {cond}
                         </Text>
                       </Box>
                     </TouchableOpacity>

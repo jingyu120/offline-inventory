@@ -25,6 +25,9 @@ if (typeof window === 'undefined') {
 
   self.addEventListener('fetch', function (event) {
     const r = event.request;
+    if (!r.url.startsWith('http:') && !r.url.startsWith('https:')) {
+      return;
+    }
     if (r.cache === 'only-if-cached' && r.mode !== 'same-origin') {
       return;
     }
@@ -52,10 +55,12 @@ if (typeof window === 'undefined') {
           }
           newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
 
-          return new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: newHeaders,
+          return response.blob().then((blob) => {
+            return new Response(blob, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: newHeaders,
+            });
           });
         })
         .catch((e) => console.error(e)),

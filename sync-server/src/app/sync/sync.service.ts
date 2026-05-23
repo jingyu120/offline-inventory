@@ -148,6 +148,10 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       weight: i.weight,
       unit_type: i.unitType,
       conversion_factor: i.conversionFactor,
+      color: i.color,
+      material_sub_type: i.materialSubType,
+      hardware_finish: i.hardwareFinish,
+      is_in_deficit: i.isInDeficit,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,9 +166,14 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       weight: i.weight,
       unitType: i.unit_type,
       conversionFactor: i.conversion_factor,
+      color: i.color,
+      materialSubType: i.material_sub_type,
+      hardwareFinish: i.hardware_finish,
+      isInDeficit: i.is_in_deficit,
       ...mapTimestampsPrisma(i),
     }),
   },
+
   interaction_logs: {
     delegate: 'interactionLog',
     softDelete: true,
@@ -174,6 +183,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       id: l.id,
       shop_id: l.shopId,
       rep_id: l.repId,
+      project_id: l.projectId,
       type: l.type,
       commercial_status: l.commercialStatus,
       notes: l.notes,
@@ -190,6 +200,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       id: l.id,
       shopId: l.shop_id,
       repId: l.rep_id,
+      projectId: l.project_id,
       type: l.type,
       commercialStatus: l.commercial_status,
       notes: l.notes,
@@ -219,6 +230,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       unit_price: toNum(i.unitPrice),
       selected_currency: i.selectedCurrency,
       selected_unit: i.selectedUnit,
+      stock_condition: i.stockCondition,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,6 +244,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       unitPrice: i.unit_price,
       selectedCurrency: i.selected_currency,
       selectedUnit: i.selected_unit,
+      stockCondition: i.stock_condition || 'GOOD',
       ...mapTimestampsPrisma(i),
     }),
   },
@@ -533,6 +546,23 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       locationId: b.location_id,
       quantity: b.quantity,
       ...mapTimestampsPrisma(b),
+    }),
+  },
+  projects: {
+    delegate: 'project',
+    softDelete: true,
+    hasTimestamps: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toRecord: (p: any) => ({
+      id: p.id,
+      name: p.name,
+      ...mapTimestampsRecord(p),
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    toPrisma: (p: any) => ({
+      id: p.id,
+      name: p.name,
+      ...mapTimestampsPrisma(p),
     }),
   },
 };

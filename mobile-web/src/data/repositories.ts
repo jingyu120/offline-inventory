@@ -80,6 +80,10 @@ export const mapItem = (i: any): Item => ({
   weight: i.weight,
   unitType: i.unit_type,
   conversionFactor: i.conversion_factor,
+  color: i.color,
+  materialSubType: i.material_sub_type,
+  hardwareFinish: i.hardware_finish,
+  isInDeficit: !!i.is_in_deficit,
   createdAt: i.created_at,
   updatedAt: i.updated_at,
 });
@@ -88,6 +92,7 @@ export const mapInteractionLog = (l: any): InteractionLog => ({
   id: l.id,
   shopId: l.shop_id,
   repId: l.rep_id,
+  projectId: l.project_id,
   type: l.type,
   commercialStatus: l.commercial_status,
   notes: l.notes,
@@ -111,6 +116,7 @@ export const mapInteractionItem = (ii: any): InteractionItem => ({
   unitPrice: ii.unit_price,
   selectedCurrency: ii.selected_currency,
   selectedUnit: ii.selected_unit,
+  stockCondition: ii.stock_condition,
   createdAt: ii.created_at,
   updatedAt: ii.updated_at,
 });
@@ -268,6 +274,7 @@ export interface SelectedItemPayload {
   unitPrice?: number;
   selectedCurrency?: string;
   selectedUnit?: string;
+  stockCondition?: string;
 }
 
 function generateId(): string {
@@ -303,6 +310,7 @@ export const createInteractionLog = async (
   notes: string,
   screenshotUri: string | null,
   selectedItems: SelectedItemPayload[],
+  projectId: string | null = null,
 ): Promise<string> => {
   let newLogId = '';
   const [, error] = await guardAsync(
@@ -315,6 +323,7 @@ export const createInteractionLog = async (
         id: newLogId,
         shop_id: shopId,
         rep_id: repId,
+        project_id: projectId,
         type: type,
         commercial_status: commercialStatus,
         notes: notes,
@@ -351,6 +360,7 @@ export const createInteractionLog = async (
           unit_price: selected.item.unitPrice,
           selected_currency: selected.selectedCurrency || 'MMK',
           selected_unit: selectedUnit,
+          stock_condition: selected.stockCondition || 'GOOD',
           created_at: now,
           updated_at: now,
         });

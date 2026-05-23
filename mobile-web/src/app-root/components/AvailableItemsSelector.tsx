@@ -68,6 +68,15 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                   >
                     {item.name} ({item.sku})
                   </Text>
+                  {item.isInDeficit && (
+                    <Text
+                      variant="bodySecondary"
+                      color={isSelected ? 'secondaryButtonText' : 'errorText'}
+                      style={{ fontWeight: 'bold', marginTop: 2 }}
+                    >
+                      ⚠️ Supply Deficit: Expect delivery delays
+                    </Text>
+                  )}
                   <Text
                     variant="bodySecondary"
                     color={isSelected ? 'secondaryButtonText' : 'secondaryText'}

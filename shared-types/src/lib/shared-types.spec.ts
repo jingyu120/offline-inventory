@@ -89,6 +89,10 @@ describe('shared-types', () => {
         weight: null,
         unit_type: 'PCS',
         conversion_factor: 1,
+        color: null,
+        material_sub_type: null,
+        hardware_finish: null,
+        is_in_deficit: false,
         created_at: 10000,
         updated_at: 10000,
       };
@@ -100,6 +104,7 @@ describe('shared-types', () => {
         id: 'log-1',
         shop_id: 'shop-1',
         rep_id: 'rep-1',
+        project_id: null,
         type: 'SHOP_VISIT',
         commercial_status: 'INTERESTED',
         notes: 'test',
@@ -127,6 +132,7 @@ describe('shared-types', () => {
         unit_price: null,
         selected_currency: null,
         selected_unit: 'PCS',
+        stock_condition: 'GOOD',
         created_at: 10000,
         updated_at: 10000,
       };

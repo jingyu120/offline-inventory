@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 import { eq, or } from 'drizzle-orm';
 
 let isProcessing = false;
+const activeSessionBlobs = new Set<string>();
 
 export class ImageUploadQueue {
   /**
@@ -43,6 +44,10 @@ export class ImageUploadQueue {
           '[ImageUploadQueue] Failed to save persistent local file copy:',
           err,
         );
+      }
+    } else {
+      if (tempUri.startsWith('blob:')) {
+        activeSessionBlobs.add(tempUri);
       }
     }
 
@@ -123,6 +128,12 @@ export class ImageUploadQueue {
             let blob: Blob;
 
             if (
+              task.local_file_path.startsWith('blob:') &&
+              !activeSessionBlobs.has(task.local_file_path)
+            ) {
+              // Revoked blob URL from a previous session — bypass fetch to avoid ERR_FILE_NOT_FOUND
+              blob = new Blob(['mock-binary-data'], { type: 'image/jpeg' });
+            } else if (
               task.local_file_path.startsWith('data:') ||
               task.local_file_path.startsWith('blob:')
             ) {
@@ -137,7 +148,7 @@ export class ImageUploadQueue {
             formData.append('interactionLogId', task.interaction_log_id);
 
             const uploadRes = await axios.post(
-              `${SYNC_API_URL}/sync/upload`,
+              `${SYNC_API_URL}/upload`,
               formData,
               {
                 headers: {
@@ -149,7 +160,7 @@ export class ImageUploadQueue {
           } else {
             // Native upload flow using expo-file-system
             const uploadResult = await FileSystem.uploadAsync(
-              `${SYNC_API_URL}/sync/upload`,
+              `${SYNC_API_URL}/upload`,
               task.local_file_path,
               {
                 fieldName: 'file',

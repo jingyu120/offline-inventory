@@ -80,6 +80,10 @@ export const items = pgTable(
     conversion_factor: doublePrecision('conversion_factor')
       .notNull()
       .default(1),
+    color: text('color'),
+    material_sub_type: text('material_sub_type'),
+    hardware_finish: text('hardware_finish'),
+    is_in_deficit: boolean('is_in_deficit').notNull().default(false),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -108,6 +112,7 @@ export const interaction_logs = pgTable(
     id: text('id').primaryKey(),
     shop_id: text('shop_id').notNull(),
     rep_id: text('rep_id').notNull(),
+    project_id: text('project_id'),
     type: text('type').notNull(),
     commercial_status: text('commercial_status').notNull(),
     notes: text('notes').notNull(),
@@ -138,6 +143,7 @@ export const interaction_items = pgTable(
     unit_price: doublePrecision('unit_price'),
     selected_currency: text('selected_currency').notNull().default('MMK'),
     selected_unit: text('selected_unit').notNull().default('PCS'),
+    stock_condition: text('stock_condition').notNull().default('GOOD'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -343,5 +349,18 @@ export const stock_balances = pgTable(
     locationIdIdx: index('stock_balances_location_id_idx').on(
       table.location_id,
     ),
+  }),
+);
+
+export const projects = pgTable(
+  'projects',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    nameIdx: index('projects_name_idx').on(table.name),
   }),
 );

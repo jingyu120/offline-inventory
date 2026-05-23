@@ -78,6 +78,12 @@ export const items = sqliteTable(
     weight: text('weight'),
     unit_type: text('unit_type').notNull().default('PCS'),
     conversion_factor: real('conversion_factor').notNull().default(1),
+    color: text('color'),
+    material_sub_type: text('material_sub_type'),
+    hardware_finish: text('hardware_finish'),
+    is_in_deficit: integer('is_in_deficit', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
   },
@@ -106,6 +112,7 @@ export const interaction_logs = sqliteTable(
     id: text('id').primaryKey(),
     shop_id: text('shop_id').notNull(),
     rep_id: text('rep_id').notNull(),
+    project_id: text('project_id'),
     type: text('type').notNull(),
     commercial_status: text('commercial_status').notNull(),
     notes: text('notes').notNull(),
@@ -138,6 +145,7 @@ export const interaction_items = sqliteTable(
     unit_price: real('unit_price'),
     selected_currency: text('selected_currency').notNull().default('MMK'),
     selected_unit: text('selected_unit').notNull().default('PCS'),
+    stock_condition: text('stock_condition').notNull().default('GOOD'),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
   },
@@ -354,3 +362,16 @@ export const image_upload_queue = sqliteTable('image_upload_queue', {
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
+
+export const projects = sqliteTable(
+  'projects',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    nameIdx: index('projects_name_idx').on(table.name),
+  }),
+);

@@ -110,39 +110,97 @@ export class PrismaService
         },
       });
 
+      // 3.5. Seed Projects
+      const projectsData = [
+        { id: 'project-1', name: 'Galaxy Tower-3' },
+        { id: 'project-2', name: 'Zaw Residence' },
+        { id: 'project-3', name: 'Grand Plaza Project' },
+      ];
+
+      for (const p of projectsData) {
+        await (this as any).project.upsert({
+          where: { id: p.id },
+          update: { name: p.name },
+          create: {
+            id: p.id,
+            name: p.name,
+          },
+        });
+      }
+
       // 4. Seed items & stocks
       const itemsData = [
         {
           id: 'item-1',
-          sku: 'SKU-PB-640',
-          name: 'Myanmar Premium Beer 640ml',
-          unitPrice: 3200.0,
-          category: 'Beverage',
+          sku: 'SKU-SH-6MM',
+          name: 'Shera Fiber Cement Board 6mm',
+          unitPrice: 15000.0,
+          category: 'Fiber Cement',
           quantity: 150,
+          color: 'Off-White',
+          materialSubType: 'MR',
+          hardwareFinish: null,
+          isInDeficit: true,
         },
         {
           id: 'item-2',
-          sku: 'SKU-RG-320',
-          name: 'Red Gem Energy Drink 320ml',
-          unitPrice: 1500.0,
-          category: 'Energy Drink',
+          sku: 'SKU-GT-PVC-12',
+          name: 'Gator PVC Pipe 1/2 inch',
+          unitPrice: 4500.0,
+          category: 'Plumbing',
           quantity: 300,
+          color: 'Blue',
+          materialSubType: 'RE',
+          hardwareFinish: null,
+          isInDeficit: false,
         },
         {
           id: 'item-3',
-          sku: 'SKU-WS-1000',
-          name: 'Golden Water Bottle 1L',
-          unitPrice: 800.0,
-          category: 'Water',
+          sku: 'SKU-KR-WC',
+          name: 'Karat Ceramic Water Closet',
+          unitPrice: 180000.0,
+          category: 'Sanitaryware',
           quantity: 500,
+          color: 'White',
+          materialSubType: null,
+          hardwareFinish: 'CP',
+          isInDeficit: false,
         },
         {
           id: 'item-4',
-          sku: 'SKU-SS-500',
-          name: 'Silver Soda Can 500ml',
-          unitPrice: 1200.0,
-          category: 'Beverage',
+          sku: 'SKU-VR-FC',
+          name: 'VRH Stainless steel Faucet',
+          unitPrice: 35000.0,
+          category: 'Fittings',
           quantity: 200,
+          color: 'Silver',
+          materialSubType: null,
+          hardwareFinish: 'BL',
+          isInDeficit: false,
+        },
+        {
+          id: 'item-5',
+          sku: 'SKU-SCG-8MM',
+          name: 'SCG Smart Board 8mm',
+          unitPrice: 22000.0,
+          category: 'Fiber Cement',
+          quantity: 120,
+          color: 'Grey',
+          materialSubType: 'MR',
+          hardwareFinish: null,
+          isInDeficit: false,
+        },
+        {
+          id: 'item-6',
+          sku: 'SKU-KN-GP-9MM',
+          name: 'Knauf Gypsum Board 9mm',
+          unitPrice: 12500.0,
+          category: 'Drywall',
+          quantity: 180,
+          color: 'White',
+          materialSubType: 'RE',
+          hardwareFinish: null,
+          isInDeficit: false,
         },
       ];
 
@@ -150,13 +208,26 @@ export class PrismaService
         // Upsert Item
         await (this as any).item.upsert({
           where: { id: item.id },
-          update: { unitPrice: item.unitPrice },
+          update: {
+            sku: item.sku,
+            name: item.name,
+            unitPrice: item.unitPrice,
+            category: item.category,
+            color: item.color,
+            materialSubType: item.materialSubType,
+            hardwareFinish: item.hardwareFinish,
+            isInDeficit: item.isInDeficit,
+          },
           create: {
             id: item.id,
             sku: item.sku,
             name: item.name,
             unitPrice: item.unitPrice,
             category: item.category,
+            color: item.color,
+            materialSubType: item.materialSubType,
+            hardwareFinish: item.hardwareFinish,
+            isInDeficit: item.isInDeficit,
           },
         });
 

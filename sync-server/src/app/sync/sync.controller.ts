@@ -118,4 +118,73 @@ export class SyncController {
     }
     return res.sendFile(filePath);
   }
+
+  @Get('tiles/:z/:x/:y')
+  async getTile(
+    @Param('z') z: string,
+    @Param('x') x: string,
+    @Param('y') y: string,
+    @Res() res: Response,
+  ) {
+    const cleanY = y.replace('.png', '');
+    const zInt = parseInt(z, 10);
+    const xInt = parseInt(x, 10);
+    const yInt = parseInt(cleanY, 10);
+
+    if (!isNaN(zInt) && !isNaN(xInt) && !isNaN(yInt)) {
+      const maxCoord = Math.pow(2, zInt);
+      if (xInt < 0 || xInt >= maxCoord || yInt < 0 || yInt >= maxCoord) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .send('Invalid tile coordinates');
+      }
+    }
+
+    const cacheDir = join(process.cwd(), 'uploads', 'tiles-cache');
+    const cachePath = join(cacheDir, `${z}-${x}-${cleanY}.png`);
+
+    if (fs.existsSync(cachePath)) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.sendFile(cachePath);
+    }
+
+    const url = `https://tile.openstreetmap.org/${z}/${x}/${cleanY}.png`;
+    try {
+      // Small throttle delay for concurrent OSM requests
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 200));
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'BurmaInventory/1.0 (contact@burmainventory.org)',
+        },
+      });
+      if (!response.ok) {
+        return res
+          .status(HttpStatus.BAD_GATEWAY)
+          .send('Failed to fetch tile from OSM');
+      }
+      const buffer = await response.arrayBuffer();
+
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.writeFile(cachePath, Buffer.from(buffer), (err) => {
+        if (err) console.error('[SyncController] Cache write error:', err);
+      });
+
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error('[SyncController] Error fetching tile:', error);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send('Internal error fetching tile');
+    }
+  }
 }

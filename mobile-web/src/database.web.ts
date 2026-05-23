@@ -157,6 +157,10 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         weight TEXT,
         unit_type TEXT NOT NULL DEFAULT 'PCS',
         conversion_factor REAL NOT NULL DEFAULT 1,
+        color TEXT,
+        material_sub_type TEXT,
+        hardware_finish TEXT,
+        is_in_deficit INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -171,6 +175,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         id TEXT PRIMARY KEY NOT NULL,
         shop_id TEXT NOT NULL,
         rep_id TEXT NOT NULL,
+        project_id TEXT,
         type TEXT NOT NULL,
         commercial_status TEXT NOT NULL,
         notes TEXT NOT NULL,
@@ -193,6 +198,13 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         unit_price REAL,
         selected_currency TEXT NOT NULL DEFAULT 'MMK',
         selected_unit TEXT NOT NULL DEFAULT 'PCS',
+        stock_condition TEXT NOT NULL DEFAULT 'GOOD',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -311,6 +323,32 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         updated_at INTEGER NOT NULL
       );
     `);
+
+    // Migration helper: Add columns if they do not exist in existing database schemas
+    const alterTable = (table: string, column: string, definition: string) => {
+      try {
+        sqljsDb.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+        console.log(
+          `Successfully migrated database: Added column ${column} to table ${table}`,
+        );
+      } catch (e: any) {
+        console.warn(
+          `Migration info for column ${column} in table ${table}:`,
+          e.message || e,
+        );
+      }
+    };
+
+    alterTable('items', 'color', 'TEXT');
+    alterTable('items', 'material_sub_type', 'TEXT');
+    alterTable('items', 'hardware_finish', 'TEXT');
+    alterTable('items', 'is_in_deficit', 'INTEGER NOT NULL DEFAULT 0');
+    alterTable(
+      'interaction_items',
+      'stock_condition',
+      "TEXT NOT NULL DEFAULT 'GOOD'",
+    );
+    alterTable('interaction_logs', 'project_id', 'TEXT');
 
     // Check if shops table is empty
     let isEmpty = true;

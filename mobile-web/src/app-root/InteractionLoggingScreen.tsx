@@ -59,8 +59,13 @@ export function InteractionLoggingScreen({
       quantity: number | string;
       selectedUnit: string;
       unitPrice: number | string;
+      stockCondition: string;
     }[]
   >([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
   const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasDiscrepancy, setHasDiscrepancy] = useState(false);
@@ -173,6 +178,9 @@ export function InteractionLoggingScreen({
       const rates = await database.select().from(sqliteSchema.exchange_rates);
       setExchangeRates(rates);
 
+      const projs = await database.select().from(sqliteSchema.projects);
+      setProjects(projs);
+
       if (shop && shop.priceBookId) {
         const items = await database
           .select()
@@ -284,6 +292,7 @@ export function InteractionLoggingScreen({
                   quantity: 1,
                   selectedUnit: 'PCS',
                   unitPrice: defaultPrice,
+                  stockCondition: 'GOOD',
                 },
               ]);
             }
@@ -305,6 +314,7 @@ export function InteractionLoggingScreen({
     setSkuSearch('');
     setSelectedCurrency('MMK');
     setHasDiscrepancy(false);
+    setSelectedProjectId(null);
   };
 
   const toggleItem = (item: Item) => {
@@ -320,9 +330,18 @@ export function InteractionLoggingScreen({
           quantity: 1,
           selectedUnit: 'PCS',
           unitPrice: defaultPrice,
+          stockCondition: 'GOOD',
         },
       ]);
     }
+  };
+
+  const updateStockCondition = (itemId: string, condition: string) => {
+    setSelectedItems(
+      selectedItems.map((i) =>
+        i.item.id === itemId ? { ...i, stockCondition: condition } : i,
+      ),
+    );
   };
 
   const updateQuantity = (itemId: string, quantity: string) => {
@@ -395,6 +414,7 @@ export function InteractionLoggingScreen({
         unitPrice: price,
         selectedCurrency: selectedCurrency,
         selectedUnit: selected.selectedUnit,
+        stockCondition: selected.stockCondition || 'GOOD',
       });
     }
 
@@ -417,6 +437,7 @@ export function InteractionLoggingScreen({
         finalNotes,
         null,
         validatedItems,
+        selectedProjectId,
       );
 
       if (screenshotUri) {
@@ -618,6 +639,30 @@ export function InteractionLoggingScreen({
                 })}
               </Box>
 
+              <Text variant="title" mb="s">
+                Project Allocation (Bulk Contract)
+              </Text>
+              <Box flexDirection="row" flexWrap="wrap" mb="m">
+                <Box mr="s" mb="s">
+                  <Button
+                    title="None"
+                    variant={selectedProjectId === null ? 'primary' : 'outline'}
+                    onPress={() => setSelectedProjectId(null)}
+                  />
+                </Box>
+                {projects.map((proj) => (
+                  <Box key={proj.id} mr="s" mb="s">
+                    <Button
+                      title={proj.name}
+                      variant={
+                        selectedProjectId === proj.id ? 'primary' : 'outline'
+                      }
+                      onPress={() => setSelectedProjectId(proj.id)}
+                    />
+                  </Box>
+                ))}
+              </Box>
+
               <AvailableItemsSelector
                 skuSearch={skuSearch}
                 setSkuSearch={setSkuSearch}
@@ -636,6 +681,7 @@ export function InteractionLoggingScreen({
                 updateUnitPrice={updateUnitPrice}
                 getItemPrice={getItemPrice}
                 selectedCurrency={selectedCurrency}
+                updateStockCondition={updateStockCondition}
               />
 
               <Box height={40} />

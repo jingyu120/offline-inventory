@@ -98,6 +98,10 @@ model Item {
   weight           String?
   unitType         String   @default("PCS") @map("unit_type")
   conversionFactor Float    @default(1.0) @map("conversion_factor")
+  color            String?  @map("color")
+  materialSubType  String?  @map("material_sub_type")
+  hardwareFinish   String?  @map("hardware_finish")
+  isInDeficit      Boolean  @default(false) @map("is_in_deficit")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
@@ -129,6 +133,7 @@ model InteractionLog {
   id                 String   @id @default(uuid())
   shopId             String   @map("shop_id")
   repId              String   @map("rep_id")
+  projectId          String?  @map("project_id")
   type               String   // E.g., "PHONE_CALL", "VIBER", "SHOP_VISIT"
   commercialStatus   String   @map("commercial_status") // E.g., "FOLLOWED_UP", "INTERESTED", "ORDER_PLACED", "NOT_INTERESTED"
   notes              String   @db.Text
@@ -146,6 +151,7 @@ model InteractionLog {
 
   shop               Shop              @relation(fields: [shopId], references: [id])
   rep                User              @relation(fields: [repId], references: [id])
+  project            Project?          @relation(fields: [projectId], references: [id])
   interactionItems   InteractionItem[]
 
   @@map("interaction_logs")
@@ -161,6 +167,7 @@ model InteractionItem {
   unitPrice          Decimal? @db.Decimal(10, 2) @map("unit_price")
   selectedCurrency   String?  @default("MMK") @map("selected_currency")
   selectedUnit       String   @default("PCS") @map("selected_unit")
+  stockCondition     String   @default("GOOD") @map("stock_condition")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
   deletedAt          DateTime? @map("deleted_at")
@@ -375,6 +382,17 @@ model SyncAuditLog {
   createdAt      DateTime @default(now()) @map("created_at")
 
   @@map("sync_audit_logs")
+}
+
+model Project {
+  id              String           @id @default(uuid())
+  name            String
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  deletedAt       DateTime?        @map("deleted_at")
+  interactionLogs InteractionLog[]
+
+  @@map("projects")
 }
 
 

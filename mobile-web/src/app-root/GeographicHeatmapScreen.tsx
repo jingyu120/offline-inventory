@@ -6,6 +6,7 @@ import { MapFilterPanel } from './components/MapFilterPanel';
 import { MapDetailPane } from './components/MapDetailPane';
 import { useTranslation } from '../utils/i18n';
 import { tileDb } from '../utils/tileDb';
+import { SYNC_API_URL } from '../config';
 
 // Import subcomponents
 import { MapLegend } from './components/MapLegend';
@@ -55,7 +56,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const mapContainerRef = useRef<any>(null);
-  const mapRef = useRef<any>(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
 
   const {
@@ -111,7 +112,20 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
   // 3. Initialize Map Instance
   useEffect(() => {
-    if (!leafletLoaded || !mapContainerRef.current) return;
+    console.log(
+      '[Heatmap] Effect triggered. leafletLoaded:',
+      leafletLoaded,
+      'container:',
+      mapContainerRef.current,
+      'loading:',
+      loading,
+    );
+    if (!leafletLoaded || !mapContainerRef.current) {
+      console.log(
+        '[Heatmap] Effect returned early due to missing leaflet or container',
+      );
+      return;
+    }
 
     const L = (window as any).L;
 
@@ -119,6 +133,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
     const OfflineTileLayer = L.TileLayer.extend({
       createTile(coords: any, done: any) {
         const tile = document.createElement('img');
+        tile.crossOrigin = 'anonymous';
         const key = `tile-${coords.z}-${coords.x}-${coords.y}`;
 
         tileDb
@@ -145,68 +160,158 @@ export const GeographicHeatmapScreen: React.FC = () => {
     });
 
     // Map setup centered on Myanmar (Yangon)
-    const map = L.map(mapContainerRef.current).setView([16.8409, 96.1735], 12);
+    const map = L.map(mapContainerRef.current, {
+      minZoom: 6,
+      maxZoom: 14,
+    }).setView([16.8409, 96.1735], 12);
 
-    new OfflineTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    new OfflineTileLayer(`${SYNC_API_URL}/tiles/{z}/{x}/{y}.png`, {
       attribution: '&copy; OpenStreetMap contributors',
+      crossOrigin: 'anonymous',
+      minZoom: 6,
+      maxZoom: 14,
     }).addTo(map);
 
-    mapRef.current = map;
+    setMapInstance(map);
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      map.remove();
+      setMapInstance(null);
     };
-  }, [leafletLoaded]);
+  }, [leafletLoaded, loading, isDesktop]);
 
   // 4. Update Circle Markers on Filtered Shops Change
   useEffect(() => {
-    if (!leafletLoaded || !mapRef.current) return;
+    if (!leafletLoaded || !mapInstance) return;
     const L = (window as any).L;
 
     // Clear old markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Plot new ones
-    filteredShops.forEach((shop) => {
-      if (!shop.latitude || !shop.longitude) return;
+    // Create markers and add to map
+    const newMarkers = filteredShops
+      .filter((shop) => shop.latitude && shop.longitude)
+      .map((shop) => {
+        const color = getRecencyColor(shop.lastContactDate);
+        const radius = getBubbleRadius(shop.lifetimeValue);
 
-      const color = getRecencyColor(shop.lastContactDate);
-      const radius = getBubbleRadius(shop.lifetimeValue);
+        const marker = L.circleMarker([shop.latitude!, shop.longitude!], {
+          radius,
+          fillColor: color,
+          color: '#ffffff',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.85,
+        }).addTo(mapInstance);
 
-      const marker = L.circleMarker([shop.latitude, shop.longitude], {
-        radius,
-        fillColor: color,
-        color: '#ffffff',
-        weight: 1.5,
-        opacity: 1,
-        fillOpacity: 0.85,
-      }).addTo(mapRef.current);
+        marker.on('click', () => {
+          handleShopSelect(shop);
+        });
 
-      marker.on('click', () => {
-        handleShopSelect(shop);
+        // Store shop reference on marker for dynamic tooltips
+        (marker as any).shopData = shop;
+        // Bind an empty tooltip initially
+        marker.bindTooltip('', { direction: 'top', permanent: false });
+
+        return marker;
       });
 
-      marker.bindTooltip(
-        `<b>${shop.name}</b><br/>${t('lifetimeValue')}: K${shop.lifetimeValue.toLocaleString()}<br/>${t('sentimentTrend')}: ${shop.sentimentTrend}`,
-        { direction: 'top', permanent: false },
-      );
+    markersRef.current = newMarkers;
 
-      markersRef.current.push(marker);
-    });
+    // Helper function to update tooltips based on screen overlap
+    const updateTooltips = () => {
+      try {
+        const markerData = newMarkers.map((m) => {
+          const latLng = m.getLatLng();
+          const p = mapInstance.latLngToContainerPoint(latLng);
+          const r = getBubbleRadius((m as any).shopData.lifetimeValue);
+          return { marker: m, shop: (m as any).shopData, p, r };
+        });
+
+        markerData.forEach((data) => {
+          if (!data.p) return;
+          // Find all markers overlapping with this one
+          const overlaps = markerData.filter((other) => {
+            if (!other.p) return false;
+            const dist = data.p.distanceTo(other.p);
+            return dist <= data.r + other.r;
+          });
+
+          if (overlaps.length > 1) {
+            // Multiple overlapping shops
+            // Sort by lifetime value descending
+            const sorted = [...overlaps]
+              .map((o) => o.shop)
+              .sort((a, b) => b.lifetimeValue - a.lifetimeValue);
+
+            const content = `
+              <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; padding: 4px;">
+                <b style="color: #374151;">Shops at this location (${sorted.length})</b>
+                <ul style="margin: 4px 0 0 0; padding-left: 12px; list-style-type: disc;">
+                  ${sorted
+                    .map(
+                      (s) => `
+                    <li style="margin-bottom: 2px;">
+                      <b>${s.name}</b>: K${s.lifetimeValue.toLocaleString()}
+                    </li>
+                  `,
+                    )
+                    .join('')}
+                </ul>
+              </div>
+            `;
+            data.marker.setTooltipContent(content);
+          } else {
+            // Single shop
+            const s = data.shop;
+            const content = `
+              <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; padding: 4px;">
+                <b style="color: #374151;">${s.name}</b><br/>
+                <span style="color: #6B7280;">${t('lifetimeValue') || 'Value'}: K${s.lifetimeValue.toLocaleString()}</span><br/>
+                <span style="color: #6B7280;">${t('sentimentTrend') || 'Sentiment'}: ${s.sentimentTrend}</span>
+              </div>
+            `;
+            data.marker.setTooltipContent(content);
+          }
+        });
+      } catch (e) {
+        console.warn('Error computing map overlaps for tooltips:', e);
+        // Fallback to single shop tooltip if container points fail
+        newMarkers.forEach((m) => {
+          const s = (m as any).shopData;
+          m.setTooltipContent(
+            `<b>${s.name}</b><br/>${t('lifetimeValue') || 'Value'}: K${s.lifetimeValue.toLocaleString()}<br/>${t('sentimentTrend') || 'Sentiment'}: ${s.sentimentTrend}`,
+          );
+        });
+      }
+    };
+
+    // Calculate initially
+    updateTooltips();
+
+    // Recompute on zoom or move
+    const handleMapChange = () => {
+      updateTooltips();
+    };
+    mapInstance.on('zoomend', handleMapChange);
+    mapInstance.on('moveend', handleMapChange);
 
     // Auto-bounds mapping coordinates
     const validCoords = filteredShops
       .filter((s) => s.latitude && s.longitude)
       .map((s) => [s.latitude, s.longitude]);
 
-    if (validCoords.length > 0 && mapRef.current) {
-      mapRef.current.fitBounds(validCoords, { padding: [30, 30] });
+    if (validCoords.length > 0 && mapInstance) {
+      mapInstance.fitBounds(validCoords, { padding: [30, 30] });
     }
-  }, [filteredShops, leafletLoaded, t]);
+
+    return () => {
+      mapInstance.off('zoomend', handleMapChange);
+      mapInstance.off('moveend', handleMapChange);
+      newMarkers.forEach((m) => m.remove());
+    };
+  }, [filteredShops, leafletLoaded, mapInstance, t]);
 
   if (loading) {
     return (
@@ -302,6 +407,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 shopContacts={shopContacts}
                 loadingSentiment={loadingSentiment}
                 sentimentResult={sentimentResult}
+                allShops={filteredShops}
+                onShopSelect={handleShopSelect}
+                mapInstance={mapInstance}
               />
             ) : (
               <Box
@@ -418,6 +526,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
             shopContacts={shopContacts}
             loadingSentiment={loadingSentiment}
             sentimentResult={sentimentResult}
+            allShops={filteredShops}
+            onShopSelect={handleShopSelect}
+            mapInstance={mapInstance}
           />
         </Box>
       )}

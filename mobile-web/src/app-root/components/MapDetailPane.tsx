@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, ActivityIndicator } from 'react-native';
+import { ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Box, Text, Card, Button } from '@burma-inventory/ui-components';
 import { ProcessedShop } from '../../hooks/useGeographicHeatmapData';
 import { Contact } from '@burma-inventory/shared-types';
@@ -14,7 +14,16 @@ interface MapDetailPaneProps {
     sentimentTrend: 'IMPROVING' | 'STABLE' | 'DECLINING';
     explanation: string;
   } | null;
+  allShops: ProcessedShop[];
+  onShopSelect: (shop: ProcessedShop) => void;
+  mapInstance: any;
 }
+
+const getBubbleRadius = (ltv: number) => {
+  const base = 6;
+  const bonus = Math.min(ltv / 2500, 18);
+  return base + bonus;
+};
 
 export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   selectedShop,
@@ -22,8 +31,73 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   shopContacts,
   loadingSentiment,
   sentimentResult,
+  allShops,
+  onShopSelect,
+  mapInstance,
 }) => {
   const { t } = useTranslation();
+  const [viewingShop, setViewingShop] = React.useState<ProcessedShop | null>(
+    null,
+  );
+  const [mapStateCounter, setMapStateCounter] = React.useState(0);
+
+  // Sync zoom/move events on the map to trigger recomputing overlaps
+  React.useEffect(() => {
+    if (!mapInstance) return;
+    const handleMapChange = () => {
+      setMapStateCounter((prev) => prev + 1);
+    };
+    mapInstance.on('zoomend', handleMapChange);
+    mapInstance.on('moveend', handleMapChange);
+
+    return () => {
+      mapInstance.off('zoomend', handleMapChange);
+      mapInstance.off('moveend', handleMapChange);
+    };
+  }, [mapInstance]);
+
+  // Compute overlapping shops sharing screen pixel boundaries
+  const overlappingShops = React.useMemo(() => {
+    if (!selectedShop || !mapInstance || !allShops.length) return [];
+    const L = (window as any).L;
+    if (!L) return [];
+
+    try {
+      const p1 = mapInstance.latLngToContainerPoint([
+        selectedShop.latitude ?? 0,
+        selectedShop.longitude ?? 0,
+      ]);
+      const r1 = getBubbleRadius(selectedShop.lifetimeValue);
+
+      return allShops.filter((s) => {
+        if (!s.latitude || !s.longitude) return false;
+        const p2 = mapInstance.latLngToContainerPoint([
+          s.latitude,
+          s.longitude,
+        ]);
+        const r2 = getBubbleRadius(s.lifetimeValue);
+        const dist = p1.distanceTo(p2);
+        return dist <= r1 + r2;
+      });
+    } catch (e) {
+      console.warn('Error calculating screen coordinates:', e);
+      // Fallback to exact coordinate match if map conversion fails
+      return allShops.filter(
+        (s) =>
+          s.latitude === selectedShop.latitude &&
+          s.longitude === selectedShop.longitude,
+      );
+    }
+  }, [selectedShop, allShops, mapInstance, mapStateCounter]);
+
+  // Reset local detail view when selected coordinates change
+  React.useEffect(() => {
+    setViewingShop(null);
+  }, [selectedShop?.latitude, selectedShop?.longitude]);
+
+  // If there's multiple overlapping shops, wait until one is explicitly clicked from the list
+  const activeShop =
+    viewingShop || (overlappingShops.length === 1 ? selectedShop : null);
 
   const getTrendIcon = (trend?: 'IMPROVING' | 'STABLE' | 'DECLINING') => {
     if (trend === 'IMPROVING') return '↗️';
@@ -61,9 +135,77 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
     return status.replaceAll('_', ' ');
   };
 
+  if (!activeShop) {
+    return (
+      <ScrollView style={{ maxHeight: 500 }}>
+        <Card p="m" bg="cardBackground">
+          <Box
+            flexDirection="row"
+            justifyContent="space-between"
+            alignItems="center"
+            mb="m"
+            borderBottomWidth={1}
+            borderColor="borderColor"
+            pb="s"
+          >
+            <Text variant="title">
+              Shops at this location ({overlappingShops.length})
+            </Text>
+            <Button
+              title={t('close')}
+              onPress={() => setSelectedShop(null)}
+              variant="secondary"
+            />
+          </Box>
+
+          {overlappingShops.map((shop) => (
+            <Pressable
+              key={shop.id}
+              onPress={() => {
+                setViewingShop(shop);
+                onShopSelect(shop);
+              }}
+              style={{ cursor: 'pointer' } as any}
+            >
+              <Card p="m" mb="s" bg="secondaryBackground">
+                <Box
+                  flexDirection="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box flex={1} mr="s">
+                    <Text variant="body" fontWeight="bold" color="primaryText">
+                      {shop.name}
+                    </Text>
+                    <Text variant="bodySecondary">
+                      {t('totalAccountValue') || 'Value'}: K
+                      {shop.lifetimeValue.toLocaleString()}
+                    </Text>
+                  </Box>
+                  <Text color="secondaryText">▶</Text>
+                </Box>
+              </Card>
+            </Pressable>
+          ))}
+        </Card>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={{ maxHeight: 500 }}>
       <Card p="m" bg="cardBackground">
+        {/* Back Button if overlapping */}
+        {overlappingShops.length > 1 && (
+          <Box mb="s">
+            <Button
+              title="← Back to list"
+              onPress={() => setViewingShop(null)}
+              variant="secondary"
+            />
+          </Box>
+        )}
+
         {/* Shop snapshot header */}
         <Box
           flexDirection="row"
@@ -72,8 +214,8 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
           mb="s"
         >
           <Box flex={1} mr="s">
-            <Text variant="title">{selectedShop.name}</Text>
-            <Text variant="bodySecondary">{selectedShop.address}</Text>
+            <Text variant="title">{activeShop.name}</Text>
+            <Text variant="bodySecondary">{activeShop.address}</Text>
           </Box>
           <Button
             title={t('close')}
@@ -84,19 +226,19 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
 
         <Box mb="m" borderTopWidth={1} borderColor="borderColor" pt="s">
           <Text variant="bodySecondary">
-            {t('gpsCoordinates')}: {selectedShop.latitude?.toFixed(4)},{' '}
-            {selectedShop.longitude?.toFixed(4)}
+            {t('gpsCoordinates')}: {activeShop.latitude?.toFixed(4)},{' '}
+            {activeShop.longitude?.toFixed(4)}
           </Text>
           <Text variant="bodySecondary">
             {t('totalAccountValue')}:{' '}
             <Text variant="body" fontWeight="bold">
-              K{selectedShop.lifetimeValue.toLocaleString()}
+              K{activeShop.lifetimeValue.toLocaleString()}
             </Text>
           </Text>
           <Text variant="bodySecondary">
             {t('assignedRep')}:{' '}
             <Text variant="body" fontWeight="bold">
-              {selectedShop.assignedRepId === 'rep-1' ? 'Ko Min' : 'Ko Hla'}
+              {activeShop.assignedRepId === 'rep-1' ? 'Ko Min' : 'Ko Hla'}
             </Text>
           </Text>
         </Box>
@@ -180,7 +322,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
         <Text variant="body" fontWeight="bold" mb="s">
           {t('relationshipTimeline')}
         </Text>
-        {selectedShop.logs.map((l) => (
+        {activeShop.logs.map((l) => (
           <Card
             key={l.id}
             p="s"
@@ -209,7 +351,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
             </Text>
           </Card>
         ))}
-        {selectedShop.logs.length === 0 && (
+        {activeShop.logs.length === 0 && (
           <Text variant="bodySecondary">{t('noHistoricalLogs')}</Text>
         )}
       </Card>
