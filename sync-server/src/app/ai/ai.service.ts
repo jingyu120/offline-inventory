@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,10 +13,83 @@ import { guardAsync } from '@burma-inventory/shared-types';
 const GEMMA_API_URL = process.env.GEMMA_API_URL || 'http://localhost:11434';
 
 @Injectable()
-export class AiService {
+export class AiService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AiService.name);
+  private watcher: fs.FSWatcher | null = null;
+  private processingFiles = new Set<string>();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.startUploadsWatcher();
+  }
+
+  onModuleDestroy() {
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = null;
+    }
+  }
+
+  private startUploadsWatcher() {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    this.logger.log(
+      `Starting filesystem watcher for upload directory: ${uploadDir}`,
+    );
+
+    try {
+      this.watcher = fs.watch(uploadDir, (eventType, filename) => {
+        if (eventType === 'rename' && filename) {
+          const filePath = path.join(uploadDir, filename);
+          // Wait a short delay to ensure file is completely written by Multer
+          setTimeout(() => {
+            if (fs.existsSync(filePath)) {
+              this.handleNewFileInUploads(filename, filePath).catch((err) => {
+                this.logger.error(
+                  `Error in uploads directory watcher for ${filename}: ${err.message}`,
+                );
+              });
+            }
+          }, 1000);
+        }
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to start uploads directory watcher: ${err.message}`,
+      );
+    }
+  }
+
+  private async handleNewFileInUploads(filename: string, filePath: string) {
+    if (this.processingFiles.has(filename)) {
+      return;
+    }
+    this.processingFiles.add(filename);
+
+    try {
+      const url = `/api/sync/uploads/${filename}`;
+      // Check if there is an interaction log with this screenshot URL and pending verification
+      const log = await this.prisma.interactionLog.findFirst({
+        where: {
+          viberScreenshotUrl: url,
+          aiVerificationStatus: null,
+        },
+      });
+
+      if (log) {
+        this.logger.log(
+          `Directory watcher matched new file ${filename} to log ${log.id}. Starting audit...`,
+        );
+        await this.processScreenshot(log.id, filePath);
+      }
+    } finally {
+      this.processingFiles.delete(filename);
+    }
+  }
 
   /**
    * Helper to dispatch prompt (and optional base64 image) to local Ollama instance.
@@ -631,15 +709,10 @@ No markdown tags like \`\`\`json, no explanations.`;
   /**
    * Local Asynchronous Multimodal Screenshot Auditing
    */
-  async processScreenshot(logId: string, filePath: string) {
+  async processScreenshot(logId: string, filePath?: string) {
     this.logger.log(
-      `Starting processScreenshot for logId: ${logId}, file: ${filePath}`,
+      `Starting processScreenshot for logId: ${logId}, file: ${filePath || 'from db'}`,
     );
-
-    if (!fs.existsSync(filePath)) {
-      this.logger.error(`Screenshot file not found at: ${filePath}`);
-      return;
-    }
 
     const log = await this.prisma.interactionLog.findUnique({
       where: { id: logId },
@@ -658,7 +731,22 @@ No markdown tags like \`\`\`json, no explanations.`;
       return;
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
+    let resolvedPath = filePath;
+    if (!resolvedPath) {
+      if (!log.viberScreenshotUrl) {
+        this.logger.warn(`No screenshot URL for log: ${logId}`);
+        return;
+      }
+      const filename = path.basename(log.viberScreenshotUrl);
+      resolvedPath = path.join(process.cwd(), 'uploads', filename);
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      this.logger.error(`Screenshot file not found at: ${resolvedPath}`);
+      return;
+    }
+
+    const fileBuffer = fs.readFileSync(resolvedPath);
     const base64Image = fileBuffer.toString('base64');
 
     const itemsDescription = log.interactionItems

@@ -19,6 +19,10 @@ interface SelectedItemsListProps {
   getItemPrice: (item: Item) => number;
   selectedCurrency: string;
   updateStockCondition: (itemId: string, condition: string) => void;
+  isOverrideMarginAcknowledged?: boolean;
+  setIsOverrideMarginAcknowledged?: (val: boolean) => void;
+  lastInteractionLog?: any;
+  onDuplicateLastOrder?: () => void;
 }
 
 export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
@@ -29,16 +33,117 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
   getItemPrice,
   selectedCurrency,
   updateStockCondition,
+  isOverrideMarginAcknowledged = false,
+  setIsOverrideMarginAcknowledged,
+  lastInteractionLog,
+  onDuplicateLastOrder,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
 
-  if (selectedItems.length === 0) return null;
+  if (selectedItems.length === 0) {
+    if (onDuplicateLastOrder) {
+      return (
+        <Box mb="m">
+          <Text variant="body" fontWeight="bold" mb="s">
+            Order Duplication
+          </Text>
+          {lastInteractionLog ? (
+            <TouchableOpacity
+              onPress={onDuplicateLastOrder}
+              activeOpacity={0.7}
+            >
+              <Box
+                py="s"
+                px="m"
+                borderRadius="m"
+                borderWidth={1}
+                borderColor="primaryButton"
+                bg="secondaryButton"
+                alignItems="center"
+              >
+                <Text
+                  variant="body"
+                  fontWeight="bold"
+                  style={{ color: theme.colors.primaryButton }}
+                >
+                  🔂 Duplicate Last Order
+                </Text>
+              </Box>
+            </TouchableOpacity>
+          ) : (
+            <Box
+              py="s"
+              px="m"
+              borderRadius="m"
+              borderWidth={1}
+              borderColor="borderColor"
+              bg="cardBackground"
+              alignItems="center"
+              style={{ opacity: 0.5 }}
+            >
+              <Text variant="body" color="secondaryText">
+                No Prior Transactions Found
+              </Text>
+            </Box>
+          )}
+        </Box>
+      );
+    }
+    return null;
+  }
 
   const unitOptions = ['PCS', 'PK', 'BAGS', 'PAL'];
+  const hasBelowFloorPrice = selectedItems.some(
+    (si) => Number(si.unitPrice || 0) < getItemPrice(si.item) * 0.85,
+  );
 
   return (
     <Box mb="m">
+      {onDuplicateLastOrder && (
+        <Box mb="m">
+          {lastInteractionLog ? (
+            <TouchableOpacity
+              onPress={onDuplicateLastOrder}
+              activeOpacity={0.7}
+            >
+              <Box
+                py="s"
+                px="m"
+                borderRadius="m"
+                borderWidth={1}
+                borderColor="primaryButton"
+                bg="secondaryButton"
+                alignItems="center"
+              >
+                <Text
+                  variant="body"
+                  fontWeight="bold"
+                  style={{ color: theme.colors.primaryButton }}
+                >
+                  🔂 Duplicate Last Order
+                </Text>
+              </Box>
+            </TouchableOpacity>
+          ) : (
+            <Box
+              py="s"
+              px="m"
+              borderRadius="m"
+              borderWidth={1}
+              borderColor="borderColor"
+              bg="cardBackground"
+              alignItems="center"
+              style={{ opacity: 0.5 }}
+            >
+              <Text variant="body" color="secondaryText">
+                No Prior Transactions Found
+              </Text>
+            </Box>
+          )}
+        </Box>
+      )}
+
       <Text variant="body" fontWeight="bold" mb="s">
         {t('selectedQuantities')}
       </Text>
@@ -46,6 +151,8 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
         const qty = parseInt(si.quantity.toString() || '0', 10);
         const price = Number(si.unitPrice || 0);
         const totalVal = price * (isNaN(qty) ? 0 : qty);
+        const baseFloor = getItemPrice(si.item);
+        const isBelowFloor = price < baseFloor * 0.85;
 
         const formattedPrice =
           selectedCurrency === 'MMK'
@@ -211,8 +318,10 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                     backgroundColor: theme.colors.cardBackground,
                     padding: 6,
                     borderRadius: theme.borderRadii.s,
-                    borderWidth: 1,
-                    borderColor: theme.colors.borderColor,
+                    borderWidth: isBelowFloor ? 2 : 1,
+                    borderColor: isBelowFloor
+                      ? '#EF4444'
+                      : theme.colors.borderColor,
                     color: theme.colors.primaryText,
                     fontWeight: 'bold',
                     fontSize: 14,
@@ -235,6 +344,66 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
           </Box>
         );
       })}
+
+      {hasBelowFloorPrice && setIsOverrideMarginAcknowledged && (
+        <Box
+          mt="s"
+          p="m"
+          borderRadius="m"
+          borderWidth={1}
+          borderColor="dangerText"
+          bg="dangerBg"
+          flexDirection="row"
+          alignItems="center"
+        >
+          <TouchableOpacity
+            onPress={() =>
+              setIsOverrideMarginAcknowledged(!isOverrideMarginAcknowledged)
+            }
+            activeOpacity={0.7}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              flex: 1,
+            }}
+          >
+            <Box
+              width={20}
+              height={20}
+              borderRadius="s"
+              borderWidth={2}
+              borderColor={
+                isOverrideMarginAcknowledged ? 'primaryButton' : 'dangerText'
+              }
+              bg={
+                isOverrideMarginAcknowledged ? 'primaryButton' : 'transparent'
+              }
+              justifyContent="center"
+              alignItems="center"
+              mr="s"
+            >
+              {isOverrideMarginAcknowledged && (
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                  }}
+                >
+                  ✓
+                </Text>
+              )}
+            </Box>
+            <Text
+              variant="body"
+              fontWeight="bold"
+              style={{ color: theme.colors.dangerText, flex: 1 }}
+            >
+              Acknowledge Override Margin (Below Wholesale Floor)
+            </Text>
+          </TouchableOpacity>
+        </Box>
+      )}
     </Box>
   );
 };

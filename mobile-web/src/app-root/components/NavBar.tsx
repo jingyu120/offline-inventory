@@ -223,7 +223,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                 label = 'Intake';
                 icon = '📦';
               } else if (screen === 'viber-bot') {
-                label = 'Viber Bot';
+                label = 'Order Drafter';
                 icon = '💬';
               }
               return (

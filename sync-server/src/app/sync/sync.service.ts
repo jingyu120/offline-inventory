@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { guardAsync } from '@burma-inventory/shared-types';
+import { AiService } from '../ai/ai.service';
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   PullChangesResponse,
   PushChangesBody,
@@ -573,7 +576,10 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiService: AiService,
+  ) {}
 
   // ── Pull ──────────────────────────────────────────────────────────
 
@@ -841,6 +847,44 @@ export class SyncService {
         (error as Error).stack,
       );
       throw error;
+    }
+
+    // Trigger post-push screenshot audit for newly pushed logs that contain screenshots
+    this.triggerAuditForPushedLogs(changes.interaction_logs).catch((err) => {
+      this.logger.error(
+        `Failed to trigger post-push screenshot audit: ${err.message}`,
+      );
+    });
+  }
+
+  private async triggerAuditForPushedLogs(
+    logChangeset: WatermelonChangeSet<any> | undefined,
+  ) {
+    if (!logChangeset) return;
+    const records = [
+      ...(logChangeset.created || []),
+      ...(logChangeset.updated || []),
+    ];
+    for (const record of records) {
+      const logId = record.id;
+      const log = await this.prisma.interactionLog.findUnique({
+        where: { id: logId },
+      });
+      if (log && log.viberScreenshotUrl && !log.aiVerificationStatus) {
+        const filename = path.basename(log.viberScreenshotUrl);
+        const filePath = path.join(process.cwd(), 'uploads', filename);
+        if (fs.existsSync(filePath)) {
+          this.logger.log(
+            `Post-push hook matched file ${filename} for log ${logId}. Starting audit...`,
+          );
+          // Trigger vision processing asynchronously
+          this.aiService.processScreenshot(logId, filePath).catch((err) => {
+            this.logger.error(
+              `Error processing screenshot for pushed log ${logId}: ${err.message}`,
+            );
+          });
+        }
+      }
     }
   }
 

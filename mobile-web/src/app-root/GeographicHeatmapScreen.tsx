@@ -135,6 +135,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
         const tile = document.createElement('img');
         tile.crossOrigin = 'anonymous';
         const key = `tile-${coords.z}-${coords.x}-${coords.y}`;
+        const fallbackUrl = this.getTileUrl(coords);
 
         tileDb
           .get(key)
@@ -143,14 +144,14 @@ export const GeographicHeatmapScreen: React.FC = () => {
               tile.src = cached;
               done(null, tile);
             } else {
-              tile.src = this.getTileUrl(coords);
+              tile.src = fallbackUrl;
               tile.onload = () => done(null, tile);
               tile.onerror = (err) => done(err, tile);
             }
           })
           .catch((err) => {
             console.warn('Failed to load tile from db:', err);
-            tile.src = this.getTileUrl(coords);
+            tile.src = fallbackUrl;
             tile.onload = () => done(null, tile);
             tile.onerror = (e) => done(e, tile);
           });

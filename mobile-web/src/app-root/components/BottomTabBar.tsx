@@ -62,7 +62,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           label = 'Intake';
           IconComponent = Package;
         } else if (screen === 'viber-bot') {
-          label = 'Viber Bot';
+          label = 'Order Drafter';
           IconComponent = MessageSquare;
         }
 

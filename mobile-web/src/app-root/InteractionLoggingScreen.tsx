@@ -11,12 +11,13 @@ import {
 import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
 import { Shop, Item, sqliteSchema } from '@burma-inventory/shared-types';
 import { database } from '../database';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import {
   fetchItemsAndStockLevel,
   createInteractionLog,
   SelectedItemPayload,
   getConversionMultiplier,
+  mapItem,
 } from '../data/repositories';
 import { useTranslation } from '../utils/i18n';
 import { useAuth } from '../utils/auth';
@@ -70,6 +71,9 @@ export function InteractionLoggingScreen({
   const [isSaving, setIsSaving] = useState(false);
   const [hasDiscrepancy, setHasDiscrepancy] = useState(false);
   const [ocrVerifying, setOcrVerifying] = useState(false);
+  const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
+  const [isOverrideMarginAcknowledged, setIsOverrideMarginAcknowledged] =
+    useState(false);
 
   const checkDiscrepancy = (ocrText: string, items: any[]) => {
     const lowerOcr = ocrText.toLowerCase();
@@ -173,6 +177,28 @@ export function InteractionLoggingScreen({
   const [priceBookItems, setPriceBookItems] = useState<any[]>([]);
   const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
 
+  const loadLastInteractionLog = async () => {
+    if (!shop) {
+      setLastInteractionLog(null);
+      return;
+    }
+    try {
+      const logs = await database
+        .select()
+        .from(sqliteSchema.interaction_logs)
+        .where(eq(sqliteSchema.interaction_logs.shop_id, shop.id))
+        .orderBy(desc(sqliteSchema.interaction_logs.created_at));
+      if (logs.length > 0) {
+        setLastInteractionLog(logs[0]);
+      } else {
+        setLastInteractionLog(null);
+      }
+    } catch (e) {
+      console.error('Failed to load last interaction log:', e);
+      setLastInteractionLog(null);
+    }
+  };
+
   const loadRatesAndBook = async () => {
     try {
       const rates = await database.select().from(sqliteSchema.exchange_rates);
@@ -245,6 +271,7 @@ export function InteractionLoggingScreen({
     if (visible) {
       loadItems();
       loadRatesAndBook();
+      loadLastInteractionLog();
     } else {
       resetForm();
     }
@@ -253,6 +280,7 @@ export function InteractionLoggingScreen({
   useEffect(() => {
     if (visible) {
       loadRatesAndBook();
+      loadLastInteractionLog();
     }
   }, [shop]);
 
@@ -315,6 +343,51 @@ export function InteractionLoggingScreen({
     setSelectedCurrency('MMK');
     setHasDiscrepancy(false);
     setSelectedProjectId(null);
+    setLastInteractionLog(null);
+    setIsOverrideMarginAcknowledged(false);
+  };
+
+  const handleDuplicateLastOrder = async () => {
+    if (!lastInteractionLog) return;
+    try {
+      const itemsList = await database
+        .select()
+        .from(sqliteSchema.interaction_items)
+        .where(
+          eq(
+            sqliteSchema.interaction_items.interaction_log_id,
+            lastInteractionLog.id,
+          ),
+        );
+
+      if (itemsList.length > 0) {
+        const { items: allItems } = await fetchItemsAndStockLevel();
+        const mapped = itemsList
+          .map((ii: any) => {
+            const itemDetail = allItems.find((i: any) => i.id === ii.item_id);
+            if (!itemDetail) return null;
+            const unitPriceVal =
+              ii.unit_price !== undefined && ii.unit_price !== null
+                ? ii.unit_price
+                : ii.unit_price_at_sale !== undefined &&
+                    ii.unit_price_at_sale !== null
+                  ? ii.unit_price_at_sale
+                  : itemDetail.unitPrice || 0;
+            return {
+              item: itemDetail,
+              quantity: ii.quantity,
+              selectedUnit: ii.selected_unit || 'PCS',
+              unitPrice: unitPriceVal,
+              stockCondition: ii.stock_condition || 'GOOD',
+            };
+          })
+          .filter(Boolean) as any[];
+        setSelectedItems(mapped);
+      }
+    } catch (e) {
+      console.error('Failed to duplicate last order:', e);
+      Alert.alert(t('error') || 'Error', 'Failed to duplicate last order.');
+    }
   };
 
   const toggleItem = (item: Item) => {
@@ -390,6 +463,17 @@ export function InteractionLoggingScreen({
 
     if (type === 'VIBER' && !screenshotUri) {
       Alert.alert(t('validationError'), t('viberProofMandatory'));
+      return;
+    }
+
+    const hasBelowFloor = selectedItems.some(
+      (si) => Number(si.unitPrice || 0) < getItemPrice(si.item) * 0.85,
+    );
+    if (hasBelowFloor && !isOverrideMarginAcknowledged) {
+      Alert.alert(
+        t('validationError') || 'Validation Error',
+        'Please check the Acknowledge Override Margin safety box before saving.',
+      );
       return;
     }
 
@@ -528,11 +612,13 @@ export function InteractionLoggingScreen({
 
             <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
               {shop && (
-                <Card mb="m">
-                  <Text variant="body" fontWeight="bold">
-                    {t('shopLabel')}: {shop.name}
-                  </Text>
-                </Card>
+                <Box mb="m">
+                  <Card mb="s">
+                    <Text variant="body" fontWeight="bold">
+                      {t('shopLabel')}: {shop.name}
+                    </Text>
+                  </Card>
+                </Box>
               )}
 
               {hasDiscrepancy && (
@@ -682,6 +768,12 @@ export function InteractionLoggingScreen({
                 getItemPrice={getItemPrice}
                 selectedCurrency={selectedCurrency}
                 updateStockCondition={updateStockCondition}
+                isOverrideMarginAcknowledged={isOverrideMarginAcknowledged}
+                setIsOverrideMarginAcknowledged={
+                  setIsOverrideMarginAcknowledged
+                }
+                lastInteractionLog={lastInteractionLog}
+                onDuplicateLastOrder={handleDuplicateLastOrder}
               />
 
               <Box height={40} />
