@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { FlatList, TextInput, TouchableOpacity } from 'react-native';
 import { Box, Text, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
@@ -51,16 +51,13 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         onChangeText={setSkuSearch}
       />
       <Box style={{ maxHeight: 150 }} mb="m">
-        <ScrollView
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-        >
-          {availableItems.map((item) => {
+        <FlatList
+          data={availableItems}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
             const isSelected = selectedItems.find((i) => i.item.id === item.id);
             return (
-              <TouchableOpacity key={item.id} onPress={() => toggleItem(item)}>
+              <TouchableOpacity onPress={() => toggleItem(item)}>
                 <Box
                   p="s"
                   bg={isSelected ? 'secondaryButton' : 'mainBackground'}
@@ -100,8 +97,13 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                 </Box>
               </TouchableOpacity>
             );
-          })}
-        </ScrollView>
+          }}
+          ItemSeparatorComponent={() => <Box height={theme.spacing.m} />}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        />
       </Box>
     </Box>
   );

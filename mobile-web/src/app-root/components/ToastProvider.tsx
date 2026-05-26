@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Platform,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 
@@ -25,6 +26,8 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const showToast = useCallback(
@@ -81,7 +84,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {/* Toast container floating at bottom-right on web / bottom on mobile */}
-      <View style={styles.container}>
+      <View style={[styles.container, !isDesktop && { bottom: 80 }]}>
         {toasts.map((toast) => (
           <TouchableOpacity
             key={toast.id}

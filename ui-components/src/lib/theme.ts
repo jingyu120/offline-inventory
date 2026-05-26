@@ -61,14 +61,17 @@ export const theme = createTheme({
     // Status colors
     success: palette.successPrimary,
     successBg: palette.successBg,
+    successLight: palette.successBg,
     successText: palette.successText,
 
     warning: palette.warningPrimary,
     warningBg: palette.warningBg,
+    warningLight: palette.warningBg,
     warningText: palette.warningText,
 
     danger: palette.dangerPrimary,
     dangerBg: palette.dangerBg,
+    dangerLight: palette.dangerBg,
     dangerText: palette.dangerText,
 
     info: palette.infoPrimary,

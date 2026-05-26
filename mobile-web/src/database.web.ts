@@ -322,6 +322,15 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS draft_carts (
+        id TEXT PRIMARY KEY NOT NULL,
+        shop_id TEXT NOT NULL,
+        rep_id TEXT NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'MMK',
+        project_id TEXT,
+        items_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Migration helper: Add columns if they do not exist in existing database schemas

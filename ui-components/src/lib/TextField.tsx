@@ -7,11 +7,13 @@ import { Theme } from './theme';
 export interface TextFieldProps extends TextInputProps {
   label?: string;
   error?: string;
+  name?: string;
 }
 
 export function TextField({
   label,
   error,
+  name,
   style,
   onFocus,
   onBlur,
@@ -19,6 +21,19 @@ export function TextField({
 }: TextFieldProps) {
   const theme = useTheme<Theme>();
   const [isFocused, setIsFocused] = useState(false);
+
+  const isNumeric =
+    rest.keyboardType === 'numeric' ||
+    rest.keyboardType === 'decimal-pad' ||
+    rest.keyboardType === 'number-pad' ||
+    (name && /price|kyat|factor|rate|cost|qty|quantity/i.test(name)) ||
+    (label && /price|kyat|factor|rate|cost|qty|quantity/i.test(label)) ||
+    (rest.placeholder &&
+      /price|kyat|factor|rate|cost|qty|quantity/i.test(rest.placeholder));
+
+  const resolvedKeyboardType = isNumeric
+    ? rest.keyboardType || 'decimal-pad'
+    : rest.keyboardType;
 
   return (
     <Box my="s">
@@ -48,6 +63,7 @@ export function TextField({
                 : theme.colors.borderColor,
             color: theme.colors.primaryText,
             outlineWidth: 0, // Avoid default thick outline on web browser focus
+            fontFamily: isNumeric ? 'monospace' : undefined,
             ...(Platform.OS === 'web'
               ? {
                   boxShadow: isFocused
@@ -66,6 +82,7 @@ export function TextField({
           style,
         ]}
         placeholderTextColor={theme.colors.secondaryText}
+        keyboardType={resolvedKeyboardType}
         onFocus={(e) => {
           setIsFocused(true);
           onFocus?.(e);

@@ -25,6 +25,7 @@ import { ImageUploadQueue } from '../utils/ImageUploadQueue';
 import { AuthProvider, useAuth } from '../utils/auth';
 import { NavBar, ROLE_SCREENS } from './components/NavBar';
 import { BottomTabBar } from './components/BottomTabBar';
+import { SyncStatusBar } from './components/SyncStatusBar';
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
@@ -144,6 +145,13 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
         syncError={syncError}
         pendingChanges={pendingChanges}
         handleSync={handleSync}
+      />
+
+      <SyncStatusBar
+        isSyncing={isSyncing}
+        syncError={syncError}
+        pendingChanges={pendingChanges}
+        lastSync={lastSync}
       />
 
       {/* Render Active Screen View */}

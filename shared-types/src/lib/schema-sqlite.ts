@@ -384,3 +384,13 @@ export const projects = sqliteTable(
     nameIdx: index('projects_name_idx').on(table.name),
   }),
 );
+
+export const draft_carts = sqliteTable('draft_carts', {
+  id: text('id').primaryKey(),
+  shop_id: text('shop_id').notNull(),
+  rep_id: text('rep_id').notNull(),
+  currency: text('currency').notNull().default('MMK'),
+  project_id: text('project_id'),
+  items_json: text('items_json').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});

@@ -355,6 +355,8 @@ export const translations = {
       '⚠️ Discrepancy Detected: Selected quantities do not match Viber proof screenshot text.',
     shopsAtThisLocation: 'Shops at this location ({count})',
     backToList: '← Back to list',
+    offlinePending: 'Offline - Pending changes',
+    synced: 'Synced',
   },
   my: {
     title: 'မြန်မာ ကုန်ပစ္စည်း စာရင်း',
@@ -733,5 +735,7 @@ export const translations = {
       '⚠️ ကွဲလွဲမှု တွေ့ရှိသည် - ရွေးချယ်ထားသော ပမာဏများသည် Viber သက်သေပြပုံမှ စာသားနှင့် ကိုက်ညီမှုမရှိပါ။',
     shopsAtThisLocation: 'ဤနေရာရှိ ဆိုင်များ ({count})',
     backToList: '← စာရင်းသို့ ပြန်သွားရန်',
+    offlinePending: 'အော့ဖ်လိုင်း - ပြင်ဆင်ရန်စောင့်ဆိုင်းနေသောဒေတာများ',
+    synced: 'ချိတ်ဆက်ပြီးပါပြီ',
   },
 };

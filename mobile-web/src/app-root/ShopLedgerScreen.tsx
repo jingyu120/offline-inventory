@@ -5,6 +5,7 @@ import {
   Pressable,
   useWindowDimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
@@ -16,6 +17,8 @@ import { InteractionLoggingScreen } from './InteractionLoggingScreen';
 import { Shop, sqliteSchema } from '@burma-inventory/shared-types';
 import { DesignPatternGallery } from './components/DesignPatternGallery';
 import { database } from '../database';
+import { eq } from 'drizzle-orm';
+import { mapShop } from '../data/repositories';
 
 export function ShopLedgerScreen() {
   const { width } = useWindowDimensions();
@@ -61,6 +64,49 @@ export function ShopLedgerScreen() {
     };
     fetchStats();
   }, [shops]);
+
+  useEffect(() => {
+    const checkDraftCart = async () => {
+      try {
+        const drafts = await database.select().from(sqliteSchema.draft_carts);
+        if (drafts.length > 0) {
+          const draft = drafts[0];
+          Alert.alert(
+            'Restore Session',
+            'An interrupted checkout session was found. Would you like to restore it?',
+            [
+              {
+                text: 'Discard',
+                style: 'destructive',
+                onPress: async () => {
+                  await database
+                    .delete(sqliteSchema.draft_carts)
+                    .where(eq(sqliteSchema.draft_carts.id, draft.id));
+                },
+              },
+              {
+                text: 'Restore',
+                onPress: async () => {
+                  const shopDetails = await database
+                    .select()
+                    .from(sqliteSchema.shops)
+                    .where(eq(sqliteSchema.shops.id, draft.shop_id));
+                  if (shopDetails.length > 0) {
+                    const mappedShop = mapShop(shopDetails[0]);
+                    selectShop(mappedShop);
+                    handleLogInteraction(mappedShop);
+                  }
+                },
+              },
+            ],
+          );
+        }
+      } catch (e) {
+        console.error('[Recovery Hook] Failed to check for draft carts:', e);
+      }
+    };
+    checkDraftCart();
+  }, []);
 
   const handleLogInteraction = (shop: Shop) => {
     setLoggingShop(shop);

@@ -11,7 +11,7 @@ import {
 import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
 import { Shop, Item, sqliteSchema } from '@burma-inventory/shared-types';
 import { database } from '../database';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import {
   fetchItemsAndStockLevel,
   createInteractionLog,
@@ -75,6 +75,34 @@ export function InteractionLoggingScreen({
   const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
   const [isOverrideMarginAcknowledged, setIsOverrideMarginAcknowledged] =
     useState(false);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+  const loadDraftCart = async () => {
+    if (!shop || !activeRep) return;
+    try {
+      const draftId = `${shop.id}_${activeRep.id}`;
+      const drafts = await database
+        .select()
+        .from(sqliteSchema.draft_carts)
+        .where(eq(sqliteSchema.draft_carts.id, draftId));
+
+      if (drafts.length > 0) {
+        const draft = drafts[0];
+        const items = JSON.parse(draft.items_json);
+        setSelectedItems(items);
+        setSelectedCurrency(draft.currency);
+        setSelectedProjectId(draft.project_id);
+        setIsDraftLoaded(true);
+      } else {
+        resetForm();
+        setIsDraftLoaded(true);
+      }
+    } catch (e) {
+      console.error('Failed to load draft cart:', e);
+      resetForm();
+      setIsDraftLoaded(true);
+    }
+  };
 
   const checkDiscrepancy = (ocrText: string, items: any[]) => {
     const lowerOcr = ocrText.toLowerCase();
@@ -270,20 +298,51 @@ export function InteractionLoggingScreen({
 
   useEffect(() => {
     if (visible) {
+      setIsDraftLoaded(false);
+      loadDraftCart();
       loadItems();
       loadRatesAndBook();
       loadLastInteractionLog();
     } else {
       resetForm();
+      setIsDraftLoaded(false);
     }
-  }, [visible]);
+  }, [visible, shop]);
 
   useEffect(() => {
-    if (visible) {
-      loadRatesAndBook();
-      loadLastInteractionLog();
-    }
-  }, [shop]);
+    const saveDraft = async () => {
+      if (!shop || !activeRep || !isDraftLoaded) return;
+      try {
+        const draftId = `${shop.id}_${activeRep.id}`;
+        await database
+          .delete(sqliteSchema.draft_carts)
+          .where(eq(sqliteSchema.draft_carts.id, draftId));
+
+        if (selectedItems.length > 0) {
+          await database.insert(sqliteSchema.draft_carts).values({
+            id: draftId,
+            shop_id: shop.id,
+            rep_id: activeRep.id,
+            currency: selectedCurrency,
+            project_id: selectedProjectId,
+            items_json: JSON.stringify(selectedItems),
+            updated_at: Math.floor(Date.now() / 1000),
+          });
+        }
+      } catch (e) {
+        console.error('[Draft Cart] Failed to auto-save draft cart:', e);
+      }
+    };
+
+    saveDraft();
+  }, [
+    selectedItems,
+    selectedCurrency,
+    selectedProjectId,
+    isDraftLoaded,
+    shop,
+    activeRep,
+  ]);
 
   useEffect(() => {
     loadItems();
@@ -532,6 +591,20 @@ export function InteractionLoggingScreen({
         validatedItems,
         selectedProjectId,
       );
+
+      // After successfully creating interaction log, delete the draft cart
+      try {
+        await database
+          .delete(sqliteSchema.draft_carts)
+          .where(
+            and(
+              eq(sqliteSchema.draft_carts.shop_id, shop.id),
+              eq(sqliteSchema.draft_carts.rep_id, activeRep.id),
+            ),
+          );
+      } catch (e) {
+        console.error('Failed to delete draft after save:', e);
+      }
 
       if (screenshotUri) {
         // Enqueue the image upload task locally and trigger queue processing.
