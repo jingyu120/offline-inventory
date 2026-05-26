@@ -234,6 +234,8 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       selected_currency: i.selectedCurrency,
       selected_unit: i.selectedUnit,
       stock_condition: i.stockCondition,
+      pending_allocation_count: i.pendingAllocationCount,
+      fulfillment_status: i.fulfillmentStatus,
       ...mapTimestampsRecord(i),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -248,6 +250,8 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       selectedCurrency: i.selected_currency,
       selectedUnit: i.selected_unit,
       stockCondition: i.stock_condition || 'GOOD',
+      pendingAllocationCount: i.pending_allocation_count || 0,
+      fulfillmentStatus: i.fulfillment_status || 'PENDING_FULFILLMENT',
       ...mapTimestampsPrisma(i),
     }),
   },
@@ -285,6 +289,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       id: s.id,
       item_id: s.itemId,
       quantity: s.quantity,
+      pending_allocation_count: s.pendingAllocationCount,
       ...mapTimestampsRecord(s),
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -292,6 +297,7 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
       id: s.id,
       itemId: s.item_id,
       quantity: s.quantity,
+      pendingAllocationCount: s.pending_allocation_count || 0,
       ...mapTimestampsPrisma(s),
     }),
   },

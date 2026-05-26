@@ -133,6 +133,8 @@ describe('shared-types', () => {
         selected_currency: null,
         selected_unit: 'PCS',
         stock_condition: 'GOOD',
+        pending_allocation_count: 0,
+        fulfillment_status: 'PENDING_FULFILLMENT',
         created_at: 10000,
         updated_at: 10000,
       };

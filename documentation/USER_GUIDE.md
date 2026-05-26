@@ -15,6 +15,7 @@ This application uses a **local-first approach**:
 1. **Always Responsive**: The app runs directly on your device's internal storage. When you click "Save," it saves instantly at zero latency—even if your phone is completely disconnected from the network.
 2. **Silent Syncing**: The app continuously monitors your network status in the background. As soon as your internet connection is restored (or you get back to a Wi-Fi zone), it silently uploads your saved interactions to the central PostgreSQL database.
 3. **Smart Assistance**: Integrated local **Gemma AI** assists reps by auto-filling forms from voice or text notes, translates prices across multiple currencies, and emails managers a concise summary report at the end of each day.
+4. **Sales-First Isolation**: During this initial field rollout, all logged interaction items default to a fulfillment status of `PENDING_FULFILLMENT` and bypass direct warehouse stock reductions, isolating sales capture from final warehouse dispatch.
 
 ---
 
@@ -65,10 +66,12 @@ When you finish a Viber call, exchange messages, or visit a shop in person, tap 
      > To ensure high-quality reporting, if you select **Interested** or **Not Interested**, you **must** type a comment of **at least 20 characters** explaining the shop owner's feedback (e.g., competitor pricing drops, owner out of town).
 3. **Select Currency**: Tap **MMK**, **USD**, or **THB** to choose your currency. The app dynamically pulls local exchange rates and price books to convert SKU prices instantly on-the-fly.
 4. **Attach Products (SKU Link)**: Tick the checkboxes next to the SKUs the client purchased or was interested in.
-5. **Set Quantity (Real-Time Stock Verification)**:
+5. **Set Quantity (Real-Time Stock Verification & Committed Orders)**:
    - Enter the desired quantity for each selected SKU.
    - > [!WARNING]
      > **Preventing Over-Orders**: The app instantly checks your local inventory stock. If you enter a quantity that exceeds what is physically available in our warehouse, the app will raise an alert: _"Insufficient Stock: You requested 20 items, but only 12 are available."_ You will be blocked from saving until a valid quantity is provided.
+   - > [!NOTE]
+     > **Parentheses Allocation Logic (Pending Committed Orders)**: If you enter a quantity enclosed in parentheses (e.g., `(1,756)`), the system registers this as a **Committed/Pending Allocation** rather than an immediate stock withdrawal. The standard quantity is automatically set to `0`, and the value is saved in the `pending_allocation_count` column. Because this represents a pending order rather than immediate delivery, it **bypasses standard stock decrement checks**, allowing you to log the interaction without being blocked by low stock levels.
 6. **Viber Interaction Proof (Mandatory for Viber Logs)**:
    - If you selected `Viber` as the interaction type, you **must** upload a proof-of-work screenshot of your chat conversation or quotation.
    - > [!TIP]
@@ -76,6 +79,7 @@ When you finish a Viber call, exchange messages, or visit a shop in person, tap 
 7. **Use Gemma AI Copilot (Optional)**:
    - Instead of picking everything manually, you can simply type or dictate a quick note into the **Gemma Copilot** text box (e.g. _"Spoke with Ko Aye, ordered 15 boxes of Premium Coffee Mix. He loved the taste, sentiment is great"_).
    - Tap **"Parse with AI"**. Gemma will automatically read your notes, set the commercial status to `Order Placed`, select the correct product, and input the quantity `15`.
+   - **Viber Parsing of Parentheses**: If raw text from Viber contains quantities in parentheses, e.g., `Crocodile GP Grout (1,756)`, the parser automatically extracts the number, strips commas/symbols, sets the standard quantity to `0`, and commits `1756` directly to `pending_allocation_count`.
 8. **Save**: Click **"Save Log"**. The record is stamped with your device's internal clock and saved immediately to local storage.
 
 ---

@@ -17,6 +17,7 @@ interface SelectedItemsListProps {
     selectedUnit: string;
     unitPrice: number | string;
     stockCondition: string;
+    pendingAllocationCount?: number;
   }[];
   updateQuantity: (itemId: string, quantity: string) => void;
   updateSelectedUnit: (itemId: string, unit: string) => void;

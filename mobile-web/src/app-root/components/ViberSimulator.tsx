@@ -246,68 +246,109 @@ export function ViberSimulator() {
 
       const lower = trimmed.toLowerCase();
 
-      // Extract quantity and unit
-      // Match patterns with a quantity: e.g. "Shera 6mm 50 pcs"
-      // Skip dimensions: e.g. "6mm", "8mm", "9mm", "1/2"
-      const numRegex = /(\d+(?:\/\d+)?)\s*([a-zA-Z.]+)?/g;
-      let match;
-      const candidates: { num: number; unitStr: string; index: number }[] = [];
-
-      while ((match = numRegex.exec(lower)) !== null) {
-        const numStr = match[1];
-        const unitStr = (match[2] || '').replace(/[.\s]/g, '');
-
-        if (
-          numStr.includes('/') ||
-          unitStr === 'mm' ||
-          unitStr === 'inch' ||
-          unitStr === 'in' ||
-          unitStr === 'kg'
-        ) {
-          continue;
-        }
-
-        const parsedNum = parseInt(numStr, 10);
-        if (!isNaN(parsedNum)) {
-          candidates.push({ num: parsedNum, unitStr, index: match.index });
-        }
-      }
-
-      const knownUnits = [
-        'pcs',
-        'pc',
-        'pk',
-        'bags',
-        'bag',
-        'pal',
-        'units',
-        'unit',
-      ];
-      let qtyCandidate = candidates.find((c) => knownUnits.includes(c.unitStr));
-      if (!qtyCandidate && candidates.length > 0) {
-        qtyCandidate = candidates[0];
-      }
+      // Parentheses Allocation Logic: check for e.g. (1,756)
+      const parenRegex = /\(\s*([\d,]+)\s*\)/;
+      const parenMatch = lower.match(parenRegex);
 
       let qty = 1;
       let unit = 'PCS';
-      if (qtyCandidate) {
-        qty = qtyCandidate.num;
-        if (qtyCandidate.unitStr) {
-          const u = qtyCandidate.unitStr;
-          if (u.startsWith('pc')) unit = 'PCS';
-          else if (u.startsWith('pk')) unit = 'PK';
-          else if (u.startsWith('bag')) unit = 'BAGS';
-          else if (u.startsWith('pal')) unit = 'PAL';
-        }
-      }
-
-      // Filter line search text to exclude quantity to match items accurately
+      let pendingAllocationCount = 0;
       let itemSearchText = lower;
-      if (qtyCandidate) {
-        itemSearchText = lower.replace(
-          new RegExp(`\\b${qtyCandidate.num}\\b`, 'g'),
-          '',
+
+      if (parenMatch) {
+        const cleanVal = parenMatch[1].replace(/,/g, '');
+        const parsedNum = parseInt(cleanVal, 10);
+        if (!isNaN(parsedNum)) {
+          pendingAllocationCount = parsedNum;
+          qty = 0; // Commit directly to pending_allocation_count
+        }
+        itemSearchText = lower.replace(parenRegex, '');
+
+        // Extract unit from the remaining text
+        const knownUnits = [
+          'pcs',
+          'pc',
+          'pk',
+          'bags',
+          'bag',
+          'pal',
+          'units',
+          'unit',
+        ];
+        for (const u of knownUnits) {
+          if (itemSearchText.includes(u)) {
+            if (u.startsWith('pc')) unit = 'PCS';
+            else if (u.startsWith('pk')) unit = 'PK';
+            else if (u.startsWith('bag')) unit = 'BAGS';
+            else if (u.startsWith('pal')) unit = 'PAL';
+            itemSearchText = itemSearchText.replace(
+              new RegExp(`\\b${u}\\b`, 'g'),
+              '',
+            );
+            break;
+          }
+        }
+      } else {
+        // Standard parsing logic
+        const numRegex = /(\d+(?:\/\d+)?)\s*([a-zA-Z.]+)?/g;
+        let match;
+        const candidates: { num: number; unitStr: string; index: number }[] =
+          [];
+
+        while ((match = numRegex.exec(lower)) !== null) {
+          const numStr = match[1];
+          const unitStr = (match[2] || '').replace(/[.\s]/g, '');
+
+          if (
+            numStr.includes('/') ||
+            unitStr === 'mm' ||
+            unitStr === 'inch' ||
+            unitStr === 'in' ||
+            unitStr === 'kg'
+          ) {
+            continue;
+          }
+
+          const parsedNum = parseInt(numStr, 10);
+          if (!isNaN(parsedNum)) {
+            candidates.push({ num: parsedNum, unitStr, index: match.index });
+          }
+        }
+
+        const knownUnits = [
+          'pcs',
+          'pc',
+          'pk',
+          'bags',
+          'bag',
+          'pal',
+          'units',
+          'unit',
+        ];
+        let qtyCandidate = candidates.find((c) =>
+          knownUnits.includes(c.unitStr),
         );
+        if (!qtyCandidate && candidates.length > 0) {
+          qtyCandidate = candidates[0];
+        }
+
+        if (qtyCandidate) {
+          qty = qtyCandidate.num;
+          if (qtyCandidate.unitStr) {
+            const u = qtyCandidate.unitStr;
+            if (u.startsWith('pc')) unit = 'PCS';
+            else if (u.startsWith('pk')) unit = 'PK';
+            else if (u.startsWith('bag')) unit = 'BAGS';
+            else if (u.startsWith('pal')) unit = 'PAL';
+          }
+        }
+
+        if (qtyCandidate) {
+          itemSearchText = lower.replace(
+            new RegExp(`\\b${qtyCandidate.num}\\b`, 'g'),
+            '',
+          );
+        }
       }
 
       // Score items
@@ -366,6 +407,7 @@ export function ViberSimulator() {
           selectedUnit: unit,
           unitPrice,
           stockCondition: 'GOOD',
+          pendingAllocationCount,
         });
       }
     }
@@ -454,7 +496,11 @@ export function ViberSimulator() {
     const validatedItems = [];
     for (const selected of selectedItems) {
       const qty = parseInt(selected.quantity.toString() || '0', 10);
-      if (isNaN(qty) || qty < 1) {
+      const pendingAlloc = parseInt(
+        selected.pendingAllocationCount?.toString() || '0',
+        10,
+      );
+      if (isNaN(qty) || (qty < 1 && pendingAlloc < 1)) {
         Alert.alert(
           t('error'),
           t('enterValidQtyForSku').replace('{sku}', selected.item.sku),
@@ -468,6 +514,7 @@ export function ViberSimulator() {
         selectedCurrency,
         selectedUnit: selected.selectedUnit,
         stockCondition: selected.stockCondition || 'GOOD',
+        pendingAllocationCount: pendingAlloc,
       });
     }
 
@@ -503,7 +550,14 @@ export function ViberSimulator() {
 
   const totalBasketValue = selectedItems.reduce((sum, si) => {
     const qty = parseInt(si.quantity.toString() || '0', 10);
-    return sum + (isNaN(qty) ? 0 : qty) * Number(si.unitPrice || 0);
+    const pendingAlloc = parseInt(
+      si.pendingAllocationCount?.toString() || '0',
+      10,
+    );
+    const effectiveQty = qty > 0 ? qty : pendingAlloc;
+    return (
+      sum + (isNaN(effectiveQty) ? 0 : effectiveQty) * Number(si.unitPrice || 0)
+    );
   }, 0);
 
   const formattedBasketTotal =

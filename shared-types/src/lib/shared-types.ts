@@ -105,6 +105,8 @@ export interface InteractionItemRecord {
   selected_currency: string | null;
   selected_unit: string | null;
   stock_condition: string;
+  pending_allocation_count: number;
+  fulfillment_status: string;
   created_at: number;
   updated_at: number;
 }
@@ -124,6 +126,7 @@ export interface ItemStockRecord {
   id: string;
   item_id: string;
   quantity: number;
+  pending_allocation_count: number;
   created_at: number;
   updated_at: number;
 }
@@ -385,6 +388,8 @@ export interface InteractionItem {
   selectedCurrency: string | null;
   selectedUnit: string | null;
   stockCondition: string;
+  pendingAllocationCount: number;
+  fulfillmentStatus: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -404,6 +409,7 @@ export interface ItemStock {
   id: string;
   itemId: string;
   quantity: number;
+  pendingAllocationCount: number;
   createdAt: number;
   updatedAt: number;
 }

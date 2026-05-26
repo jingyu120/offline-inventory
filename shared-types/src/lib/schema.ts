@@ -98,6 +98,9 @@ export const item_stocks = pgTable(
     id: text('id').primaryKey(),
     item_id: text('item_id').notNull(),
     quantity: integer('quantity').notNull().default(0),
+    pending_allocation_count: integer('pending_allocation_count')
+      .notNull()
+      .default(0),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -144,6 +147,12 @@ export const interaction_items = pgTable(
     selected_currency: text('selected_currency').notNull().default('MMK'),
     selected_unit: text('selected_unit').notNull().default('PCS'),
     stock_condition: text('stock_condition').notNull().default('GOOD'),
+    pending_allocation_count: integer('pending_allocation_count')
+      .notNull()
+      .default(0),
+    fulfillment_status: text('fulfillment_status')
+      .notNull()
+      .default('PENDING_FULFILLMENT'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
   },

@@ -117,6 +117,8 @@ export const mapInteractionItem = (ii: any): InteractionItem => ({
   selectedCurrency: ii.selected_currency,
   selectedUnit: ii.selected_unit,
   stockCondition: ii.stock_condition,
+  pendingAllocationCount: ii.pending_allocation_count ?? 0,
+  fulfillmentStatus: ii.fulfillment_status ?? 'PENDING_FULFILLMENT',
   createdAt: ii.created_at,
   updatedAt: ii.updated_at,
 });
@@ -136,6 +138,7 @@ export const mapItemStock = (s: any): ItemStock => ({
   id: s.id,
   itemId: s.item_id,
   quantity: s.quantity,
+  pendingAllocationCount: s.pending_allocation_count ?? 0,
   createdAt: s.created_at,
   updatedAt: s.updated_at,
 });
@@ -275,6 +278,7 @@ export interface SelectedItemPayload {
   selectedCurrency?: string;
   selectedUnit?: string;
   stockCondition?: string;
+  pendingAllocationCount?: number;
 }
 
 function generateId(): string {
@@ -356,11 +360,13 @@ export const createInteractionLog = async (
           interaction_log_id: newLogId,
           item_id: selected.item.id,
           quantity: baseQuantity,
+          pending_allocation_count: selected.pendingAllocationCount || 0,
           unit_price_at_sale: baseUnitPriceAtSale,
           unit_price: selected.item.unitPrice,
           selected_currency: selected.selectedCurrency || 'MMK',
           selected_unit: selectedUnit,
           stock_condition: selected.stockCondition || 'GOOD',
+          fulfillment_status: 'PENDING_FULFILLMENT',
           created_at: now,
           updated_at: now,
         });

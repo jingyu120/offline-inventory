@@ -98,6 +98,9 @@ export const item_stocks = sqliteTable(
     id: text('id').primaryKey(),
     item_id: text('item_id').notNull(),
     quantity: integer('quantity').notNull().default(0),
+    pending_allocation_count: integer('pending_allocation_count')
+      .notNull()
+      .default(0),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
   },
@@ -146,6 +149,12 @@ export const interaction_items = sqliteTable(
     selected_currency: text('selected_currency').notNull().default('MMK'),
     selected_unit: text('selected_unit').notNull().default('PCS'),
     stock_condition: text('stock_condition').notNull().default('GOOD'),
+    pending_allocation_count: integer('pending_allocation_count')
+      .notNull()
+      .default(0),
+    fulfillment_status: text('fulfillment_status')
+      .notNull()
+      .default('PENDING_FULFILLMENT'),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
   },

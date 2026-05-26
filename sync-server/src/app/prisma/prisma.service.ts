@@ -128,6 +128,16 @@ export class PrismaService
         });
       }
 
+      // Seed Brand Crocodile
+      await (this as any).brand.upsert({
+        where: { id: 'brand-crocodile' },
+        update: { name: 'Crocodile' },
+        create: {
+          id: 'brand-crocodile',
+          name: 'Crocodile',
+        },
+      });
+
       // 4. Seed items & stocks
       const itemsData = [
         {
@@ -202,6 +212,20 @@ export class PrismaService
           hardwareFinish: null,
           isInDeficit: false,
         },
+        {
+          id: 'item-7',
+          sku: 'SKU-CR-GP-GROUT',
+          name: 'Crocodile GP Grout',
+          unitPrice: 18000.0,
+          category: 'Grout',
+          brandId: 'brand-crocodile',
+          quantity: 0,
+          pendingAllocationCount: 1756,
+          color: 'Grey',
+          materialSubType: null,
+          hardwareFinish: null,
+          isInDeficit: false,
+        },
       ];
 
       for (const item of itemsData) {
@@ -213,6 +237,7 @@ export class PrismaService
             name: item.name,
             unitPrice: item.unitPrice,
             category: item.category,
+            brandId: (item as any).brandId || null,
             color: item.color,
             materialSubType: item.materialSubType,
             hardwareFinish: item.hardwareFinish,
@@ -224,6 +249,7 @@ export class PrismaService
             name: item.name,
             unitPrice: item.unitPrice,
             category: item.category,
+            brandId: (item as any).brandId || null,
             color: item.color,
             materialSubType: item.materialSubType,
             hardwareFinish: item.hardwareFinish,
@@ -234,10 +260,14 @@ export class PrismaService
         // Upsert Stock
         await (this as any).itemStock.upsert({
           where: { itemId: item.id },
-          update: { quantity: item.quantity },
+          update: {
+            quantity: item.quantity,
+            pendingAllocationCount: (item as any).pendingAllocationCount || 0,
+          },
           create: {
             itemId: item.id,
             quantity: item.quantity,
+            pendingAllocationCount: (item as any).pendingAllocationCount || 0,
           },
         });
 

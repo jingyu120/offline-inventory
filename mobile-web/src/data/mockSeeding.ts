@@ -74,6 +74,12 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       created_at: now,
       updated_at: now,
     },
+    {
+      id: 'brand-crocodile',
+      name: 'Crocodile',
+      created_at: now,
+      updated_at: now,
+    },
   ]);
 
   // 2. Seed Regions
@@ -222,6 +228,24 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       created_at: now,
       updated_at: now,
     },
+    {
+      id: 'item-7',
+      sku: 'SKU-CR-GP-GROUT',
+      name: 'Crocodile GP Grout',
+      unit_price: 18000,
+      category: 'Grout',
+      brand_id: 'brand-crocodile',
+      thickness: null,
+      weight: '20kg',
+      unit_type: 'BAGS',
+      conversion_factor: 1,
+      color: 'Grey',
+      material_sub_type: null,
+      hardware_finish: null,
+      is_in_deficit: false,
+      created_at: now,
+      updated_at: now,
+    },
   ]);
 
   // 5. Seed Item Stocks
@@ -268,6 +292,14 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       created_at: now,
       updated_at: now,
     },
+    {
+      id: 'stock-7',
+      item_id: 'item-7',
+      quantity: 0,
+      pending_allocation_count: 1756,
+      created_at: now,
+      updated_at: now,
+    },
   ]);
 
   // 6. Seed Price Book Items
@@ -278,6 +310,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     { id: 'item-4', unitPrice: 35000 },
     { id: 'item-5', unitPrice: 22000 },
     { id: 'item-6', unitPrice: 12500 },
+    { id: 'item-7', unitPrice: 18000 },
   ];
 
   for (const item of items) {

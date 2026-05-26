@@ -61,6 +61,7 @@ export function InteractionLoggingScreen({
       selectedUnit: string;
       unitPrice: number | string;
       stockCondition: string;
+      pendingAllocationCount?: number;
     }[]
   >([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -321,6 +322,7 @@ export function InteractionLoggingScreen({
                   selectedUnit: 'PCS',
                   unitPrice: defaultPrice,
                   stockCondition: 'GOOD',
+                  pendingAllocationCount: 0,
                 },
               ]);
             }
@@ -379,6 +381,7 @@ export function InteractionLoggingScreen({
               selectedUnit: ii.selected_unit || 'PCS',
               unitPrice: unitPriceVal,
               stockCondition: ii.stock_condition || 'GOOD',
+              pendingAllocationCount: ii.pending_allocation_count ?? 0,
             };
           })
           .filter(Boolean) as any[];
@@ -404,6 +407,7 @@ export function InteractionLoggingScreen({
           selectedUnit: 'PCS',
           unitPrice: defaultPrice,
           stockCondition: 'GOOD',
+          pendingAllocationCount: 0,
         },
       ]);
     }
@@ -484,7 +488,11 @@ export function InteractionLoggingScreen({
         typeof selected.quantity === 'number'
           ? selected.quantity
           : parseInt(selected.quantity || '0', 10);
-      if (isNaN(qty) || qty < 1) {
+      const pendingAlloc = parseInt(
+        (selected as any).pendingAllocationCount?.toString() || '0',
+        10,
+      );
+      if (isNaN(qty) || (qty < 1 && pendingAlloc < 1)) {
         Alert.alert(
           t('validationError'),
           `SKU ${selected.item.sku}: Please enter a valid quantity of 1 or more.`,
@@ -499,6 +507,7 @@ export function InteractionLoggingScreen({
         selectedCurrency: selectedCurrency,
         selectedUnit: selected.selectedUnit,
         stockCondition: selected.stockCondition || 'GOOD',
+        pendingAllocationCount: pendingAlloc || 0,
       });
     }
 
