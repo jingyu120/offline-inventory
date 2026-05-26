@@ -230,7 +230,7 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
       />
       <Box mb="s">
         <Button
-          title="🎤 Sim. Voice Note"
+          title={t('simVoiceNote')}
           variant="primary"
           isLoading={isAiParsing}
           onPress={handleSimulatedVoiceNote}

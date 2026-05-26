@@ -54,10 +54,7 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        'Permission required',
-        'Need camera roll permissions to upload screenshot.',
-      );
+      Alert.alert(t('permissionRequired'), t('cameraRollPermissionDesc'));
       return;
     }
 

@@ -1,16 +1,18 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Platform } from 'react-native';
 import { Box, Text, Card } from '@burma-inventory/ui-components';
 import { Shop, guardAsync, sqliteSchema } from '@burma-inventory/shared-types';
 import { database } from '../../database';
 import { eq } from 'drizzle-orm';
 import { useAuth } from '../../utils/auth';
 import { useToast } from './ToastProvider';
+import { useTranslation } from '../../utils/i18n';
 
 interface GPSCheckInCardProps {
   shop: Shop;
   todayCheckIn: any;
   loadDetails: () => Promise<void>;
+  isDesktop: boolean;
 }
 
 const calculateDistance = (
@@ -40,9 +42,11 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
   shop,
   todayCheckIn,
   loadDetails,
+  isDesktop,
 }) => {
   const { activeRep } = useAuth();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const handleCheckIn = async (simulateNearby: boolean) => {
     try {
@@ -121,21 +125,15 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
       }
 
       if (verified) {
-        showToast(
-          '📍 Verified Check-in Successful! +50 PTS awarded.',
-          'success',
-        );
+        showToast(t('verifiedCheckInSuccessPoints'), 'success');
       } else {
-        showToast(
-          '⚠️ Check-in logged but Unverified (too far from shop).',
-          'warning',
-        );
+        showToast(t('checkInUnverifiedFar'), 'warning');
       }
 
       await loadDetails();
     } catch (e) {
       console.error('Check-in failed:', e);
-      showToast('Error during check-in', 'error');
+      showToast(t('errorDuringCheckIn'), 'error');
     }
   };
 
@@ -147,8 +145,8 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
         alignItems="center"
         mb="s"
       >
-        <Text variant="title" style={{ color: '#5A31F4' }}>
-          📍 GPS Check-in Verification
+        <Text variant="title" color="brand">
+          📍 {t('gpsCheckInVerification')}
         </Text>
         {todayCheckIn ? (
           <Box
@@ -162,37 +160,53 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
               color={todayCheckIn.verified ? 'successText' : 'dangerText'}
               fontSize={10}
             >
-              {todayCheckIn.verified ? 'VERIFIED' : 'UNVERIFIED'}
+              {todayCheckIn.verified ? t('verified') : t('unverified')}
             </Text>
           </Box>
         ) : (
           <Box bg="secondaryBackground" px="s" py="xs" borderRadius="s">
             <Text variant="badge" color="secondaryText" fontSize={10}>
-              PENDING
+              {t('pending')}
             </Text>
           </Box>
         )}
       </Box>
 
-      {todayCheckIn ? (
+      {Platform.OS === 'web' && isDesktop ? (
+        <Box
+          p="m"
+          bg="dangerBg"
+          borderRadius="m"
+          borderWidth={1}
+          borderColor="danger"
+        >
+          <Text variant="body" fontWeight="bold" color="dangerText" mb="xs">
+            📍 {t('gpsCheckInLocked')}
+          </Text>
+          <Text variant="bodySecondary" color="dangerText">
+            {t('gpsCheckInLockedDesc')}
+          </Text>
+        </Box>
+      ) : todayCheckIn ? (
         <Box>
           <Text variant="body" mb="xs" fontWeight="bold">
-            ✅ Checked In Today
+            ✅ {t('checkedInToday')}
           </Text>
           <Text variant="bodySecondary" mb="xs">
-            Time: {new Date(todayCheckIn.checkInTime).toLocaleTimeString()}
+            {t('time')}:{' '}
+            {new Date(todayCheckIn.checkInTime).toLocaleTimeString()}
           </Text>
           <Text variant="bodySecondary">
-            Simulated Location: {todayCheckIn.latitude.toFixed(5)},{' '}
+            {t('simulatedLocation')}: {todayCheckIn.latitude.toFixed(5)},{' '}
             {todayCheckIn.longitude.toFixed(5)}
           </Text>
         </Box>
       ) : (
         <Box>
           <Text variant="bodySecondary" mb="m">
-            Verify your presence at this shop. You must be within 500 meters of
-            the coordinates ({shop.latitude || 16.8661},{' '}
-            {shop.longitude || 96.1951}) to verify.
+            {t('verifyPresenceDesc')
+              .replace('{lat}', (shop.latitude || 16.8661).toString())
+              .replace('{lng}', (shop.longitude || 96.1951).toString())}
           </Text>
           <Box flexDirection="row" justifyContent="space-between">
             <TouchableOpacity
@@ -208,7 +222,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-                Check In (Nearby)
+                {t('checkInNearby')}
               </Text>
             </TouchableOpacity>
 
@@ -225,7 +239,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-                Check In (Far Away)
+                {t('checkInFarAway')}
               </Text>
             </TouchableOpacity>
           </Box>

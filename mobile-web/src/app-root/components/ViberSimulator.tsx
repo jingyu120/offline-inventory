@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
   Alert,
-  StyleSheet,
 } from 'react-native';
-import { Box, Text, Card, Theme, Button } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  Card,
+  Theme,
+  Button,
+  ThemedTextInput,
+} from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import {
   MapPin,
@@ -28,10 +33,12 @@ import {
 } from '../../data/repositories';
 import { SelectedItemsList } from './SelectedItemsList';
 import { useAuth } from '../../utils/auth';
+import { useTranslation } from '../../utils/i18n';
 
 export function ViberSimulator() {
   const theme = useTheme<Theme>();
   const { activeRep } = useAuth();
+  const { t } = useTranslation();
 
   const [shops, setShops] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -61,16 +68,6 @@ export function ViberSimulator() {
           transitionProperty: 'transform, opacity',
           transitionDuration: '200ms',
           transitionTimingFunction: 'ease-in-out',
-        } as any)
-      : {};
-
-  const inputTransition =
-    Platform.OS === 'web'
-      ? ({
-          transitionProperty: 'border-color, border-width',
-          transitionDuration: '150ms',
-          transitionTimingFunction: 'ease-in-out',
-          outlineStyle: 'none',
         } as any)
       : {};
 
@@ -236,7 +233,7 @@ export function ViberSimulator() {
 
   const handleParse = () => {
     if (!rawText.trim()) {
-      Alert.alert('Info', 'Please enter or paste raw order text to parse.');
+      Alert.alert('Info', t('enterRawOrderTextInfo'));
       return;
     }
 
@@ -374,10 +371,7 @@ export function ViberSimulator() {
     }
 
     if (parsedItems.length === 0) {
-      Alert.alert(
-        'Parsing Result',
-        'Could not identify any matching items. Please check keywords.',
-      );
+      Alert.alert('Info', t('couldNotIdentifyItems'));
     } else {
       setSelectedItems(parsedItems);
     }
@@ -407,7 +401,22 @@ export function ViberSimulator() {
   };
 
   const updateUnitPrice = (itemId: string, price: string) => {
-    const cleanPrice = price.replace(/[^0-9.]/g, '');
+    // Keep negative/positive signs at the start, and digits/dots
+    let cleanPrice = price.replace(/[^0-9.-]/g, '');
+
+    // Ensure at most one minus sign at the start
+    if (cleanPrice.startsWith('-')) {
+      cleanPrice = '-' + cleanPrice.slice(1).replace(/-/g, '');
+    } else {
+      cleanPrice = cleanPrice.replace(/-/g, '');
+    }
+
+    // Ensure at most one decimal point
+    const parts = cleanPrice.split('.');
+    if (parts.length > 2) {
+      cleanPrice = parts[0] + '.' + parts.slice(1).join('');
+    }
+
     setSelectedItems(
       selectedItems.map((i) =>
         i.item.id === itemId ? { ...i, unitPrice: cleanPrice } : i,
@@ -425,14 +434,11 @@ export function ViberSimulator() {
 
   const handleSaveOrder = async () => {
     if (!selectedShopId) {
-      Alert.alert('Error', 'Please select a shop first.');
+      Alert.alert(t('error'), t('selectShopFirstError'));
       return;
     }
     if (selectedItems.length === 0) {
-      Alert.alert(
-        'Error',
-        'No items in the order basket. Please parse some text first.',
-      );
+      Alert.alert(t('error'), t('noItemsInBasketError'));
       return;
     }
 
@@ -440,10 +446,7 @@ export function ViberSimulator() {
       (si) => Number(si.unitPrice || 0) < getItemPrice(si.item) * 0.85,
     );
     if (hasBelowFloor && !isOverrideMarginAcknowledged) {
-      Alert.alert(
-        'Validation Error',
-        'Please check the Acknowledge Override Margin safety box before submitting.',
-      );
+      Alert.alert(t('validationError'), t('checkOverrideMarginError'));
       return;
     }
 
@@ -453,8 +456,8 @@ export function ViberSimulator() {
       const qty = parseInt(selected.quantity.toString() || '0', 10);
       if (isNaN(qty) || qty < 1) {
         Alert.alert(
-          'Error',
-          `Please enter a valid quantity for SKU ${selected.item.sku}.`,
+          t('error'),
+          t('enterValidQtyForSku').replace('{sku}', selected.item.sku),
         );
         return;
       }
@@ -480,16 +483,13 @@ export function ViberSimulator() {
         validatedItems,
       );
 
-      Alert.alert(
-        'Success',
-        'Order successfully drafted and logged into database.',
-      );
+      Alert.alert(t('success'), t('orderDraftedSuccess'));
       setRawText('');
       setSelectedItems([]);
       setIsOverrideMarginAcknowledged(false);
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to save drafted order.');
+      Alert.alert(t('error'), t('failedToSaveOrder'));
     } finally {
       setIsSaving(false);
     }
@@ -525,57 +525,63 @@ export function ViberSimulator() {
         >
           <Box mb="m">
             <Text variant="header" fontSize={24}>
-              📥 Back-Office Order Drafter
+              📥 {t('backOfficeOrderDrafter')}
             </Text>
-            <Text variant="bodySecondary">
-              Paste raw customer Viber order texts here to auto-draft
-              transactions.
-            </Text>
+            <Text variant="bodySecondary">{t('pasteRawViberMessageSub')}</Text>
           </Box>
 
           {/* Shop Picker Component */}
           <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
             <Text variant="body" fontWeight="bold" mb="s">
-              Select Shop for Draft Order
+              {t('selectShopForDraftOrder')}
             </Text>
 
             <Pressable
               onPress={() => setShowShopList(!showShopList)}
               style={({ pressed }) => [
-                styles.dropdownTrigger,
                 {
-                  borderColor: theme.colors.borderColor,
-                  backgroundColor: theme.colors.cardBackground,
                   transform: [{ scale: pressed ? 0.99 : 1 }],
                   ...webTransition,
                 },
               ]}
             >
-              <Box flexDirection="row" alignItems="center" flex={1}>
-                <MapPin
-                  size={18}
-                  stroke={theme.colors.primaryButton}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  variant="body"
-                  fontWeight={selectedShop ? 'bold' : 'normal'}
-                  style={{
-                    color: selectedShop
-                      ? theme.colors.primaryText
-                      : theme.colors.secondaryText,
-                  }}
-                >
-                  {selectedShop
-                    ? selectedShop.name
-                    : 'Select a retail account...'}
-                </Text>
+              <Box
+                height={48}
+                borderWidth={1}
+                borderRadius="m"
+                px="m"
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                borderColor="borderColor"
+                bg="cardBackground"
+              >
+                <Box flexDirection="row" alignItems="center" flex={1}>
+                  <Box mr="s">
+                    <MapPin size={18} stroke={theme.colors.primaryButton} />
+                  </Box>
+                  <Text
+                    variant="body"
+                    fontWeight={selectedShop ? 'bold' : 'normal'}
+                    color={selectedShop ? 'primaryText' : 'secondaryText'}
+                  >
+                    {selectedShop
+                      ? selectedShop.name
+                      : t('selectRetailAccount')}
+                  </Text>
+                </Box>
+                <Text color="secondaryText">▼</Text>
               </Box>
-              <Text style={{ color: theme.colors.secondaryText }}>▼</Text>
             </Pressable>
 
             {showShopList && (
-              <Box mt="s" style={styles.dropdownContainer}>
+              <Box
+                mt="s"
+                borderWidth={1}
+                borderRadius="m"
+                p="s"
+                borderColor="borderColor"
+              >
                 <Box
                   flexDirection="row"
                   alignItems="center"
@@ -585,80 +591,83 @@ export function ViberSimulator() {
                   px="s"
                   mb="s"
                   bg="mainBackground"
-                  style={inputTransition}
                 >
-                  <Search
-                    size={16}
-                    stroke={theme.colors.secondaryText}
-                    style={{ marginRight: theme.spacing.xs }}
-                  />
-                  <TextInput
-                    placeholder="Search shops..."
+                  <Box mr="xs">
+                    <Search size={16} stroke={theme.colors.secondaryText} />
+                  </Box>
+                  <ThemedTextInput
+                    placeholder={t('searchShops')}
                     placeholderTextColor={theme.colors.secondaryText}
                     value={shopSearch}
                     onChangeText={setShopSearch}
                     onFocus={() => setSearchFocused(true)}
                     onBlur={() => setSearchFocused(false)}
-                    style={[
-                      styles.searchInput,
-                      {
-                        color: theme.colors.primaryText,
-                        ...(Platform.OS === 'web'
-                          ? ({ outlineStyle: 'none' } as any)
-                          : {}),
-                      },
-                    ]}
+                    flex={1}
+                    height={36}
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.primaryText,
+                      ...(Platform.OS === 'web'
+                        ? ({ outlineStyle: 'none' } as any)
+                        : {}),
+                    }}
                   />
                 </Box>
 
-                <ScrollView
-                  style={{ maxHeight: 200 }}
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator={false}
-                  showsHorizontalScrollIndicator={false}
-                >
-                  {filteredShops.map((s) => (
-                    <Pressable
-                      key={s.id}
-                      onPress={() => {
-                        setSelectedShopId(s.id);
-                        setShowShopList(false);
-                        setShopSearch('');
-                      }}
-                      style={({ pressed, hovered }: any) => [
-                        styles.dropdownItem,
-                        {
-                          borderBottomColor: theme.colors.borderColor,
-                          backgroundColor:
-                            selectedShopId === s.id
-                              ? theme.colors.secondaryButton
-                              : hovered
-                                ? theme.colors.secondaryBackground
-                                : 'transparent',
-                          transform: [{ scale: pressed ? 0.99 : 1 }],
-                          ...webTransition,
-                        },
-                      ]}
-                    >
-                      <Text
-                        variant="body"
-                        fontWeight={selectedShopId === s.id ? 'bold' : 'normal'}
+                <Box maxHeight={200}>
+                  <ScrollView
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                  >
+                    {filteredShops.map((s) => (
+                      <Pressable
+                        key={s.id}
+                        onPress={() => {
+                          setSelectedShopId(s.id);
+                          setShowShopList(false);
+                          setShopSearch('');
+                        }}
+                        style={({ pressed, hovered }: any) => [
+                          {
+                            backgroundColor:
+                              selectedShopId === s.id
+                                ? theme.colors.secondaryButton
+                                : hovered
+                                  ? theme.colors.secondaryBackground
+                                  : 'transparent',
+                            transform: [{ scale: pressed ? 0.99 : 1 }],
+                            ...webTransition,
+                          },
+                        ]}
                       >
-                        {s.name}
-                      </Text>
-                      <Text variant="bodySecondary" fontSize={11}>
-                        {s.address}
-                      </Text>
-                    </Pressable>
-                  ))}
-                  {filteredShops.length === 0 && (
-                    <Box p="m" alignItems="center">
-                      <Text variant="bodySecondary">
-                        No shops match search.
-                      </Text>
-                    </Box>
-                  )}
-                </ScrollView>
+                        <Box
+                          py="s"
+                          px="s"
+                          borderBottomWidth={1}
+                          borderColor="borderColor"
+                        >
+                          <Text
+                            variant="body"
+                            fontWeight={
+                              selectedShopId === s.id ? 'bold' : 'normal'
+                            }
+                          >
+                            {s.name}
+                          </Text>
+                          <Text variant="caption">{s.address}</Text>
+                        </Box>
+                      </Pressable>
+                    ))}
+                    {filteredShops.length === 0 && (
+                      <Box p="m" alignItems="center">
+                        <Text variant="bodySecondary">
+                          {t('noShopsMatchSearch')}
+                        </Text>
+                      </Box>
+                    )}
+                  </ScrollView>
+                </Box>
               </Box>
             )}
           </Card>
@@ -666,12 +675,12 @@ export function ViberSimulator() {
           {/* Raw Text Input Card */}
           <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
             <Text variant="body" fontWeight="bold" mb="xs">
-              Paste Raw Order Message
+              {t('pasteRawOrderMessage')}
             </Text>
             <Text variant="caption" color="secondaryText" mb="s">
-              One item per line · e.g. "Shera 6mm 50 pcs"
+              {t('oneItemPerLineSub')}
             </Text>
-            <TextInput
+            <ThemedTextInput
               multiline
               numberOfLines={4}
               value={rawText}
@@ -680,33 +689,33 @@ export function ViberSimulator() {
               placeholderTextColor={theme.colors.secondaryText}
               onFocus={() => setTextAreaFocused(true)}
               onBlur={() => setTextAreaFocused(false)}
-              style={[
-                styles.textAreaInput,
-                {
-                  borderColor: textAreaFocused
-                    ? theme.colors.success
-                    : theme.colors.borderColor,
-                  borderWidth: textAreaFocused ? 2 : 1,
-                  backgroundColor: theme.colors.cardBackground,
-                  color: theme.colors.primaryText,
-                  fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-                  letterSpacing: 0.3,
-                  ...inputTransition,
-                },
-              ]}
+              borderWidth={textAreaFocused ? 2 : 1}
+              borderColor={textAreaFocused ? 'success' : 'borderColor'}
+              bg="cardBackground"
+              p="m"
+              borderRadius="m"
+              style={{
+                color: theme.colors.primaryText,
+                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                textAlignVertical: 'top',
+                ...(Platform.OS === 'web'
+                  ? ({ outlineStyle: 'none' } as any)
+                  : {}),
+              }}
             />
 
             <Box mt="s">
               <Button
-                title="🪄 Auto-Draft Order"
+                title={'🪄 ' + t('autoDraftOrder')}
                 variant="primary"
                 onPress={handleParse}
                 icon={
-                  <Sparkles
-                    size={16}
-                    stroke={theme.colors.primaryButtonText}
-                    style={{ marginRight: theme.spacing.xs }}
-                  />
+                  <Box mr="xs">
+                    <Sparkles
+                      size={16}
+                      stroke={theme.colors.primaryButtonText}
+                    />
+                  </Box>
                 }
               />
             </Box>
@@ -715,7 +724,7 @@ export function ViberSimulator() {
           {/* Pricing Currency Picker */}
           <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
             <Text variant="body" fontWeight="bold" mb="s">
-              Order Currency
+              {t('orderCurrency')}
             </Text>
             <Box flexDirection="row">
               {['MMK', 'USD', 'THB'].map((curr) => {
@@ -816,13 +825,11 @@ export function ViberSimulator() {
           {selectedItems.length > 0 ? (
             <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
               <Box flexDirection="row" alignItems="center" mb="s">
-                <ShoppingCart
-                  size={18}
-                  stroke={theme.colors.primaryButton}
-                  style={{ marginRight: 6 }}
-                />
+                <Box mr="xs">
+                  <ShoppingCart size={18} stroke={theme.colors.primaryButton} />
+                </Box>
                 <Text variant="body" fontWeight="bold">
-                  Order Basket
+                  {t('orderBasket')}
                 </Text>
               </Box>
 
@@ -852,13 +859,9 @@ export function ViberSimulator() {
                 mt="s"
               >
                 <Text variant="body" fontWeight="bold">
-                  Total Order Value:
+                  {t('totalOrderValue')}
                 </Text>
-                <Text
-                  variant="header"
-                  fontSize={18}
-                  style={{ color: theme.colors.primaryButton }}
-                >
+                <Text variant="header" fontSize={18} color="primaryButton">
                   {formattedBasketTotal}
                 </Text>
               </Box>
@@ -871,12 +874,10 @@ export function ViberSimulator() {
               borderColor="borderColor"
               borderWidth={1}
             >
-              <AlertCircle
-                size={24}
-                stroke={theme.colors.secondaryText}
-                style={{ marginBottom: 8 }}
-              />
-              <Text variant="bodySecondary">Draft order basket is empty.</Text>
+              <Box mb="s">
+                <AlertCircle size={24} stroke={theme.colors.secondaryText} />
+              </Box>
+              <Text variant="bodySecondary">{t('draftOrderBasketEmpty')}</Text>
             </Card>
           )}
 
@@ -890,59 +891,15 @@ export function ViberSimulator() {
           bg="cardBackground"
         >
           <Button
-            title="Save Order Log"
+            title={t('saveOrderLog')}
             onPress={handleSaveOrder}
             isLoading={isSaving}
             disabled={!selectedShopId || selectedItems.length === 0}
-            style={
-              Platform.OS === 'web' &&
-              (!selectedShopId || selectedItems.length === 0)
-                ? ({ cursor: 'not-allowed' } as any)
-                : undefined
-            }
           />
         </Box>
       </KeyboardAvoidingView>
     </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  dropdownTrigger: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 36,
-    fontSize: 14,
-    paddingHorizontal: 4,
-    outlineWidth: 0,
-  },
-  dropdownItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-  },
-  textAreaInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    outlineWidth: 0,
-  },
-});
 
 export default ViberSimulator;

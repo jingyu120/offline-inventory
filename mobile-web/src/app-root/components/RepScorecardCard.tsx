@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
+import { useTranslation } from '../../utils/i18n';
 
 interface RepScorecardCardProps {
   repScore: any;
@@ -12,6 +13,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
   pointsLogs,
 }) => {
   const theme = useTheme<Theme>();
+  const { t } = useTranslation();
 
   if (!repScore) return null;
 
@@ -23,8 +25,8 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
         alignItems="center"
         mb="m"
       >
-        <Text variant="title" style={{ color: '#5A31F4' }}>
-          🏆 Representative Scorecard
+        <Text variant="title" color="brand">
+          🏆 {t('repScorecard')}
         </Text>
         <Box bg="warningBg" px="s" py="xs" borderRadius="s">
           <Text
@@ -33,7 +35,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
             fontSize={10}
             fontWeight="bold"
           >
-            ⚡ {repScore.streakDays} DAY STREAK
+            {t('dayStreak').replace('{streak}', repScore.streakDays.toString())}
           </Text>
         </Box>
       </Box>
@@ -46,16 +48,16 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
           borderRightColor="borderColor"
         >
           <Text variant="bodySecondary" mb="xs">
-            Total Points
+            {t('totalPoints')}
           </Text>
-          <Text variant="header" fontSize={28} style={{ color: '#5A31F4' }}>
+          <Text variant="header" fontSize={28} color="brand">
             {repScore.points} PTS
           </Text>
         </Box>
 
         <Box flex={1} alignItems="center">
           <Text variant="bodySecondary" mb="xs">
-            Earned Badges
+            {t('earnedBadges')}
           </Text>
           <Box
             flexDirection="row"
@@ -85,7 +87,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
               </Box>
             ))}
             {JSON.parse(repScore.badges || '[]').length === 0 && (
-              <Text variant="bodySecondary">No badges yet.</Text>
+              <Text variant="bodySecondary">{t('noBadgesYet')}</Text>
             )}
           </Box>
         </Box>
@@ -94,7 +96,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
       {pointsLogs.length > 0 && (
         <Box borderTopWidth={1} borderTopColor="borderColor" pt="m">
           <Text variant="bodySecondary" fontWeight="bold" mb="s">
-            Recent Points Log
+            {t('recentPointsLog')}
           </Text>
           {pointsLogs.map((log: any) => (
             <Box

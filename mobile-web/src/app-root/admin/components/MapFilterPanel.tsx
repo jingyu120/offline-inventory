@@ -12,7 +12,7 @@ import {
   DropdownSelector,
 } from '@burma-inventory/ui-components';
 import { Region, Item } from '@burma-inventory/shared-types';
-import { useTranslation } from '../../utils/i18n';
+import { useTranslation } from '../../../utils/i18n';
 
 interface MapFilterPanelProps {
   regions: Region[];

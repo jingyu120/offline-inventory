@@ -8,8 +8,8 @@ import {
   CheckCircle,
   FileText,
 } from 'lucide-react-native';
-import { RepDayStats } from '../../hooks/useTeamPulseData';
-import { useTranslation } from '../../utils/i18n';
+import { RepDayStats } from '../../../hooks/useTeamPulseData';
+import { useTranslation } from '../../../utils/i18n';
 
 interface VelocityTimelineProps {
   selectedRep: 'rep-1' | 'rep-2';
@@ -59,7 +59,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
         mb="s"
       >
         <Text variant="title">
-          Timeline Analysis ({daysOfWeekLabels[selectedDayIndex]})
+          {t('timelineAnalysis')} ({daysOfWeekLabels[selectedDayIndex]})
         </Text>
         <Text variant="bodySecondary" fontWeight="bold">
           {selectedRep === 'rep-1' ? 'Ko Min' : 'Ko Hla'}

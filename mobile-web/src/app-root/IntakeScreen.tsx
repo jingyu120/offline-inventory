@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Box, Text, Card, Button } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  Card,
+  Button,
+  TextField,
+} from '@burma-inventory/ui-components';
+import { useTheme } from '@shopify/restyle';
+import { Theme } from '@burma-inventory/ui-components';
 import { database } from '../database';
 import {
   Item,
@@ -32,6 +39,7 @@ interface ExtendedItem extends Item {
 
 export function IntakeScreen() {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
   const [items, setItems] = useState<ExtendedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +116,7 @@ export function IntakeScreen() {
 
     if (error) {
       console.error('Failed to update stock:', error);
-      Alert.alert('Error', 'Could not update stock quantity.');
+      Alert.alert(t('error'), t('couldNotUpdateStock'));
     } else {
       await loadInventory();
     }
@@ -116,10 +124,7 @@ export function IntakeScreen() {
 
   const handleAddItem = async () => {
     if (!sku || !name || !unitPrice) {
-      Alert.alert(
-        'Validation Error',
-        'Please fill in all fields (SKU, Name, Price)',
-      );
+      Alert.alert(t('validationError'), t('validationErrorFillFields'));
       return;
     }
 
@@ -127,7 +132,7 @@ export function IntakeScreen() {
     const parsedStock = parseInt(initialStock, 10) || 0;
 
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid price');
+      Alert.alert(t('validationError'), t('validationErrorValidPrice'));
       return;
     }
 
@@ -163,13 +168,16 @@ export function IntakeScreen() {
     setIsAdding(false);
     if (error) {
       console.error('Failed to add item:', error);
-      Alert.alert('Error', 'Could not create new product SKU.');
+      Alert.alert(t('error'), t('couldNotCreateSku'));
     } else {
       setSku('');
       setName('');
       setUnitPrice('');
       setInitialStock('100');
-      Alert.alert('Success', `Product ${name} created and stock initialized.`);
+      Alert.alert(
+        t('success'),
+        t('productCreatedSuccess').replace('{name}', name),
+      );
       await loadInventory();
     }
   };
@@ -201,11 +209,9 @@ export function IntakeScreen() {
       >
         <Box>
           <Text variant="header" fontSize={24}>
-            📦 Warehouse & SKU Intake
+            📦 {t('warehouseSkuIntake')}
           </Text>
-          <Text variant="bodySecondary">
-            Katana-inspired master stock and catalog control panel
-          </Text>
+          <Text variant="bodySecondary">{t('katanaSub')}</Text>
         </Box>
         <TouchableOpacity onPress={loadInventory} style={{ padding: 8 }}>
           <RefreshCw size={18} stroke="#5A31F4" />
@@ -220,7 +226,7 @@ export function IntakeScreen() {
         {/* New Item Form Card */}
         <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
           <Text variant="title" mb="m">
-            ➕ Register New Product SKU
+            ➕ {t('registerNewSku')}
           </Text>
 
           <Box
@@ -228,122 +234,57 @@ export function IntakeScreen() {
             flexWrap="wrap"
             style={{ marginHorizontal: -8 }}
           >
-            <Box width="50%" p="s">
-              <Text variant="bodySecondary" mb="xs">
-                SKU Code
-              </Text>
-              <TextInput
+            <Box width="50%" px="s">
+              <TextField
+                label={t('skuCode')}
                 value={sku}
                 onChangeText={setSku}
                 placeholder="e.g. SKU-PB-500"
-                placeholderTextColor="#94A3B8"
-                style={{
-                  height: 40,
-                  borderColor: '#CBD5E1',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 10,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  backgroundColor: '#FFF',
-                }}
               />
             </Box>
 
-            <Box width="50%" p="s">
-              <Text variant="bodySecondary" mb="xs">
-                Product Name
-              </Text>
-              <TextInput
+            <Box width="50%" px="s">
+              <TextField
+                label={t('productName')}
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g. Myanmar Premium 500ml"
-                placeholderTextColor="#94A3B8"
-                style={{
-                  height: 40,
-                  borderColor: '#CBD5E1',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 10,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  backgroundColor: '#FFF',
-                }}
               />
             </Box>
 
-            <Box width="33.3%" p="s">
-              <Text variant="bodySecondary" mb="xs">
-                Price (MMK)
-              </Text>
-              <TextInput
+            <Box width="33.3%" px="s">
+              <TextField
+                label={t('priceMmk')}
                 value={unitPrice}
                 onChangeText={setUnitPrice}
                 placeholder="e.g. 3000"
                 keyboardType="numeric"
-                placeholderTextColor="#94A3B8"
-                style={{
-                  height: 40,
-                  borderColor: '#CBD5E1',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 10,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  backgroundColor: '#FFF',
-                }}
               />
             </Box>
 
-            <Box width="33.3%" p="s">
-              <Text variant="bodySecondary" mb="xs">
-                Category
-              </Text>
-              <TextInput
+            <Box width="33.3%" px="s">
+              <TextField
+                label={t('category')}
                 value={category}
                 onChangeText={setCategory}
                 placeholder="e.g. Beverage"
-                placeholderTextColor="#94A3B8"
-                style={{
-                  height: 40,
-                  borderColor: '#CBD5E1',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 10,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  backgroundColor: '#FFF',
-                }}
               />
             </Box>
 
-            <Box width="33.3%" p="s">
-              <Text variant="bodySecondary" mb="xs">
-                Initial Stock Quantity
-              </Text>
-              <TextInput
+            <Box width="33.3%" px="s">
+              <TextField
+                label={t('initialStockQty')}
                 value={initialStock}
                 onChangeText={setInitialStock}
                 placeholder="e.g. 100"
                 keyboardType="numeric"
-                placeholderTextColor="#94A3B8"
-                style={{
-                  height: 40,
-                  borderColor: '#CBD5E1',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 10,
-                  fontSize: 14,
-                  color: '#1E293B',
-                  backgroundColor: '#FFF',
-                }}
               />
             </Box>
           </Box>
 
           <Box mt="m" alignItems="flex-end">
             <Button
-              title={isAdding ? 'Adding SKU...' : 'Add SKU to Catalog'}
+              title={isAdding ? t('addingSku') : t('addSkuToCatalog')}
               onPress={handleAddItem}
               variant="primary"
               disabled={isAdding}
@@ -353,7 +294,7 @@ export function IntakeScreen() {
 
         {/* Master Catalog Table Grid */}
         <Text variant="title" mb="s">
-          📦 Master Stock Levels
+          📦 {t('masterStockLevels')}
         </Text>
         {items.map((item) => {
           const isLowStock = item.stockQty < 50;
@@ -400,7 +341,7 @@ export function IntakeScreen() {
                     style={{ marginRight: 4 }}
                   />
                   <Text variant="bodySecondary">
-                    Price: K{item.unitPrice.toLocaleString()}
+                    {t('price')}: K{item.unitPrice.toLocaleString()}
                   </Text>
                 </Box>
               </Box>
@@ -410,7 +351,7 @@ export function IntakeScreen() {
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, -10)}
                   style={{
-                    backgroundColor: '#E2E8F0',
+                    backgroundColor: theme.colors.secondaryButton,
                     width: 32,
                     height: 32,
                     borderRadius: 16,
@@ -418,7 +359,7 @@ export function IntakeScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Minus size={14} stroke="#475569" />
+                  <Minus size={14} stroke={theme.colors.secondaryButtonText} />
                 </TouchableOpacity>
 
                 <Box minWidth={60} alignItems="center" px="s">
@@ -426,19 +367,19 @@ export function IntakeScreen() {
                     variant="body"
                     fontWeight="bold"
                     fontSize={16}
-                    style={{ color: isLowStock ? '#EF4444' : '#1E293B' }}
+                    color={isLowStock ? 'danger' : 'primaryText'}
                   >
                     {item.stockQty}
                   </Text>
                   <Text variant="bodySecondary" fontSize={10}>
-                    {isLowStock ? 'LOW STOCK' : 'IN STOCK'}
+                    {isLowStock ? t('lowStock') : t('inStock')}
                   </Text>
                 </Box>
 
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, 10)}
                   style={{
-                    backgroundColor: '#E2E8F0',
+                    backgroundColor: theme.colors.secondaryButton,
                     width: 32,
                     height: 32,
                     borderRadius: 16,
@@ -446,7 +387,7 @@ export function IntakeScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Plus size={14} stroke="#475569" />
+                  <Plus size={14} stroke={theme.colors.secondaryButtonText} />
                 </TouchableOpacity>
               </Box>
             </Card>
@@ -455,9 +396,7 @@ export function IntakeScreen() {
 
         {items.length === 0 && (
           <Box p="xl" alignItems="center">
-            <Text variant="bodySecondary">
-              No products in catalog. Click Seed Data to initialize.
-            </Text>
+            <Text variant="bodySecondary">{t('noProductsInCatalog')}</Text>
           </Box>
         )}
       </ScrollView>

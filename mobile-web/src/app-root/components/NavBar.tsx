@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, Platform } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useAuth, REPS } from '../../utils/auth';
 import { useToast } from './ToastProvider';
 import { useTranslation } from '../../utils/i18n';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, RefreshCw } from 'lucide-react-native';
 
 export const ROLE_SCREENS: Record<
   string,
@@ -25,6 +25,11 @@ interface NavBarProps {
     screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
   ) => void;
   isDesktop: boolean;
+  isSyncing: boolean;
+  lastSync: Date | null;
+  syncError: string | null;
+  pendingChanges: number;
+  handleSync: () => Promise<void>;
 }
 
 export const NavBar: React.FC<NavBarProps> = ({
@@ -34,11 +39,36 @@ export const NavBar: React.FC<NavBarProps> = ({
   currentScreen,
   setCurrentScreen,
   isDesktop,
+  isSyncing,
+  lastSync,
+  syncError,
+  pendingChanges,
+  handleSync,
 }) => {
   const { activeRep, setActiveRep } = useAuth();
   const { showToast } = useToast();
   const { t, language, setLanguage } = useTranslation();
   const [isRepDropdownOpen, setIsRepDropdownOpen] = useState(false);
+  const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
+
+  const getScreenDetails = (
+    screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
+  ) => {
+    switch (screen) {
+      case 'ledger':
+        return { label: t('shopLedger'), icon: '📋' };
+      case 'heatmap':
+        return { label: t('geographicHeatmap'), icon: '🗺️' };
+      case 'leadership':
+        return { label: t('leadershipOversight'), icon: '📊' };
+      case 'intake':
+        return { label: t('intake'), icon: '📦' };
+      case 'viber-bot':
+        return { label: t('orderDrafter'), icon: '💬' };
+      default:
+        return { label: screen, icon: '📄' };
+    }
+  };
 
   return (
     <Box
@@ -53,11 +83,12 @@ export const NavBar: React.FC<NavBarProps> = ({
       position="relative"
       zIndex={10000}
     >
-      <Box flexDirection="row" alignItems="center" flex={1} overflow="hidden">
+      <Box flexDirection="row" alignItems="center" flex={1} overflow="visible">
         <Text
           variant="title"
           fontWeight="bold"
-          style={{ color: '#5A31F4', fontSize: isDesktop ? 20 : 16 }}
+          color="brand"
+          style={{ fontSize: isDesktop ? 20 : 16 }}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -70,20 +101,38 @@ export const NavBar: React.FC<NavBarProps> = ({
         )}
       </Box>
 
-      <Box flexDirection="row" alignItems="center">
+      <Box flexDirection="row" alignItems="center" overflow="visible">
         {/* Active Rep Selector Dropdown */}
-        <Box position="relative" zIndex={10010}>
-          <TouchableOpacity
-            onPress={() => setIsRepDropdownOpen(!isRepDropdownOpen)}
-            style={{
+        <Box
+          position="relative"
+          zIndex={10010}
+          overflow="visible"
+          mr={isDesktop ? 'm' : 's'}
+        >
+          <Pressable
+            onPress={() => {
+              setIsRepDropdownOpen(!isRepDropdownOpen);
+              setIsNavDropdownOpen(false);
+            }}
+            style={({ pressed, hovered }: any) => ({
               paddingVertical: 6,
               paddingHorizontal: isDesktop ? 12 : 8,
               borderRadius: 16,
-              backgroundColor: '#5A31F4',
-              marginRight: isDesktop ? 12 : 10,
+              backgroundColor: hovered
+                ? activeTheme.colors.primaryButton
+                : activeTheme.colors.brand,
               flexDirection: 'row',
               alignItems: 'center',
-            }}
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+              cursor: 'pointer',
+              ...(Platform.OS === 'web'
+                ? ({
+                    transitionProperty: 'transform, background-color',
+                    transitionDuration: '150ms',
+                    transitionTimingFunction: 'ease-in-out',
+                  } as any)
+                : {}),
+            })}
           >
             <Text
               style={{
@@ -98,13 +147,13 @@ export const NavBar: React.FC<NavBarProps> = ({
                 : activeRep.name}
             </Text>
             <ChevronDown size={12} stroke="#fff" style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
+          </Pressable>
 
           {isRepDropdownOpen && (
             <Box
               position="absolute"
               top={35}
-              right={10}
+              right={0}
               bg="cardBackground"
               borderColor="borderColor"
               borderWidth={1}
@@ -119,169 +168,327 @@ export const NavBar: React.FC<NavBarProps> = ({
                 }),
               }}
             >
-              {REPS.map((rep) => (
-                <TouchableOpacity
-                  key={rep.id}
-                  onPress={() => {
-                    setActiveRep(rep);
-                    setIsRepDropdownOpen(false);
-                    showToast(
-                      `Logged in as ${rep.name} (${rep.role})`,
-                      'success',
-                    );
-                  }}
-                  style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    backgroundColor:
-                      activeRep.id === rep.id
+              {REPS.map((rep) => {
+                const isSelected = activeRep.id === rep.id;
+                return (
+                  <Pressable
+                    key={rep.id}
+                    onPress={() => {
+                      setActiveRep(rep);
+                      setIsRepDropdownOpen(false);
+                      showToast(
+                        `Logged in as ${rep.name} (${rep.role})`,
+                        'success',
+                      );
+                    }}
+                    style={({ pressed, hovered }: any) => ({
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: isSelected
                         ? 'rgba(90, 49, 244, 0.08)'
-                        : 'transparent',
-                    borderRadius: 4,
-                    marginBottom: 2,
-                  }}
-                >
-                  <Text
-                    variant="body"
-                    fontWeight={activeRep.id === rep.id ? 'bold' : 'normal'}
-                    style={{ fontSize: 13 }}
+                        : hovered
+                          ? 'rgba(0, 0, 0, 0.04)'
+                          : 'transparent',
+                      borderRadius: 4,
+                      marginBottom: 2,
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
+                      cursor: 'pointer',
+                      ...(Platform.OS === 'web'
+                        ? ({
+                            transitionProperty: 'transform, background-color',
+                            transitionDuration: '150ms',
+                            transitionTimingFunction: 'ease-in-out',
+                          } as any)
+                        : {}),
+                    })}
                   >
-                    {rep.name} ({rep.role})
-                  </Text>
-                  <Text variant="bodySecondary" style={{ fontSize: 10 }}>
-                    {rep.regionName || 'No Region'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      variant="body"
+                      fontWeight={isSelected ? 'bold' : 'normal'}
+                      fontSize={13}
+                      color={isSelected ? 'brand' : 'primaryText'}
+                    >
+                      {rep.name} ({rep.role})
+                    </Text>
+                    <Text variant="bodySecondary" style={{ fontSize: 10 }}>
+                      {rep.regionName || 'No Region'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </Box>
           )}
         </Box>
 
         {/* Language Toggle Button */}
-        <TouchableOpacity
+        <Pressable
           onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
-          style={
-            isDesktop
-              ? {
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  borderRadius: 16,
-                  backgroundColor:
-                    themeMode === 'light' ? '#E2E8F0' : '#475569',
-                  marginRight: 12,
-                }
-              : {
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor:
-                    themeMode === 'light' ? '#E2E8F0' : '#475569',
-                  marginRight: 10,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }
-          }
+          style={({ pressed, hovered }: any) => ({
+            paddingVertical: isDesktop ? 6 : undefined,
+            paddingHorizontal: isDesktop ? 12 : undefined,
+            width: isDesktop ? undefined : 32,
+            height: isDesktop ? undefined : 32,
+            borderRadius: 16,
+            backgroundColor: hovered
+              ? activeTheme.colors.secondaryBackground
+              : activeTheme.colors.borderColor,
+            marginRight: isDesktop ? 12 : 10,
+            justifyContent: 'center',
+            alignItems: 'center',
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+            cursor: 'pointer',
+            ...(Platform.OS === 'web'
+              ? ({
+                  transitionProperty: 'transform, background-color',
+                  transitionDuration: '150ms',
+                  transitionTimingFunction: 'ease-in-out',
+                } as any)
+              : {}),
+          })}
         >
           <Text
-            style={{
-              fontSize: isDesktop ? 12 : 14,
-              color: themeMode === 'light' ? '#1E293B' : '#F1F5F9',
-              fontWeight: 'bold',
-            }}
+            fontSize={isDesktop ? 12 : 14}
+            color="primaryText"
+            fontWeight="bold"
           >
             {language === 'en' ? '🇲🇲' : '🇬🇧'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Theme Toggle Button */}
-        <TouchableOpacity
+        <Pressable
           onPress={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-          style={
-            isDesktop
-              ? {
+          style={({ pressed, hovered }: any) => ({
+            paddingVertical: isDesktop ? 6 : undefined,
+            paddingHorizontal: isDesktop ? 12 : undefined,
+            width: isDesktop ? undefined : 32,
+            height: isDesktop ? undefined : 32,
+            borderRadius: 16,
+            backgroundColor: hovered
+              ? activeTheme.colors.secondaryBackground
+              : activeTheme.colors.borderColor,
+            marginRight: isDesktop ? 12 : 10,
+            justifyContent: 'center',
+            alignItems: 'center',
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+            cursor: 'pointer',
+            ...(Platform.OS === 'web'
+              ? ({
+                  transitionProperty: 'transform, background-color',
+                  transitionDuration: '150ms',
+                  transitionTimingFunction: 'ease-in-out',
+                } as any)
+              : {}),
+          })}
+        >
+          <Text fontSize={isDesktop ? 12 : 14} color="primaryText">
+            {themeMode === 'light' ? '🌙' : '☀️'}
+          </Text>
+        </Pressable>
+
+        {/* Sync Status / Manual Trigger Button */}
+        <Pressable
+          onPress={handleSync}
+          disabled={isSyncing}
+          style={({ pressed, hovered }: any) => {
+            const statusBg = syncError
+              ? activeTheme.colors.danger
+              : isSyncing
+                ? activeTheme.colors.warning
+                : activeTheme.colors.success;
+            const hoveredBg = syncError
+              ? activeTheme.colors.dangerText
+              : isSyncing
+                ? activeTheme.colors.warningText
+                : activeTheme.colors.successText;
+            return {
+              paddingVertical: isDesktop ? 6 : undefined,
+              paddingHorizontal: isDesktop ? 12 : undefined,
+              width: isDesktop ? undefined : 32,
+              height: isDesktop ? undefined : 32,
+              borderRadius: 16,
+              backgroundColor: hovered ? hoveredBg : statusBg,
+              marginRight: isDesktop ? 16 : 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              position: 'relative',
+              overflow: 'visible',
+              ...(Platform.OS === 'web'
+                ? ({
+                    transitionProperty: 'transform, background-color',
+                    transitionDuration: '150ms',
+                    transitionTimingFunction: 'ease-in-out',
+                    userSelect: 'none',
+                  } as any)
+                : {}),
+            };
+          }}
+          {...(Platform.OS === 'web'
+            ? {
+                title: syncError
+                  ? `${t('syncError')}: ${syncError}`
+                  : isSyncing
+                    ? t('syncing')
+                    : lastSync
+                      ? `${t('syncedAt')} ${lastSync.toLocaleTimeString()}`
+                      : t('syncPending'),
+              }
+            : {})}
+        >
+          <RefreshCw size={isDesktop ? 13 : 15} color="#fff" />
+
+          {/* Pending changes badge */}
+          {pendingChanges > 0 && (
+            <Box
+              position="absolute"
+              bottom={-4}
+              right={isDesktop ? -2 : -4}
+              bg="cardBackground"
+              px="xs"
+              style={{
+                paddingVertical: 1,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: syncError
+                  ? activeTheme.colors.danger
+                  : activeTheme.colors.success,
+              }}
+            >
+              <Text
+                style={{
+                  color: syncError
+                    ? activeTheme.colors.danger
+                    : activeTheme.colors.success,
+                  fontSize: 8,
+                  fontWeight: 'bold',
+                }}
+              >
+                {pendingChanges}
+              </Text>
+            </Box>
+          )}
+        </Pressable>
+
+        {/* Modules Navigation Dropdown */}
+        {isDesktop &&
+          ROLE_SCREENS[activeRep.role] &&
+          ROLE_SCREENS[activeRep.role].length > 0 && (
+            <Box position="relative" zIndex={10020} overflow="visible">
+              <Pressable
+                onPress={() => {
+                  setIsNavDropdownOpen(!isNavDropdownOpen);
+                  setIsRepDropdownOpen(false);
+                }}
+                style={({ pressed, hovered }: any) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: hovered
+                    ? activeTheme.colors.secondaryBackground
+                    : activeTheme.colors.cardBackground,
                   paddingVertical: 6,
                   paddingHorizontal: 12,
                   borderRadius: 16,
-                  backgroundColor:
-                    themeMode === 'light' ? '#CBD5E1' : '#334155',
-                  marginRight: 16,
-                }
-              : {
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor:
-                    themeMode === 'light' ? '#CBD5E1' : '#334155',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }
-          }
-        >
-          <Text
-            style={{
-              fontSize: isDesktop ? 12 : 14,
-              color: themeMode === 'light' ? '#1E293B' : '#F1F5F9',
-            }}
-          >
-            {themeMode === 'light' ? '🌙' : '☀️'}
-          </Text>
-        </TouchableOpacity>
+                  borderWidth: 1,
+                  borderColor: activeTheme.colors.borderColor,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                  cursor: 'pointer',
+                  ...(Platform.OS === 'web'
+                    ? ({
+                        transitionProperty: 'transform, background-color',
+                        transitionDuration: '150ms',
+                        transitionTimingFunction: 'ease-in-out',
+                      } as any)
+                    : {}),
+                })}
+              >
+                <Text
+                  variant="body"
+                  fontWeight="bold"
+                  fontSize={13}
+                  color="primaryText"
+                >
+                  {getScreenDetails(currentScreen).icon}{' '}
+                  {getScreenDetails(currentScreen).label}
+                </Text>
+                {ROLE_SCREENS[activeRep.role].length > 1 && (
+                  <ChevronDown
+                    size={14}
+                    color={activeTheme.colors.secondaryText}
+                    style={{ marginLeft: 6 }}
+                  />
+                )}
+              </Pressable>
 
-        {/* Desktop Screen Switcher Tabs */}
-        {isDesktop && (
-          <Box
-            flexDirection="row"
-            ml="m"
-            borderLeftWidth={1}
-            borderColor="borderColor"
-            pl="m"
-          >
-            {ROLE_SCREENS[activeRep.role]?.map((screen) => {
-              let label = '';
-              let icon = '';
-              if (screen === 'ledger') {
-                label = t('shopLedger');
-                icon = '📋';
-              } else if (screen === 'heatmap') {
-                label = t('geographicHeatmap');
-                icon = '🗺️';
-              } else if (screen === 'leadership') {
-                label = t('leadershipOversight');
-                icon = '📊';
-              } else if (screen === 'intake') {
-                label = 'Intake';
-                icon = '📦';
-              } else if (screen === 'viber-bot') {
-                label = 'Order Drafter';
-                icon = '💬';
-              }
-              return (
-                <TouchableOpacity
-                  key={screen}
-                  onPress={() => setCurrentScreen(screen)}
+              {isNavDropdownOpen && ROLE_SCREENS[activeRep.role].length > 1 && (
+                <Box
+                  position="absolute"
+                  top={35}
+                  right={0}
+                  bg="cardBackground"
+                  borderColor="borderColor"
+                  borderWidth={1}
+                  borderRadius="m"
+                  p="xs"
+                  zIndex={99999}
                   style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 20,
-                    backgroundColor:
-                      currentScreen === screen ? '#5A31F4' : 'transparent',
-                    marginRight: 8,
+                    minWidth: 220,
+                    ...Platform.select({
+                      web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.15)' },
+                      default: { elevation: 5 },
+                    }),
                   }}
                 >
-                  <Text
-                    variant="body"
-                    fontWeight="bold"
-                    style={{
-                      color: currentScreen === screen ? '#fff' : '#5A31F4',
-                    }}
-                  >
-                    {icon} {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Box>
-        )}
+                  {ROLE_SCREENS[activeRep.role].map((screen) => {
+                    const isSelected = screen === currentScreen;
+                    const { label, icon } = getScreenDetails(screen);
+                    return (
+                      <Pressable
+                        key={screen}
+                        onPress={() => {
+                          setCurrentScreen(screen);
+                          setIsNavDropdownOpen(false);
+                        }}
+                        style={({ pressed, hovered }: any) => ({
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          backgroundColor: isSelected
+                            ? 'rgba(90, 49, 244, 0.08)'
+                            : hovered
+                              ? 'rgba(0, 0, 0, 0.04)'
+                              : 'transparent',
+                          borderRadius: 6,
+                          marginBottom: 2,
+                          transform: [{ scale: pressed ? 0.98 : 1 }],
+                          cursor: 'pointer',
+                          ...(Platform.OS === 'web'
+                            ? ({
+                                transitionProperty:
+                                  'transform, background-color',
+                                transitionDuration: '150ms',
+                                transitionTimingFunction: 'ease-in-out',
+                              } as any)
+                            : {}),
+                        })}
+                      >
+                        <Text
+                          variant="body"
+                          fontWeight={isSelected ? 'bold' : 'normal'}
+                          fontSize={13}
+                          color={isSelected ? 'brand' : 'primaryText'}
+                        >
+                          {icon} {label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </Box>
+              )}
+            </Box>
+          )}
       </Box>
     </Box>
   );

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
-  TextInput,
   useWindowDimensions,
 } from 'react-native';
 import {
@@ -15,18 +14,19 @@ import {
   Table,
   ColumnDef,
   Theme,
+  ThemedTextInput,
 } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
-import { useTeamPulseData } from '../hooks/useTeamPulseData';
+import { useTeamPulseData } from '../../hooks/useTeamPulseData';
 import { ComplianceScorecard } from './components/ComplianceScorecard';
 import { VelocityTimeline } from './components/VelocityTimeline';
 import { SVGAnalyticsDashboard } from './components/SVGAnalyticsDashboard';
-import { useTranslation } from '../utils/i18n';
+import { useTranslation } from '../../utils/i18n';
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../../config';
 
 export const TeamPulseScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -204,11 +204,25 @@ export const TeamPulseScreen: React.FC = () => {
     >
       {/* Header */}
       <Box mb="m">
-        <Text variant="header" fontSize={isDesktop ? 32 : 22}>
+        <Text
+          variant="header"
+          fontSize={
+            language === 'my' ? (isDesktop ? 26 : 18) : isDesktop ? 32 : 22
+          }
+          lineHeight={
+            language === 'my' ? (isDesktop ? 42 : 30) : isDesktop ? 38 : 28
+          }
+        >
           {t('leadershipPanel')}
         </Text>
         {isDesktop && (
-          <Text variant="bodySecondary">{t('leadershipSubtitle')}</Text>
+          <Text
+            variant="bodySecondary"
+            mt="xs"
+            lineHeight={language === 'my' ? 24 : 18}
+          >
+            {t('leadershipSubtitle')}
+          </Text>
         )}
       </Box>
 
@@ -274,25 +288,28 @@ export const TeamPulseScreen: React.FC = () => {
               <Text variant="caption" color="secondaryText" mb="xs">
                 Date Filter
               </Text>
-              <TextInput
+              <ThemedTextInput
                 value={digestDate}
                 onChangeText={setDigestDate}
                 placeholder="YYYY-MM-DD"
                 onFocus={() => setDateFocused(true)}
                 onBlur={() => setDateFocused(false)}
+                p="s"
+                borderRadius="s"
+                borderWidth={dateFocused ? 2 : 1}
+                borderColor={dateFocused ? 'success' : 'borderColor'}
+                bg="cardBackground"
+                minWidth={120}
                 style={{
-                  padding: 8,
-                  borderRadius: 8,
-                  borderWidth: dateFocused ? 2 : 1,
-                  borderColor: dateFocused
-                    ? theme.colors.success
-                    : theme.colors.borderColor,
-                  backgroundColor: theme.colors.cardBackground,
                   fontSize: 14,
                   fontFamily: 'monospace',
                   color: theme.colors.primaryText,
-                  minWidth: 120,
-                  ...webTransition,
+                  ...(Platform.OS === 'web'
+                    ? ({
+                        outlineStyle: 'none',
+                        ...webTransition,
+                      } as any)
+                    : {}),
                 }}
               />
             </Box>
@@ -321,10 +338,8 @@ export const TeamPulseScreen: React.FC = () => {
             p="m"
             borderRadius="m"
             bg="brandBg"
-            style={{
-              borderColor: theme.colors.brandBorder,
-              borderWidth: 1,
-            }}
+            borderColor="brandBorder"
+            borderWidth={1}
           >
             {/* Top performing rep */}
             <Box
@@ -338,11 +353,7 @@ export const TeamPulseScreen: React.FC = () => {
               <Text variant="body" fontWeight="bold">
                 {t('topPerformingRepLabel')}
               </Text>
-              <Text
-                variant="body"
-                fontWeight="bold"
-                style={{ color: theme.colors.success }}
-              >
+              <Text variant="body" fontWeight="bold" color="success">
                 {digestResult.topPerformingRep}
               </Text>
             </Box>
@@ -360,19 +371,14 @@ export const TeamPulseScreen: React.FC = () => {
             {/* Warnings list */}
             {digestResult.warnings.length > 0 && (
               <Box borderTopWidth={1} borderColor="borderColor" pt="m">
-                <Text
-                  variant="body"
-                  fontWeight="bold"
-                  style={{ color: theme.colors.danger }}
-                  mb="s"
-                >
+                <Text variant="body" fontWeight="bold" color="danger" mb="s">
                   {t('complianceViolationsLogged')}
                 </Text>
                 {digestResult.warnings.map((w: string, idx: number) => (
                   <Text
                     key={idx}
                     variant="bodySecondary"
-                    style={{ color: theme.colors.dangerText }}
+                    color="dangerText"
                     mb="xs"
                   >
                     ⚠️ {w}
@@ -438,11 +444,7 @@ export const TeamPulseScreen: React.FC = () => {
                     </Text>
                     <Text variant="bodySecondary">{t('trendSummerPeak')}</Text>
                   </Box>
-                  <Text
-                    variant="body"
-                    fontWeight="bold"
-                    style={{ color: theme.colors.success }}
-                  >
+                  <Text variant="body" fontWeight="bold" color="success">
                     {t('probValue').replace('{prob}', '85')}
                   </Text>
                 </Box>
@@ -462,11 +464,7 @@ export const TeamPulseScreen: React.FC = () => {
                       {t('trendStableYearRound')}
                     </Text>
                   </Box>
-                  <Text
-                    variant="body"
-                    fontWeight="bold"
-                    style={{ color: theme.colors.warning }}
-                  >
+                  <Text variant="body" fontWeight="bold" color="warning">
                     {t('probValue').replace('{prob}', '60')}
                   </Text>
                 </Box>
@@ -513,7 +511,7 @@ export const TeamPulseScreen: React.FC = () => {
                     key={idx}
                     mb="m"
                     borderLeftWidth={3}
-                    style={{ borderLeftColor: theme.colors.brand }}
+                    borderLeftColor="brand"
                     pl="s"
                   >
                     <Box
@@ -533,11 +531,7 @@ export const TeamPulseScreen: React.FC = () => {
                           )}
                       </Text>
                     </Box>
-                    <Text
-                      variant="bodySecondary"
-                      fontSize={12}
-                      style={{ lineHeight: 18 }}
-                    >
+                    <Text variant="bodySecondary" style={{ lineHeight: 18 }}>
                       {opt.reason}
                     </Text>
                   </Box>
@@ -567,7 +561,7 @@ export const TeamPulseScreen: React.FC = () => {
           Email, PriceTier, LifetimeValue
         </Text>
 
-        <TextInput
+        <ThemedTextInput
           multiline
           numberOfLines={6}
           value={csvText}
@@ -576,25 +570,22 @@ export const TeamPulseScreen: React.FC = () => {
           placeholderTextColor={theme.colors.secondaryText}
           onFocus={() => setCsvFocused(true)}
           onBlur={() => setCsvFocused(false)}
+          minHeight={120}
+          p="m"
+          borderColor={csvFocused ? 'success' : 'slate300'}
+          borderWidth={csvFocused ? 2 : 1}
+          borderRadius="m"
+          bg="mainBackground"
+          mb="s"
           style={{
-            minHeight: 120,
-            padding: 12,
-            borderColor: csvFocused
-              ? theme.colors.success
-              : theme.colors.slate300,
-            borderWidth: csvFocused ? 2 : 1,
-            borderRadius: 8,
-            backgroundColor: theme.colors.mainBackground,
             fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
             fontSize: 13,
             color: theme.colors.primaryText,
             textAlignVertical: 'top',
-            marginBottom: 12,
             ...(Platform.OS === 'web'
               ? ({
-                  transitionProperty: 'border-color, border-width',
-                  transitionDuration: '150ms',
                   outlineStyle: 'none',
+                  ...webTransition,
                 } as any)
               : {}),
           }}

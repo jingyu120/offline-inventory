@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
-import { useGeographicHeatmapData } from '../hooks/useGeographicHeatmapData';
+import { useGeographicHeatmapData } from '../../hooks/useGeographicHeatmapData';
 import { MapFilterPanel } from './components/MapFilterPanel';
 import { MapDetailPane } from './components/MapDetailPane';
-import { useTranslation } from '../utils/i18n';
-import { tileDb } from '../utils/tileDb';
-import { SYNC_API_URL } from '../config';
+import { useTranslation } from '../../utils/i18n';
+import { tileDb } from '../../utils/tileDb';
+import { SYNC_API_URL } from '../../config';
 
 // Import subcomponents
 import { MapLegend } from './components/MapLegend';

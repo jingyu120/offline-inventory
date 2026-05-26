@@ -141,15 +141,18 @@ export const theme = createTheme({
     button: {
       fontWeight: '600',
       fontSize: 15,
+      lineHeight: 22,
       textAlign: 'center',
     },
     badge: {
       fontWeight: '600',
       fontSize: 12,
+      lineHeight: 18,
       textAlign: 'center',
     },
     error: {
       fontSize: 12,
+      lineHeight: 16,
       color: 'errorText',
     },
     // Large KPI numeric display (28px bold)
@@ -167,6 +170,7 @@ export const theme = createTheme({
     },
     defaults: {
       fontSize: 15,
+      lineHeight: 22,
       color: 'primaryText',
     },
   },
@@ -193,3 +197,68 @@ export const darkTheme = {
 };
 
 export type Theme = typeof theme;
+
+export const getThemeForLanguage = (baseTheme: Theme, lang: string): Theme => {
+  if (lang !== 'my') return baseTheme;
+  return {
+    ...baseTheme,
+    textVariants: {
+      ...baseTheme.textVariants,
+      header: {
+        ...baseTheme.textVariants.header,
+        fontSize: 24,
+        lineHeight: 38,
+      },
+      title: {
+        ...baseTheme.textVariants.title,
+        fontSize: 18,
+        lineHeight: 28,
+      },
+      subtitle: {
+        ...baseTheme.textVariants.subtitle,
+        fontSize: 15,
+        lineHeight: 24,
+      },
+      body: {
+        ...baseTheme.textVariants.body,
+        fontSize: 14,
+        lineHeight: 24,
+      },
+      bodySecondary: {
+        ...baseTheme.textVariants.bodySecondary,
+        fontSize: 12,
+        lineHeight: 20,
+      },
+      button: {
+        ...baseTheme.textVariants.button,
+        fontSize: 14,
+        lineHeight: 22,
+      },
+      badge: {
+        ...baseTheme.textVariants.badge,
+        fontSize: 11,
+        lineHeight: 18,
+      },
+      error: {
+        ...baseTheme.textVariants.error,
+        fontSize: 11,
+        lineHeight: 16,
+      },
+      kpi: {
+        ...baseTheme.textVariants.kpi,
+        fontSize: 24,
+        lineHeight: 38,
+      },
+      caption: {
+        ...baseTheme.textVariants.caption,
+        fontSize: 11,
+        lineHeight: 18,
+      },
+      defaults: {
+        ...baseTheme.textVariants.defaults,
+        fontSize: 14,
+        lineHeight: 22,
+      },
+    },
+  };
+};

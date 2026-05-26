@@ -50,19 +50,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         let label = '';
         let IconComponent: any = ClipboardList;
         if (screen === 'ledger') {
-          label = language === 'en' ? 'Ledger' : t('shopLedger');
+          label = t('shopLedger');
           IconComponent = ClipboardList;
         } else if (screen === 'heatmap') {
-          label = language === 'en' ? 'Heatmap' : t('geographicHeatmap');
+          label = t('geographicHeatmap');
           IconComponent = Map;
         } else if (screen === 'leadership') {
-          label = language === 'en' ? 'Oversight' : t('leadershipOversight');
+          label = t('leadershipOversight');
           IconComponent = Activity;
         } else if (screen === 'intake') {
-          label = language === 'en' ? 'Intake' : 'အော်ဒါ';
+          label = t('intake');
           IconComponent = Package;
         } else if (screen === 'viber-bot') {
-          label = language === 'en' ? 'Drafter' : 'ဖုန်းမှတ်တမ်း';
+          label = t('orderDrafter');
           IconComponent = MessageSquare;
         }
 

@@ -1,7 +1,9 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
-import { useTranslation } from '../../utils/i18n';
+import { useTranslation } from '../../../utils/i18n';
+import { useTheme } from '@shopify/restyle';
+import { Theme } from '@burma-inventory/ui-components';
 
 interface MapHeaderFloatingProps {
   filteredShopsCount: number;
@@ -15,6 +17,7 @@ export const MapHeaderFloating: React.FC<MapHeaderFloatingProps> = ({
   setFilterVisible,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
 
   return (
     <Box
@@ -31,14 +34,22 @@ export const MapHeaderFloating: React.FC<MapHeaderFloatingProps> = ({
     >
       <Box
         style={{
-          backgroundColor: 'rgba(255,255,255,0.95)',
+          backgroundColor: theme.colors.cardBackground,
           borderRadius: 20,
           paddingHorizontal: 14,
           paddingVertical: 8,
+          borderWidth: 1,
+          borderColor: theme.colors.borderColor,
           boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
         }}
       >
-        <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#1E293B' }}>
+        <Text
+          style={{
+            fontWeight: 'bold',
+            fontSize: 13,
+            color: theme.colors.primaryText,
+          }}
+        >
           📍 {filteredShopsCount} {t('shops')}
         </Text>
       </Box>
@@ -46,10 +57,14 @@ export const MapHeaderFloating: React.FC<MapHeaderFloatingProps> = ({
       <TouchableOpacity
         onPress={() => setFilterVisible(!filterVisible)}
         style={{
-          backgroundColor: filterVisible ? '#5A31F4' : 'rgba(255,255,255,0.95)',
+          backgroundColor: filterVisible
+            ? theme.colors.brand
+            : theme.colors.cardBackground,
           borderRadius: 20,
           paddingHorizontal: 14,
           paddingVertical: 8,
+          borderWidth: 1,
+          borderColor: theme.colors.borderColor,
           boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
           flexDirection: 'row',
           alignItems: 'center',
@@ -60,7 +75,7 @@ export const MapHeaderFloating: React.FC<MapHeaderFloatingProps> = ({
           style={{
             fontWeight: 'bold',
             fontSize: 13,
-            color: filterVisible ? '#fff' : '#1E293B',
+            color: filterVisible ? '#fff' : theme.colors.primaryText,
           }}
         >
           {filterVisible ? '✕ Close' : '⚙️ Filter'}

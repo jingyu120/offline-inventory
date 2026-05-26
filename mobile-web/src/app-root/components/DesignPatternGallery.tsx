@@ -71,7 +71,6 @@ const DEFAULT_PATTERNS: DesignPattern[] = [
 export const DesignPatternGallery: React.FC = () => {
   const theme = useTheme<Theme>();
   const [patterns, setPatterns] = useState<DesignPattern[]>([]);
-  const [cachedStatus, setCachedStatus] = useState<string>('Checking...');
 
   // State for active interactive catalog modal
   const [selectedPattern, setSelectedPattern] = useState<DesignPattern | null>(
@@ -90,7 +89,6 @@ export const DesignPatternGallery: React.FC = () => {
           Array.isArray(parsed) && parsed.every((p: any) => p.brandId);
         if (hasBrandId) {
           setPatterns(parsed);
-          setCachedStatus('🟢 Loaded from Local Cache (Offline Ready)');
           return;
         }
       }
@@ -101,14 +99,12 @@ export const DesignPatternGallery: React.FC = () => {
         JSON.stringify(DEFAULT_PATTERNS),
       );
       setPatterns(DEFAULT_PATTERNS);
-      setCachedStatus('💾 Saved to Local Cache (Offline Ready)');
     } catch (e) {
       console.warn(
         'LocalStorage not available, falling back to memory storage',
         e,
       );
       setPatterns(DEFAULT_PATTERNS);
-      setCachedStatus('⚠️ Cache Unavailable (Memory fallback)');
     }
   }, []);
 
@@ -152,24 +148,9 @@ export const DesignPatternGallery: React.FC = () => {
 
   return (
     <Card p="m" bg="cardBackground" mb="m">
-      <Box
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mb="s"
-      >
-        <Text variant="title">🎨 Visual Tile Design Gallery</Text>
-        <Box bg="successBg" px="s" py="xs" borderRadius="s">
-          <Text
-            variant="bodySecondary"
-            fontSize={11}
-            fontWeight="bold"
-            style={{ color: '#10B981' }}
-          >
-            {cachedStatus}
-          </Text>
-        </Box>
-      </Box>
+      <Text variant="title" mb="s">
+        🎨 Visual Tile Design Gallery
+      </Text>
       <Text variant="bodySecondary" mb="m">
         Showcase catalog options offline directly to dealers. Tap any card below
         to view specs.

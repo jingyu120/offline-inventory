@@ -1,14 +1,8 @@
-import { Platform } from 'react-native';
-
 class TileDb {
   private db: any = null;
 
   private async init(): Promise<any> {
-    if (
-      Platform.OS !== 'web' ||
-      typeof window === 'undefined' ||
-      !window.indexedDB
-    ) {
+    if (typeof window === 'undefined' || !window.indexedDB) {
       return null;
     }
     if (this.db) return this.db;
@@ -30,11 +24,7 @@ class TileDb {
   }
 
   async get(key: string): Promise<string | null> {
-    if (
-      Platform.OS !== 'web' ||
-      typeof window === 'undefined' ||
-      !window.indexedDB
-    ) {
+    if (typeof window === 'undefined' || !window.indexedDB) {
       return null;
     }
     try {
@@ -55,11 +45,7 @@ class TileDb {
   }
 
   async set(key: string, value: string): Promise<void> {
-    if (
-      Platform.OS !== 'web' ||
-      typeof window === 'undefined' ||
-      !window.indexedDB
-    ) {
+    if (typeof window === 'undefined' || !window.indexedDB) {
       return;
     }
     try {

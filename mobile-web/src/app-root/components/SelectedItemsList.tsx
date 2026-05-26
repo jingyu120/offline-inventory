@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { TextInput, Pressable, Platform } from 'react-native';
-import { Box, Text, Theme } from '@burma-inventory/ui-components';
+import { Pressable, Platform } from 'react-native';
+import {
+  Box,
+  Text,
+  Theme,
+  ThemedTextInput,
+} from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../utils/i18n';
@@ -36,37 +41,33 @@ const webTransition =
     : {};
 
 /** Resolve semantic colors for stock condition badges */
-const conditionTokens = (
-  condition: string,
-  isSelected: boolean,
-  theme: Theme,
-) => {
+const conditionTokens = (condition: string, isSelected: boolean) => {
   if (!isSelected) {
     return {
-      bg: theme.colors.cardBackground,
-      border: theme.colors.borderColor,
-      text: theme.colors.secondaryText,
+      bg: 'cardBackground' as const,
+      border: 'borderColor' as const,
+      text: 'secondaryText' as const,
     };
   }
   if (condition === 'BAD') {
     return {
-      bg: theme.colors.danger,
-      border: theme.colors.danger,
-      text: theme.colors.pureWhite,
+      bg: 'danger' as const,
+      border: 'danger' as const,
+      text: 'pureWhite' as const,
     };
   }
   if (condition === 'WET') {
     return {
-      bg: theme.colors.warning,
-      border: theme.colors.warning,
-      text: theme.colors.pureWhite,
+      bg: 'warning' as const,
+      border: 'warning' as const,
+      text: 'pureWhite' as const,
     };
   }
   // GOOD → emerald
   return {
-    bg: theme.colors.success,
-    border: theme.colors.success,
-    text: theme.colors.pureWhite,
+    bg: 'success' as const,
+    border: 'success' as const,
+    text: 'pureWhite' as const,
   };
 };
 
@@ -96,7 +97,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
     return (
       <Box mb="m">
         <Text variant="body" fontWeight="bold" mb="s">
-          Order Duplication
+          {t('orderDuplication')}
         </Text>
         <Pressable
           onPress={hasHistory ? onDuplicateLastOrder : undefined}
@@ -119,7 +120,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
             borderColor={hasHistory ? 'primaryButton' : 'borderColor'}
             bg={hasHistory ? 'secondaryButton' : 'cardBackground'}
             alignItems="center"
-            style={{ opacity: hasHistory ? 1 : 0.45 }}
+            opacity={hasHistory ? 1 : 0.45}
           >
             <Text
               variant="body"
@@ -127,8 +128,8 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
               color={hasHistory ? 'primaryButton' : 'secondaryText'}
             >
               {hasHistory
-                ? '🔂 Duplicate Last Order'
-                : 'No Prior Transactions Found'}
+                ? '🔂 ' + t('duplicateLastOrder')
+                : t('noPriorTransactions')}
             </Text>
           </Box>
         </Pressable>
@@ -174,19 +175,6 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
             ? `${Math.round(totalVal).toLocaleString()} MMK`
             : `${totalVal.toFixed(2)} ${selectedCurrency}`;
 
-        // Price input border semantics: crimson if below floor, emerald if focused, default otherwise
-        const priceBorderColor = isBelowFloor
-          ? theme.colors.danger
-          : priceFocused
-            ? theme.colors.success
-            : theme.colors.borderColor;
-        const priceBorderWidth = isBelowFloor || priceFocused ? 2 : 1;
-
-        const qtyBorderColor = qtyFocused
-          ? theme.colors.success
-          : theme.colors.borderColor;
-        const qtyBorderWidth = qtyFocused ? 2 : 1;
-
         return (
           <Box
             key={si.item.id}
@@ -196,14 +184,6 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
             borderWidth={1}
             borderColor={isBelowFloor ? 'danger' : 'borderColor'}
             bg="secondaryBackground"
-            style={
-              Platform.OS === 'web'
-                ? ({
-                    transitionProperty: 'border-color',
-                    transitionDuration: '200ms',
-                  } as any)
-                : undefined
-            }
           >
             {/* Row 1: Item Name & SKU */}
             <Box
@@ -212,9 +192,11 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
               alignItems="center"
               mb="s"
             >
-              <Text variant="body" fontWeight="bold" style={{ flex: 1 }}>
-                {si.item.name}
-              </Text>
+              <Box flex={1}>
+                <Text variant="body" fontWeight="bold">
+                  {si.item.name}
+                </Text>
+              </Box>
               <Text variant="bodySecondary" color="secondaryText">
                 {si.item.sku}
               </Text>
@@ -230,41 +212,38 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
               {/* Quantity */}
               <Box>
                 <Text variant="caption" mb="xs" color="secondaryText">
-                  Qty
+                  {t('qty')}
                 </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: theme.colors.cardBackground,
-                    padding: 8,
-                    width: 70,
-                    borderRadius: theme.borderRadii.s,
-                    borderWidth: qtyBorderWidth,
-                    borderColor: qtyBorderColor,
-                    color: theme.colors.primaryText,
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontFamily: 'monospace',
-                    letterSpacing: 0.5,
-                    ...(Platform.OS === 'web'
-                      ? ({
-                          transitionProperty: 'border-color, border-width',
-                          transitionDuration: '150ms',
-                          outlineStyle: 'none',
-                        } as any)
-                      : {}),
-                  }}
+                <ThemedTextInput
+                  bg="cardBackground"
+                  p="s"
+                  width={70}
+                  borderRadius="s"
+                  borderWidth={qtyFocused ? 2 : 1}
+                  borderColor={qtyFocused ? 'success' : 'borderColor'}
                   keyboardType="numeric"
                   value={si.quantity.toString()}
                   onChangeText={(val) => updateQuantity(si.item.id, val)}
                   onFocus={() => setFocusedQtyId(si.item.id)}
                   onBlur={() => setFocusedQtyId(null)}
+                  style={{
+                    color: theme.colors.primaryText,
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    fontFamily: 'monospace',
+                    ...(Platform.OS === 'web'
+                      ? ({
+                          outlineStyle: 'none',
+                        } as any)
+                      : {}),
+                  }}
                 />
               </Box>
 
               {/* Unit Segmented Control */}
               <Box>
                 <Text variant="caption" mb="xs" color="secondaryText">
-                  Unit
+                  {t('unit')}
                 </Text>
                 <Box flexDirection="row">
                   {unitOptions.map((unit) => {
@@ -317,13 +296,13 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
             >
               <Box>
                 <Text variant="caption" color="secondaryText">
-                  Condition
+                  {t('condition')}
                 </Text>
               </Box>
               <Box flexDirection="row">
                 {['GOOD', 'BAD', 'WET'].map((cond) => {
                   const isSelected = (si.stockCondition || 'GOOD') === cond;
-                  const tokens = conditionTokens(cond, isSelected, theme);
+                  const tokens = conditionTokens(cond, isSelected);
                   return (
                     <Pressable
                       key={cond}
@@ -341,15 +320,13 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                         py="xs"
                         borderRadius="s"
                         borderWidth={1}
-                        style={{
-                          backgroundColor: tokens.bg,
-                          borderColor: tokens.border,
-                        }}
+                        backgroundColor={tokens.bg}
+                        borderColor={tokens.border}
                       >
                         <Text
                           variant="badge"
                           fontWeight="bold"
-                          style={{ color: tokens.text }}
+                          color={tokens.text}
                         >
                           {cond}
                         </Text>
@@ -367,43 +344,42 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                 alignItems="flex-end"
                 justifyContent="space-between"
               >
-                <Box style={{ flex: 1, marginRight: theme.spacing.s }}>
+                <Box flex={1} mr="s">
                   <Text variant="caption" color="secondaryText" mb="xs">
-                    Negotiated Price ({selectedCurrency})
+                    {t('negotiatedPrice')} ({selectedCurrency})
                   </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: theme.colors.cardBackground,
-                      padding: 8,
-                      borderRadius: theme.borderRadii.s,
-                      borderWidth: priceBorderWidth,
-                      borderColor: priceBorderColor,
-                      color: theme.colors.primaryText,
-                      fontWeight: 'bold',
-                      fontFamily: 'monospace',
-                      letterSpacing: 0.5,
-                      fontSize: 14,
-                      ...(Platform.OS === 'web'
-                        ? ({
-                            transitionProperty: 'border-color, border-width',
-                            transitionDuration: '150ms',
-                            outlineStyle: 'none',
-                          } as any)
-                        : {}),
-                    }}
+                  <ThemedTextInput
+                    bg="cardBackground"
+                    p="s"
+                    borderRadius="s"
+                    borderWidth={priceFocused || isBelowFloor ? 2 : 1}
+                    borderColor={
+                      isBelowFloor
+                        ? 'danger'
+                        : priceFocused
+                          ? 'success'
+                          : 'borderColor'
+                    }
                     keyboardType="numeric"
                     value={si.unitPrice.toString()}
                     onChangeText={(val) => updateUnitPrice(si.item.id, val)}
                     onFocus={() => setFocusedPriceId(si.item.id)}
                     onBlur={() => setFocusedPriceId(null)}
+                    style={{
+                      color: theme.colors.primaryText,
+                      fontWeight: 'bold',
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                      ...(Platform.OS === 'web'
+                        ? ({
+                            outlineStyle: 'none',
+                          } as any)
+                        : {}),
+                    }}
                   />
                   {isBelowFloor && (
-                    <Text
-                      variant="caption"
-                      style={{ color: theme.colors.danger }}
-                      mt="xs"
-                    >
-                      ⚠ Below wholesale floor (–15%)
+                    <Text variant="caption" color="dangerText" mt="xs">
+                      ⚠ {t('belowWholesaleFloorWarning')}
                     </Text>
                   )}
                 </Box>
@@ -463,24 +439,16 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
               mr="s"
             >
               {isOverrideMarginAcknowledged && (
-                <Text
-                  style={{
-                    color: theme.colors.primaryButtonText,
-                    fontSize: 10,
-                    fontWeight: 'bold',
-                  }}
-                >
+                <Text color="primaryButtonText" fontSize={10} fontWeight="bold">
                   ✓
                 </Text>
               )}
             </Box>
-            <Text
-              variant="body"
-              fontWeight="bold"
-              style={{ color: theme.colors.dangerText, flex: 1 }}
-            >
-              Acknowledge Override Margin (Below Wholesale Floor)
-            </Text>
+            <Box flex={1}>
+              <Text variant="body" fontWeight="bold" color="dangerText">
+                {t('acknowledgeOverrideMargin')}
+              </Text>
+            </Box>
           </Pressable>
         </Box>
       )}

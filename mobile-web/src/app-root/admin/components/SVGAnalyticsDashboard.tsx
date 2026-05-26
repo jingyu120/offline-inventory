@@ -2,7 +2,9 @@ import React from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { Box, Text, Card } from '@burma-inventory/ui-components';
 import { InteractionLog } from '@burma-inventory/shared-types';
-import { useTranslation } from '../../utils/i18n';
+import { useTranslation } from '../../../utils/i18n';
+import { useTheme } from '@shopify/restyle';
+import { Theme } from '@burma-inventory/ui-components';
 
 interface SVGAnalyticsDashboardProps {
   stats: {
@@ -18,6 +20,7 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
   stats,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
@@ -143,11 +146,21 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
                 }}
               >
                 <span
-                  style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    color: theme.colors.primaryText,
+                  }}
                 >
                   {complianceRate}%
                 </span>
-                <span style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: theme.colors.secondaryText,
+                    marginTop: 2,
+                  }}
+                >
                   {t('ofDailyQuota')}
                 </span>
               </div>
@@ -163,7 +176,7 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
               justifyContent="center"
               alignItems="center"
             >
-              <Text variant="header" style={{ color: '#4F46E5' }}>
+              <Text variant="header" color="primaryButton">
                 {complianceRate}%
               </Text>
               <Text variant="bodySecondary" fontSize={9}>

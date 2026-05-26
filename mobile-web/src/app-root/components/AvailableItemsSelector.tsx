@@ -79,7 +79,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                       color={isSelected ? 'secondaryButtonText' : 'errorText'}
                       style={{ fontWeight: 'bold', marginTop: 2 }}
                     >
-                      ⚠️ Supply Deficit: Expect delivery delays
+                      {t('supplyDeficitWarning')}
                     </Text>
                   )}
                   <Text

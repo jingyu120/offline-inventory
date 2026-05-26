@@ -1,8 +1,8 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { Box, Text, Card } from '@burma-inventory/ui-components';
-import { RepDayStats } from '../../hooks/useTeamPulseData';
-import { useTranslation } from '../../utils/i18n';
+import { RepDayStats } from '../../../hooks/useTeamPulseData';
+import { useTranslation } from '../../../utils/i18n';
 
 interface ComplianceScorecardProps {
   selectedRep: 'rep-1' | 'rep-2';

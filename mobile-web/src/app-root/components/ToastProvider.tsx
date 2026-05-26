@@ -122,7 +122,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
                   variant="body"
                   fontSize={13}
                   fontWeight="semibold"
-                  style={{ color: '#1E293B' }}
+                  color="primaryText"
                 >
                   {toast.message}
                 </Text>

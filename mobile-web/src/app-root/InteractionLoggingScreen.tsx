@@ -646,8 +646,7 @@ export function InteractionLoggingScreen({
                     fontWeight="bold"
                     style={{ flex: 1 }}
                   >
-                    ⚠️ Discrepancy Detected: Selected quantities do not match
-                    Viber proof screenshot text.
+                    {t('discrepancyWarning')}
                   </Text>
                 </Box>
               )}
@@ -731,7 +730,7 @@ export function InteractionLoggingScreen({
               </Box>
 
               <Text variant="title" mb="s">
-                Project Allocation (Bulk Contract)
+                {t('projectAllocationBulkContract')}
               </Text>
               <Box flexDirection="row" flexWrap="wrap" mb="m">
                 <Box mr="s" mb="s">

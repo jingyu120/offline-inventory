@@ -5,6 +5,7 @@ import { useTheme } from '@shopify/restyle';
 import { Shop, sqliteSchema } from '@burma-inventory/shared-types';
 import { Zap, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useToast } from './ToastProvider';
+import { useTranslation } from '../../utils/i18n';
 import { API_BASE_URL } from '../../config';
 import { database } from '../../database';
 import { eq } from 'drizzle-orm';
@@ -30,6 +31,7 @@ export const PredictionAnalyticsCard: React.FC<
 }) => {
   const theme = useTheme<Theme>();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const [sentimentTrend, setSentimentTrend] = React.useState<
     'IMPROVING' | 'STABLE' | 'DECLINING' | null
@@ -96,13 +98,13 @@ export const PredictionAnalyticsCard: React.FC<
         activeOpacity={0.9}
       >
         <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-          <Text variant="title" mb="m" style={{ color: '#5A31F4' }}>
-            🔮 Gemma 4 Predictive Analytics
+          <Text variant="title" mb="m" color="brand">
+            🔮 {t('gemmaPredictiveAnalytics')}
           </Text>
           <Box flexDirection="row" mb="m">
             <Box flex={1} mr="s">
               <Text variant="bodySecondary" mb="xs">
-                Customer Churn Risk
+                {t('customerChurnRisk')}
               </Text>
               <Box flexDirection="row" alignItems="center">
                 <Box
@@ -135,7 +137,7 @@ export const PredictionAnalyticsCard: React.FC<
 
             <Box flex={1} ml="s">
               <Text variant="bodySecondary" mb="xs">
-                Stockout Risk
+                {t('stockoutRisk')}
               </Text>
               <Box flexDirection="row" alignItems="center">
                 <Box
@@ -178,26 +180,14 @@ export const PredictionAnalyticsCard: React.FC<
               <Box flexDirection="row" alignItems="center" mb="xs">
                 <Zap size={16} stroke="#5A31F4" style={{ marginRight: 6 }} />
                 <Text variant="body" fontWeight="bold">
-                  Gemma AI Smart-Reorder Alert
+                  {t('gemmaSmartReorderAlert')}
                 </Text>
               </Box>
               <Text variant="bodySecondary" mb="s">
-                System recommends ordering{' '}
-                <Text
-                  fontWeight="bold"
-                  style={{ color: theme.colors.primaryText }}
-                >
-                  {recommendedOrder.quantity} units
-                </Text>{' '}
-                of{' '}
-                <Text
-                  fontWeight="bold"
-                  style={{ color: theme.colors.primaryText }}
-                >
-                  {recommendedItem.name}
-                </Text>{' '}
-                (SKU: {recommendedItem.sku}) based on predicted inventory
-                runout.
+                {t('recommendsOrderingUnits')
+                  .replace('{qty}', recommendedOrder.quantity.toString())
+                  .replace('{name}', recommendedItem.name)
+                  .replace('{sku}', recommendedItem.sku)}
               </Text>
               <Box
                 flexDirection="row"
@@ -205,14 +195,20 @@ export const PredictionAnalyticsCard: React.FC<
                 alignItems="center"
               >
                 <Text variant="bodySecondary" fontSize={11}>
-                  Confidence: {(recommendedOrder.confidence * 100).toFixed(0)}%
+                  {t('confidencePercent').replace(
+                    '{pct}',
+                    (recommendedOrder.confidence * 100).toFixed(0),
+                  )}
                 </Text>
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation?.();
                     onLogInteraction?.(shop);
                     showToast(
-                      `Pre-filled interaction for SKU ${recommendedItem.sku}`,
+                      t('preFilledInteractionToast').replace(
+                        '{sku}',
+                        recommendedItem.sku,
+                      ),
                       'success',
                     );
                   }}
@@ -230,7 +226,7 @@ export const PredictionAnalyticsCard: React.FC<
                       fontSize: 11,
                     }}
                   >
-                    Pre-fill Order
+                    {t('preFillOrder')}
                   </Text>
                 </TouchableOpacity>
               </Box>
@@ -291,10 +287,10 @@ export const PredictionAnalyticsCard: React.FC<
                   }}
                 >
                   {sentimentTrend === 'DECLINING'
-                    ? 'High Churn Risk Trend'
+                    ? t('highChurnRiskTrend')
                     : sentimentTrend === 'IMPROVING'
-                      ? 'Low Churn Risk Trend'
-                      : 'Stable / Neutral Trend'}
+                      ? t('lowChurnRiskTrend')
+                      : t('stableNeutralTrend')}
                 </Text>
               </Box>
               <Text
@@ -335,16 +331,11 @@ export const PredictionAnalyticsCard: React.FC<
             borderWidth={1}
             borderColor="borderColor"
           >
-            <Text
-              variant="header"
-              fontSize={18}
-              mb="m"
-              style={{ color: '#5A31F4' }}
-            >
-              💼 Pipeline Capital Lockup
+            <Text variant="header" fontSize={18} mb="m" color="brand">
+              💼 {t('pipelineCapitalLockup')}
             </Text>
             <Text variant="bodySecondary" mb="m">
-              Active projects pending fulfillment:
+              {t('activeProjectsPendingFulfillment')}
             </Text>
 
             {projectsList.map((proj) => {
@@ -372,7 +363,7 @@ export const PredictionAnalyticsCard: React.FC<
                       fontSize={12}
                       style={{ color: theme.colors.warningText }}
                     >
-                      ⏳ PENDING_FULFILLMENT
+                      ⏳ {t('pendingFulfillment')}
                     </Text>
                     <Text
                       variant="body"
@@ -397,7 +388,9 @@ export const PredictionAnalyticsCard: React.FC<
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                  {t('close')}
+                </Text>
               </TouchableOpacity>
             </Box>
           </Box>

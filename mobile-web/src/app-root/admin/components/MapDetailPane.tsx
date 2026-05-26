@@ -1,9 +1,9 @@
 import React from 'react';
 import { ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Box, Text, Card, Button } from '@burma-inventory/ui-components';
-import { ProcessedShop } from '../../hooks/useGeographicHeatmapData';
+import { ProcessedShop } from '../../../hooks/useGeographicHeatmapData';
 import { Contact } from '@burma-inventory/shared-types';
-import { useTranslation } from '../../utils/i18n';
+import { useTranslation } from '../../../utils/i18n';
 
 interface MapDetailPaneProps {
   selectedShop: ProcessedShop;
@@ -155,7 +155,10 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
             pb="s"
           >
             <Text variant="title">
-              Shops at this location ({overlappingShops.length})
+              {t('shopsAtThisLocation').replace(
+                '{count}',
+                overlappingShops.length.toString(),
+              )}
             </Text>
             <Button
               title={t('close')}
@@ -208,7 +211,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
         {overlappingShops.length > 1 && (
           <Box mb="s">
             <Button
-              title="← Back to list"
+              title={t('backToList')}
               onPress={() => setViewingShop(null)}
               variant="secondary"
             />
@@ -287,7 +290,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
             justifyContent="space-between"
             mb="s"
           >
-            <Text variant="body" fontWeight="bold" style={{ color: '#5A31F4' }}>
+            <Text variant="body" fontWeight="bold" color="brand">
               {t('gemmaChurnEngine')}
             </Text>
             {!loadingSentiment && sentimentResult && (

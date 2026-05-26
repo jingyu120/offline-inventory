@@ -3,6 +3,8 @@ import { Modal, ScrollView } from 'react-native';
 import { Box, Text, Button } from '@burma-inventory/ui-components';
 import { useSyncConflicts } from '../../utils/SyncConflictManager';
 import { useTranslation } from '../../utils/i18n';
+import { useTheme } from '@shopify/restyle';
+import { Theme } from '@burma-inventory/ui-components';
 
 // Error Boundary to prevent any render crash from crashing the whole app
 class SyncConflictErrorBoundary extends React.Component<
@@ -34,6 +36,7 @@ class SyncConflictErrorBoundary extends React.Component<
 const SyncConflictModalContent: React.FC = () => {
   const conflicts = useSyncConflicts();
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
 
   if (conflicts.length === 0) {
     return null;
@@ -131,19 +134,20 @@ const SyncConflictModalContent: React.FC = () => {
             <Text variant="bodySecondary" mt="xs">
               {t('syncConflictDesc')}
             </Text>
-            <Text
-              variant="badge"
-              style={{
-                backgroundColor: '#F3F4F6',
-                color: '#1F2937',
-                marginTop: 8,
-                alignSelf: 'flex-start',
-              }}
+            <Box
+              bg="secondaryBackground"
+              px="s"
+              py="xs"
+              borderRadius="s"
+              mt="s"
+              style={{ alignSelf: 'flex-start' }}
             >
-              {(t('syncConflictMeta') || 'Table: {table} | ID: {id}')
-                .replace('{table}', (current.table || '').toUpperCase())
-                .replace('{id}', current.id || '')}
-            </Text>
+              <Text variant="badge" color="secondaryText">
+                {(t('syncConflictMeta') || 'Table: {table} | ID: {id}')
+                  .replace('{table}', (current.table || '').toUpperCase())
+                  .replace('{id}', current.id || '')}
+              </Text>
+            </Box>
           </Box>
 
           <ScrollView
@@ -171,7 +175,7 @@ const SyncConflictModalContent: React.FC = () => {
                 <Text
                   variant="body"
                   fontWeight="bold"
-                  style={{ color: '#4F46E5' }}
+                  color="primaryButton"
                   mb="m"
                 >
                   💻 {t('localVersion')}
@@ -197,12 +201,7 @@ const SyncConflictModalContent: React.FC = () => {
                 style={{ backgroundColor: 'rgba(16, 185, 129, 0.03)' }}
                 mb="m"
               >
-                <Text
-                  variant="body"
-                  fontWeight="bold"
-                  style={{ color: '#10B981' }}
-                  mb="m"
-                >
+                <Text variant="body" fontWeight="bold" color="success" mb="m">
                   🌐 {t('serverVersion')}
                 </Text>
                 {renderRecordFields(current.remoteRecord)}
@@ -211,7 +210,7 @@ const SyncConflictModalContent: React.FC = () => {
                     title={t('keepServer')}
                     variant="primary"
                     onPress={() => handleResolve(false)}
-                    style={{ backgroundColor: '#10B981' }}
+                    style={{ backgroundColor: theme.colors.success }}
                   />
                 </Box>
               </Box>

@@ -5,16 +5,17 @@ import { ThemeProvider } from '@shopify/restyle';
 import {
   theme as lightTheme,
   darkTheme,
+  getThemeForLanguage,
   Box,
 } from '@burma-inventory/ui-components';
 import { ShopLedgerScreen } from './ShopLedgerScreen';
-import { GeographicHeatmapScreen } from './GeographicHeatmapScreen';
-import { TeamPulseScreen } from './TeamPulseScreen';
+import { GeographicHeatmapScreen } from './admin/GeographicHeatmapScreen';
+import { TeamPulseScreen } from './admin/TeamPulseScreen';
 import { IntakeScreen } from './IntakeScreen';
 import { ViberSimulator } from './components/ViberSimulator';
 import { SyncConflictModal } from './components/SyncConflictModal';
 import { ToastProvider } from './components/ToastProvider';
-import { LanguageProvider } from '../utils/i18n';
+import { LanguageProvider, useTranslation } from '../utils/i18n';
 import { syncData } from '../sync';
 import { powerSyncDb } from '../database';
 import { useWindowDimensions, Platform, Alert } from 'react-native';
@@ -23,7 +24,6 @@ import * as Location from 'expo-location';
 import { ImageUploadQueue } from '../utils/ImageUploadQueue';
 import { AuthProvider, useAuth } from '../utils/auth';
 import { NavBar, ROLE_SCREENS } from './components/NavBar';
-import { SyncStatusBar } from './components/SyncStatusBar';
 import { BottomTabBar } from './components/BottomTabBar';
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
@@ -139,15 +139,11 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
         currentScreen={currentScreen}
         setCurrentScreen={setCurrentScreen}
         isDesktop={isDesktop}
-      />
-
-      <SyncStatusBar
         isSyncing={isSyncing}
         lastSync={lastSync}
         syncError={syncError}
         pendingChanges={pendingChanges}
         handleSync={handleSync}
-        isDesktop={isDesktop}
       />
 
       {/* Render Active Screen View */}
@@ -176,24 +172,33 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
 
 export const App = () => {
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
-  const activeTheme = themeMode === 'light' ? lightTheme : darkTheme;
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider theme={activeTheme}>
-        <LanguageProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <AppContent
-                themeMode={themeMode}
-                setThemeMode={setThemeMode}
-                activeTheme={activeTheme}
-              />
-            </ToastProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <AppWithTheme themeMode={themeMode} setThemeMode={setThemeMode} />
+      </LanguageProvider>
     </SafeAreaProvider>
+  );
+};
+
+const AppWithTheme = ({ themeMode, setThemeMode }: any) => {
+  const { language } = useTranslation();
+  const baseTheme = themeMode === 'light' ? lightTheme : darkTheme;
+  const activeTheme = getThemeForLanguage(baseTheme, language);
+
+  return (
+    <ThemeProvider theme={activeTheme}>
+      <AuthProvider>
+        <ToastProvider>
+          <AppContent
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
+            activeTheme={activeTheme}
+          />
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

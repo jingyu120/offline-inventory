@@ -43,7 +43,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   onLogInteraction,
 }) => {
   const theme = useTheme<Theme>();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { activeRep } = useAuth();
 
   const [hasPlannedRoute, setHasPlannedRoute] = React.useState(false);
@@ -239,7 +239,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         <Box flexDirection="row" alignItems="center">
           <Box mr="s">
             <Button
-              title={isDesktop ? 'Back to Overview' : t('back')}
+              title={isDesktop ? t('backToOverview') : t('back')}
               onPress={() => setSelectedShop(null)}
               variant="secondary"
               icon={
@@ -250,7 +250,15 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
               }
             />
           </Box>
-          <Text variant="header" fontSize={isDesktop ? 32 : 24}>
+          <Text
+            variant="header"
+            fontSize={
+              language === 'my' ? (isDesktop ? 26 : 20) : isDesktop ? 32 : 24
+            }
+            lineHeight={
+              language === 'my' ? (isDesktop ? 40 : 32) : isDesktop ? 38 : 30
+            }
+          >
             {shop.name}
           </Text>
           {hasPlannedRoute && (
@@ -261,7 +269,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                 fontSize={11}
                 fontWeight="bold"
               >
-                📍 Route Planned
+                📍 {t('routePlanned')}
               </Text>
             </Box>
           )}
@@ -333,6 +341,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           shop={shop}
           todayCheckIn={todayCheckIn}
           loadDetails={loadDetails}
+          isDesktop={isDesktop}
         />
 
         {/* Predictive Analytics & AI Recommendations */}
