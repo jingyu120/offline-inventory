@@ -26,7 +26,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeTheme,
 }) => {
   const { activeRep } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   return (
     <Box
@@ -50,19 +50,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         let label = '';
         let IconComponent: any = ClipboardList;
         if (screen === 'ledger') {
-          label = t('shopLedger');
+          label = language === 'en' ? 'Ledger' : t('shopLedger');
           IconComponent = ClipboardList;
         } else if (screen === 'heatmap') {
-          label = t('geographicHeatmap');
+          label = language === 'en' ? 'Heatmap' : t('geographicHeatmap');
           IconComponent = Map;
         } else if (screen === 'leadership') {
-          label = t('leadershipOversight');
+          label = language === 'en' ? 'Oversight' : t('leadershipOversight');
           IconComponent = Activity;
         } else if (screen === 'intake') {
-          label = 'Intake';
+          label = language === 'en' ? 'Intake' : 'အော်ဒါ';
           IconComponent = Package;
         } else if (screen === 'viber-bot') {
-          label = 'Order Drafter';
+          label = language === 'en' ? 'Drafter' : 'ဖုန်းမှတ်တမ်း';
           IconComponent = MessageSquare;
         }
 
@@ -76,7 +76,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               size={20}
               color={
                 currentScreen === screen
-                  ? '#5A31F4'
+                  ? activeTheme.colors.primaryButton
                   : activeTheme.colors.secondaryText
               }
             />
@@ -85,9 +85,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 fontSize: 10,
                 fontWeight: 'bold',
                 marginTop: 4,
+                textAlign: 'center',
                 color:
                   currentScreen === screen
-                    ? '#5A31F4'
+                    ? activeTheme.colors.primaryButton
                     : activeTheme.colors.secondaryText,
               }}
             >

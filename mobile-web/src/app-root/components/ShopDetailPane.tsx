@@ -237,21 +237,19 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         mb="m"
       >
         <Box flexDirection="row" alignItems="center">
-          {!isDesktop && (
-            <Box mr="s">
-              <Button
-                title={t('back')}
-                onPress={() => setSelectedShop(null)}
-                variant="secondary"
-                icon={
-                  <ArrowLeft
-                    size={16}
-                    stroke={theme.colors.secondaryButtonText}
-                  />
-                }
-              />
-            </Box>
-          )}
+          <Box mr="s">
+            <Button
+              title={isDesktop ? 'Back to Overview' : t('back')}
+              onPress={() => setSelectedShop(null)}
+              variant="secondary"
+              icon={
+                <ArrowLeft
+                  size={16}
+                  stroke={theme.colors.secondaryButtonText}
+                />
+              }
+            />
+          </Box>
           <Text variant="header" fontSize={isDesktop ? 32 : 24}>
             {shop.name}
           </Text>
@@ -275,7 +273,11 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         />
       </Box>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+      >
         {/* Shop Meta Stats */}
         <Box
           flexDirection="row"

@@ -85,16 +85,23 @@ export const DesignPatternGallery: React.FC = () => {
     try {
       const cached = localStorage.getItem('cached_design_tile_patterns');
       if (cached) {
-        setPatterns(JSON.parse(cached));
-        setCachedStatus('🟢 Loaded from Local Cache (Offline Ready)');
-      } else {
-        localStorage.setItem(
-          'cached_design_tile_patterns',
-          JSON.stringify(DEFAULT_PATTERNS),
-        );
-        setPatterns(DEFAULT_PATTERNS);
-        setCachedStatus('💾 Saved to Local Cache (Offline Ready)');
+        const parsed = JSON.parse(cached);
+        const hasBrandId =
+          Array.isArray(parsed) && parsed.every((p: any) => p.brandId);
+        if (hasBrandId) {
+          setPatterns(parsed);
+          setCachedStatus('🟢 Loaded from Local Cache (Offline Ready)');
+          return;
+        }
       }
+
+      // If cache is empty or does not have brandId, overwrite/reset cache
+      localStorage.setItem(
+        'cached_design_tile_patterns',
+        JSON.stringify(DEFAULT_PATTERNS),
+      );
+      setPatterns(DEFAULT_PATTERNS);
+      setCachedStatus('💾 Saved to Local Cache (Offline Ready)');
     } catch (e) {
       console.warn(
         'LocalStorage not available, falling back to memory storage',

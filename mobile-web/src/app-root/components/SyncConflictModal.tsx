@@ -149,6 +149,8 @@ const SyncConflictModalContent: React.FC = () => {
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingBottom: 16 }}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
           >
             <Box
               flexDirection="row"

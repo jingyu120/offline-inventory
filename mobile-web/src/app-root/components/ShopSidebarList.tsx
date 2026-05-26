@@ -116,6 +116,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
           paddingBottom: 24,
         }}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {shops.map((s) => {
           const isSelected = selectedShop?.id === s.id;

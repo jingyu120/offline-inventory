@@ -610,7 +610,12 @@ export function InteractionLoggingScreen({
               />
             </Box>
 
-            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={{ flex: 1 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+            >
               {shop && (
                 <Box mb="m">
                   <Card mb="s">

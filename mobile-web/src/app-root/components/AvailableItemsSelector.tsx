@@ -51,7 +51,12 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         onChangeText={setSkuSearch}
       />
       <Box style={{ maxHeight: 150 }} mb="m">
-        <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+        <ScrollView
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        >
           {availableItems.map((item) => {
             const isSelected = selectedItems.find((i) => i.item.id === item.id);
             return (

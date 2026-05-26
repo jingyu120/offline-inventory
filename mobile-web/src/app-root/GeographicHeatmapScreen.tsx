@@ -51,7 +51,7 @@ const loadLeaflet = (callback: () => void) => {
 
 export const GeographicHeatmapScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isDesktop = width >= 768;
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -83,6 +83,13 @@ export const GeographicHeatmapScreen: React.FC = () => {
     regions,
     items,
   } = useGeographicHeatmapData();
+
+  const sheetMaxHeight = isDesktop ? 500 : Math.min(height * 0.6, 440);
+  const legendBottom = selectedShop
+    ? isDesktop
+      ? 280
+      : sheetMaxHeight + 16
+    : 16;
 
   // 1. Load Leaflet Asset Libraries
   useEffect(() => {
@@ -470,15 +477,17 @@ export const GeographicHeatmapScreen: React.FC = () => {
       {/* Collapsible Filter Panel Overlay */}
       {filterVisible && (
         <Box
+          bg="cardBackground"
+          borderColor="borderColor"
+          borderWidth={1}
+          borderRadius="l"
+          p="m"
           style={{
             position: 'absolute',
             top: 56,
             left: 12,
             right: 12,
             zIndex: 1050,
-            backgroundColor: 'rgba(255,255,255,0.97)',
-            borderRadius: 16,
-            padding: 16,
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           }}
         >
@@ -502,21 +511,23 @@ export const GeographicHeatmapScreen: React.FC = () => {
       )}
 
       {/* Map Color Recency Legend (bottom-left) */}
-      <MapLegend bottom={selectedShop ? 280 : 16} />
+      <MapLegend bottom={legendBottom} />
 
       {/* Selected Shop Bottom Sheet */}
       {selectedShop && (
         <Box
+          bg="cardBackground"
+          borderColor="borderColor"
+          borderTopWidth={1}
           style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
             zIndex: 1200,
-            backgroundColor: '#fff',
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
-            maxHeight: 260,
+            maxHeight: sheetMaxHeight,
             boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
             overflow: 'hidden',
           }}
@@ -530,6 +541,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
             allShops={filteredShops}
             onShopSelect={handleShopSelect}
             mapInstance={mapInstance}
+            maxHeight={sheetMaxHeight}
           />
         </Box>
       )}

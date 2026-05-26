@@ -1,5 +1,10 @@
 import React from 'react';
-import { Switch, TouchableOpacity, Platform } from 'react-native';
+import {
+  Switch,
+  TouchableOpacity,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import {
   Box,
   Text,
@@ -43,6 +48,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
   preCacheOfflineMap,
 }) => {
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
   const regionOptions = [
     { label: t('allRegions'), value: '' },
@@ -69,7 +76,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         alignItems="center"
       >
         {/* Region selector */}
-        <Box width="18%" minWidth={140} mb="s">
+        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
           <DropdownSelector
             label={t('region')}
             selectedValue={selectedRegion}
@@ -80,7 +87,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Rep selector */}
-        <Box width="18%" minWidth={140} mb="s">
+        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
           <DropdownSelector
             label={t('salesRep')}
             selectedValue={selectedRep}
@@ -91,7 +98,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* SKU Interest Selector */}
-        <Box width="18%" minWidth={140} mb="s">
+        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
           <DropdownSelector
             label={t('skuInterest')}
             selectedValue={selectedSku}
@@ -106,9 +113,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width="18%"
+          width={isDesktop ? '18%' : '100%'}
           minWidth={140}
-          justifyContent="flex-end"
+          justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
           <Box mr="s">
             <Text variant="body" fontWeight="bold">
@@ -130,9 +137,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
             flexDirection="row"
             alignItems="center"
             mb="s"
-            width="22%"
+            width={isDesktop ? '22%' : '100%'}
             minWidth={160}
-            justifyContent="flex-end"
+            justifyContent={isDesktop ? 'flex-end' : 'flex-start'}
           >
             <TouchableOpacity
               onPress={preCacheOfflineMap}
@@ -142,6 +149,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
                 paddingVertical: 8,
                 paddingHorizontal: 12,
                 borderRadius: 6,
+                flex: isDesktop ? undefined : 1,
+                alignItems: 'center',
               }}
             >
               <Text

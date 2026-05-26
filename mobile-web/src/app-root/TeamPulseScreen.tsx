@@ -14,7 +14,9 @@ import {
   DropdownSelector,
   Table,
   ColumnDef,
+  Theme,
 } from '@burma-inventory/ui-components';
+import { useTheme } from '@shopify/restyle';
 import { useTeamPulseData } from '../hooks/useTeamPulseData';
 import { ComplianceScorecard } from './components/ComplianceScorecard';
 import { VelocityTimeline } from './components/VelocityTimeline';
@@ -25,6 +27,7 @@ import { API_BASE_URL } from '../config';
 
 export const TeamPulseScreen: React.FC = () => {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const {
@@ -59,6 +62,20 @@ export const TeamPulseScreen: React.FC = () => {
 
   const [syncLogs, setSyncLogs] = useState<any[]>([]);
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
+
+  // Focus states for emerald focus rings on inputs
+  const [dateFocused, setDateFocused] = useState(false);
+  const [csvFocused, setCsvFocused] = useState(false);
+
+  /** Shared web-only CSS transition mixin */
+  const webTransition =
+    Platform.OS === 'web'
+      ? ({
+          transitionProperty: 'border-color, border-width',
+          transitionDuration: '150ms',
+          transitionTimingFunction: 'ease-in-out',
+        } as any)
+      : {};
 
   const fetchSyncLogs = async () => {
     setSyncLogsLoading(true);
@@ -167,7 +184,7 @@ export const TeamPulseScreen: React.FC = () => {
   if (loading) {
     return (
       <Box flex={1} justifyContent="center" alignItems="center">
-        <ActivityIndicator size="large" color="#5A31F4" />
+        <ActivityIndicator size="large" color={theme.colors.primaryButton} />
         <Text variant="body" mt="s">
           {t('loadingManagerDashboard')}
         </Text>
@@ -181,7 +198,9 @@ export const TeamPulseScreen: React.FC = () => {
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ padding: isDesktop ? 16 : 12 }}
+      contentContainerStyle={{ padding: 16 }}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
     >
       {/* Header */}
       <Box mb="m">
@@ -233,13 +252,15 @@ export const TeamPulseScreen: React.FC = () => {
       {/* Row 2: AI EOD Digest briefing */}
       <Card p="m" mb="m" bg="cardBackground">
         <Box
-          flexDirection="row"
-          flexWrap="wrap"
-          justifyContent="space-between"
-          alignItems="center"
+          flexDirection={isDesktop ? 'row' : 'column'}
+          alignItems={isDesktop ? 'center' : 'stretch'}
           mb="m"
         >
-          <Box flex={1} mr="m">
+          <Box
+            flex={isDesktop ? 1 : undefined}
+            mr={isDesktop ? 'm' : 'none'}
+            mb={isDesktop ? 'none' : 's'}
+          >
             <Text variant="title">{t('eodDigestTitle')}</Text>
             <Text variant="bodySecondary">{t('eodDigestSubtitle')}</Text>
           </Box>
@@ -247,33 +268,50 @@ export const TeamPulseScreen: React.FC = () => {
           <Box
             flexDirection="row"
             alignItems="center"
-            mt={Platform.OS === 'web' ? 'none' : 's'}
+            mt={isDesktop ? 'none' : 's'}
           >
-            <TextInput
-              value={digestDate}
-              onChangeText={setDigestDate}
-              placeholder="YYYY-MM-DD"
-              style={{
-                padding: 10,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: '#EAEAEA',
-                marginRight: 8,
-                backgroundColor: '#fff',
-                fontSize: 14,
-              }}
-            />
-            <Button
-              title={t('compileDigest')}
-              onPress={triggerEodCompilation}
-              variant="primary"
-            />
+            <Box mr="s">
+              <Text variant="caption" color="secondaryText" mb="xs">
+                Date Filter
+              </Text>
+              <TextInput
+                value={digestDate}
+                onChangeText={setDigestDate}
+                placeholder="YYYY-MM-DD"
+                onFocus={() => setDateFocused(true)}
+                onBlur={() => setDateFocused(false)}
+                style={{
+                  padding: 8,
+                  borderRadius: 8,
+                  borderWidth: dateFocused ? 2 : 1,
+                  borderColor: dateFocused
+                    ? theme.colors.success
+                    : theme.colors.borderColor,
+                  backgroundColor: theme.colors.cardBackground,
+                  fontSize: 14,
+                  fontFamily: 'monospace',
+                  color: theme.colors.primaryText,
+                  minWidth: 120,
+                  ...webTransition,
+                }}
+              />
+            </Box>
+            <Box style={{ alignSelf: 'flex-end' }}>
+              <Button
+                title={t('compileDigest')}
+                onPress={triggerEodCompilation}
+                variant="primary"
+              />
+            </Box>
           </Box>
         </Box>
 
         {loadingDigest ? (
           <Box py="l" justifyContent="center" alignItems="center">
-            <ActivityIndicator size="large" color="#5A31F4" />
+            <ActivityIndicator
+              size="large"
+              color={theme.colors.primaryButton}
+            />
             <Text variant="bodySecondary" mt="s">
               {t('gemmaCompiling')}
             </Text>
@@ -282,9 +320,9 @@ export const TeamPulseScreen: React.FC = () => {
           <Box
             p="m"
             borderRadius="m"
+            bg="brandBg"
             style={{
-              backgroundColor: 'rgba(90, 49, 244, 0.04)',
-              borderColor: 'rgba(90, 49, 244, 0.12)',
+              borderColor: theme.colors.brandBorder,
               borderWidth: 1,
             }}
           >
@@ -303,7 +341,7 @@ export const TeamPulseScreen: React.FC = () => {
               <Text
                 variant="body"
                 fontWeight="bold"
-                style={{ color: '#22C55E' }}
+                style={{ color: theme.colors.success }}
               >
                 {digestResult.topPerformingRep}
               </Text>
@@ -311,12 +349,7 @@ export const TeamPulseScreen: React.FC = () => {
 
             {/* AI Curated Market Synthesis */}
             <Box mb="m">
-              <Text
-                variant="body"
-                fontWeight="bold"
-                style={{ color: '#5A31F4' }}
-                mb="s"
-              >
+              <Text variant="body" fontWeight="bold" color="brand" mb="s">
                 {t('aiMarketBriefingSummary')}
               </Text>
               <Text variant="bodySecondary" style={{ lineHeight: 22 }}>
@@ -330,7 +363,7 @@ export const TeamPulseScreen: React.FC = () => {
                 <Text
                   variant="body"
                   fontWeight="bold"
-                  style={{ color: '#FF3B30' }}
+                  style={{ color: theme.colors.danger }}
                   mb="s"
                 >
                   {t('complianceViolationsLogged')}
@@ -339,7 +372,7 @@ export const TeamPulseScreen: React.FC = () => {
                   <Text
                     key={idx}
                     variant="bodySecondary"
-                    style={{ color: '#C23229' }}
+                    style={{ color: theme.colors.dangerText }}
                     mb="xs"
                   >
                     ⚠️ {w}
@@ -369,12 +402,7 @@ export const TeamPulseScreen: React.FC = () => {
       {/* Row 3: Buying Forecast & Quota Optimizations */}
       <Box flexDirection="row" flexWrap="wrap">
         {/* SKU Buying Forecasts */}
-        <Box
-          flex={1}
-          minWidth={320}
-          mr={Platform.OS === 'web' ? 'm' : 'none'}
-          mb="m"
-        >
+        <Box flex={1} minWidth={320} mr={isDesktop ? 'm' : 'none'} mb="m">
           <Card p="m" bg="cardBackground" height="100%">
             <Text variant="title" mb="s">
               {t('gemmaDemandForecast')}
@@ -413,7 +441,7 @@ export const TeamPulseScreen: React.FC = () => {
                   <Text
                     variant="body"
                     fontWeight="bold"
-                    style={{ color: '#22C55E' }}
+                    style={{ color: theme.colors.success }}
                   >
                     {t('probValue').replace('{prob}', '85')}
                   </Text>
@@ -437,7 +465,7 @@ export const TeamPulseScreen: React.FC = () => {
                   <Text
                     variant="body"
                     fontWeight="bold"
-                    style={{ color: '#EAB308' }}
+                    style={{ color: theme.colors.warning }}
                   >
                     {t('probValue').replace('{prob}', '60')}
                   </Text>
@@ -450,11 +478,7 @@ export const TeamPulseScreen: React.FC = () => {
                     </Text>
                     <Text variant="bodySecondary">{t('trendRainySpike')}</Text>
                   </Box>
-                  <Text
-                    variant="body"
-                    fontWeight="bold"
-                    style={{ color: '#A0A0A0' }}
-                  >
+                  <Text variant="body" fontWeight="bold" color="secondaryText">
                     {t('probValue').replace('{prob}', '40')}
                   </Text>
                 </Box>
@@ -477,7 +501,10 @@ export const TeamPulseScreen: React.FC = () => {
 
             {optimizationsLoading ? (
               <Box py="m" justifyContent="center" alignItems="center">
-                <ActivityIndicator size="small" color="#5A31F4" />
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.primaryButton}
+                />
               </Box>
             ) : (
               <Box>
@@ -486,7 +513,7 @@ export const TeamPulseScreen: React.FC = () => {
                     key={idx}
                     mb="m"
                     borderLeftWidth={3}
-                    style={{ borderLeftColor: '#5A31F4' }}
+                    style={{ borderLeftColor: theme.colors.brand }}
                     pl="s"
                   >
                     <Box
@@ -497,11 +524,7 @@ export const TeamPulseScreen: React.FC = () => {
                       <Text variant="body" fontWeight="bold">
                         {opt.region}
                       </Text>
-                      <Text
-                        variant="body"
-                        fontWeight="bold"
-                        style={{ color: '#5A31F4' }}
-                      >
+                      <Text variant="body" fontWeight="bold" color="brand">
                         {t('quotaDailySuggested')
                           .replace('{current}', opt.currentQuota.toString())
                           .replace(
@@ -550,19 +573,30 @@ export const TeamPulseScreen: React.FC = () => {
           value={csvText}
           onChangeText={setCsvText}
           placeholder={`Name,Address,Region,Division,ContactName,PhoneNumber,Email,PriceTier,LifetimeValue\nCity Mart Hledan,Yangon,Yangon Division,U Hla,0912345678,hledan@citymart.com.mm,Retailer,5000`}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.colors.secondaryText}
+          onFocus={() => setCsvFocused(true)}
+          onBlur={() => setCsvFocused(false)}
           style={{
             minHeight: 120,
             padding: 12,
-            borderColor: '#CBD5E1',
-            borderWidth: 1,
+            borderColor: csvFocused
+              ? theme.colors.success
+              : theme.colors.slate300,
+            borderWidth: csvFocused ? 2 : 1,
             borderRadius: 8,
-            backgroundColor: '#F8FAFC',
+            backgroundColor: theme.colors.mainBackground,
             fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
             fontSize: 13,
-            color: '#0F172A',
+            color: theme.colors.primaryText,
             textAlignVertical: 'top',
             marginBottom: 12,
+            ...(Platform.OS === 'web'
+              ? ({
+                  transitionProperty: 'border-color, border-width',
+                  transitionDuration: '150ms',
+                  outlineStyle: 'none',
+                } as any)
+              : {}),
           }}
         />
 
@@ -647,7 +681,11 @@ export const TeamPulseScreen: React.FC = () => {
                     >
                       Warnings:
                     </Text>
-                    <ScrollView style={{ maxHeight: 100 }}>
+                    <ScrollView
+                      style={{ maxHeight: 100 }}
+                      showsVerticalScrollIndicator={false}
+                      showsHorizontalScrollIndicator={false}
+                    >
                       {importResult.warnings.map((w, idx) => (
                         <Text
                           key={idx}
@@ -705,7 +743,10 @@ export const TeamPulseScreen: React.FC = () => {
 
         {syncLogsLoading && syncLogs.length === 0 ? (
           <Box py="l" justifyContent="center" alignItems="center">
-            <ActivityIndicator size="small" color="#5A31F4" />
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.primaryButton}
+            />
           </Box>
         ) : syncLogs.length === 0 ? (
           <Box

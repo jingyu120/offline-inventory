@@ -53,11 +53,13 @@ export const NavBar: React.FC<NavBarProps> = ({
       position="relative"
       zIndex={10000}
     >
-      <Box flexDirection="row" alignItems="center">
+      <Box flexDirection="row" alignItems="center" flex={1} overflow="hidden">
         <Text
           variant="title"
           fontWeight="bold"
           style={{ color: '#5A31F4', fontSize: isDesktop ? 20 : 16 }}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
           🇲🇲 {t('title')}
         </Text>
@@ -78,7 +80,7 @@ export const NavBar: React.FC<NavBarProps> = ({
               paddingHorizontal: isDesktop ? 12 : 8,
               borderRadius: 16,
               backgroundColor: '#5A31F4',
-              marginRight: isDesktop ? 12 : 8,
+              marginRight: isDesktop ? 12 : 10,
               flexDirection: 'row',
               alignItems: 'center',
             }}
@@ -93,7 +95,7 @@ export const NavBar: React.FC<NavBarProps> = ({
               👤{' '}
               {isDesktop
                 ? `${activeRep.name} (${activeRep.role.toUpperCase()})`
-                : activeRep.name.split(' ')[0]}
+                : activeRep.name}
             </Text>
             <ChevronDown size={12} stroke="#fff" style={{ marginLeft: 4 }} />
           </TouchableOpacity>
@@ -158,17 +160,31 @@ export const NavBar: React.FC<NavBarProps> = ({
         {/* Language Toggle Button */}
         <TouchableOpacity
           onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
-          style={{
-            paddingVertical: 6,
-            paddingHorizontal: isDesktop ? 12 : 8,
-            borderRadius: 16,
-            backgroundColor: themeMode === 'light' ? '#E2E8F0' : '#475569',
-            marginRight: isDesktop ? 12 : 8,
-          }}
+          style={
+            isDesktop
+              ? {
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  backgroundColor:
+                    themeMode === 'light' ? '#E2E8F0' : '#475569',
+                  marginRight: 12,
+                }
+              : {
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor:
+                    themeMode === 'light' ? '#E2E8F0' : '#475569',
+                  marginRight: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }
+          }
         >
           <Text
             style={{
-              fontSize: 12,
+              fontSize: isDesktop ? 12 : 14,
               color: themeMode === 'light' ? '#1E293B' : '#F1F5F9',
               fontWeight: 'bold',
             }}
@@ -180,17 +196,30 @@ export const NavBar: React.FC<NavBarProps> = ({
         {/* Theme Toggle Button */}
         <TouchableOpacity
           onPress={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-          style={{
-            paddingVertical: 6,
-            paddingHorizontal: isDesktop ? 12 : 8,
-            borderRadius: 16,
-            backgroundColor: themeMode === 'light' ? '#CBD5E1' : '#334155',
-            marginRight: isDesktop ? 16 : 0,
-          }}
+          style={
+            isDesktop
+              ? {
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  backgroundColor:
+                    themeMode === 'light' ? '#CBD5E1' : '#334155',
+                  marginRight: 16,
+                }
+              : {
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor:
+                    themeMode === 'light' ? '#CBD5E1' : '#334155',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }
+          }
         >
           <Text
             style={{
-              fontSize: 12,
+              fontSize: isDesktop ? 12 : 14,
               color: themeMode === 'light' ? '#1E293B' : '#F1F5F9',
             }}
           >

@@ -7,6 +7,11 @@ const palette = {
   brandDark: '#3730A3', // Indigo 800
   brandAccent: '#818CF8', // Indigo 400
 
+  // Brand Vivid Purple (product accent — distinct from indigo)
+  brand: '#5A31F4',
+  brandBgSubtle: 'rgba(90, 49, 244, 0.06)',
+  brandBorderSubtle: 'rgba(90, 49, 244, 0.15)',
+
   // Neutral Slate scale
   slate50: '#F8FAFC',
   slate100: '#F1F5F9',
@@ -74,6 +79,11 @@ export const theme = createTheme({
     pureWhite: palette.pureWhite,
     slate200: palette.slate200,
     slate300: palette.slate300,
+
+    // Brand vivid purple semantic tokens
+    brand: palette.brand,
+    brandBg: palette.brandBgSubtle,
+    brandBorder: palette.brandBorderSubtle,
   },
   spacing: {
     none: 0,
@@ -142,6 +152,19 @@ export const theme = createTheme({
       fontSize: 12,
       color: 'errorText',
     },
+    // Large KPI numeric display (28px bold)
+    kpi: {
+      fontWeight: 'bold',
+      fontSize: 28,
+      lineHeight: 34,
+      color: 'primaryText',
+    },
+    // Extra-small label / badge caption (11px)
+    caption: {
+      fontSize: 11,
+      lineHeight: 16,
+      color: 'secondaryText',
+    },
     defaults: {
       fontSize: 15,
       color: 'primaryText',
@@ -162,6 +185,10 @@ export const darkTheme = {
     primaryButton: palette.brandAccent,
     secondaryButton: palette.slate700,
     secondaryButtonText: palette.slate200,
+    // brand purple stays vivid in dark mode
+    brand: palette.brand,
+    brandBg: 'rgba(90, 49, 244, 0.12)',
+    brandBorder: 'rgba(90, 49, 244, 0.25)',
   },
 };
 

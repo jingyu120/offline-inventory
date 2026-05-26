@@ -17,6 +17,7 @@ interface MapDetailPaneProps {
   allShops: ProcessedShop[];
   onShopSelect: (shop: ProcessedShop) => void;
   mapInstance: any;
+  maxHeight?: any;
 }
 
 const getBubbleRadius = (ltv: number) => {
@@ -34,6 +35,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   allShops,
   onShopSelect,
   mapInstance,
+  maxHeight,
 }) => {
   const { t } = useTranslation();
   const [viewingShop, setViewingShop] = React.useState<ProcessedShop | null>(
@@ -137,7 +139,11 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
 
   if (!activeShop) {
     return (
-      <ScrollView style={{ maxHeight: 500 }}>
+      <ScrollView
+        style={{ maxHeight: maxHeight ?? 500 }}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+      >
         <Card p="m" bg="cardBackground">
           <Box
             flexDirection="row"
@@ -163,7 +169,6 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
               key={shop.id}
               onPress={() => {
                 setViewingShop(shop);
-                onShopSelect(shop);
               }}
               style={{ cursor: 'pointer' } as any}
             >
@@ -193,7 +198,11 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   }
 
   return (
-    <ScrollView style={{ maxHeight: 500 }}>
+    <ScrollView
+      style={{ maxHeight: maxHeight ?? 500 }}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+    >
       <Card p="m" bg="cardBackground">
         {/* Back Button if overlapping */}
         {overlappingShops.length > 1 && (

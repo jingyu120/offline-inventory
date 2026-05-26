@@ -1,6 +1,5 @@
 Sales Database for Tracking Shops & Projects
 
-
 Problem:
 Data fragmentation
 The marketing & sales team manages store relationships, order history, and market intelligence manually across fragmented Excel sheets, personal notebooks, and chaotic instant messaging group chats. They submit a daily report of which stops they followed up with and what stops they sold to into a groupchat in Viber. Critical market news, customer friction points, and product interest are buried and lost in chat histories.
@@ -25,9 +24,6 @@ Use Case 4 (The Offline Logging): A rep visits a shop or makes a call during an 
 Proposed Solution:
 A lightweight, mobile-responsive software system that acts as the single source of truth for the marketing team. Built with an Offline-First Architecture, the solution comprises a friction-free data entry form for reps that queues logs locally during network drops, integrates directly with Viber workflows, visualizes data via an interactive geographic "Relationship Heatmap" dashboard for management, and feeds an automated daily supervisor oversight engine.
 
-
-
-
 Goals:
 Adoption Goal: Limit log entry time to under 30 seconds to ensure the team adopts the platform over Excel/group chats.
 Data Integrity Goal: All product interest and transaction volumes must link to centralized SKUs—eliminating manual text entry for products.
@@ -50,7 +46,7 @@ Visual Queue Status Indicator: The mobile interface must feature a small header 
 Local Input Stamping: When operating offline, the app must capture timestamps based on the device's internal clock at the exact millisecond the rep hits "Save." This guarantees that velocity reporting remains accurate, even if the actual cloud upload happens hours later.
 
 Module 3: Viber Integration & Chat Sync (Myanmar Market Specific)
-Proof of Interaction (Chat Screenshot Upload): For Viber-based follow-ups, a mandatory image upload field titled "Viber Interaction Proof" is enabled. Reps upload a quick screenshot of the latest exchange or sent quotation. These are stored directly in the chronological note feed for management to audit. 
+Proof of Interaction (Chat Screenshot Upload): For Viber-based follow-ups, a mandatory image upload field titled "Viber Interaction Proof" is enabled. Reps upload a quick screenshot of the latest exchange or sent quotation. These are stored directly in the chronological note feed for management to audit.
 Viber Deep-Linking: Inside both the manager and rep views, clicking a shop profile displays a "Launch Viber Chat" button. This uses Viber’s URI schema (viber://chat?number=[Phone_Number]) to instantly open the Viber app directly to that specific shop owner’s chat thread.
 Module 4: The Relationship Heatmap Dashboard (Desktop)
 The Dot Matrix (Recency & Potential): An interactive map interface plotting all shops using a traffic-light bubble system:
@@ -68,7 +64,7 @@ The Velocity Timeline: A linear visualization showing when entries were submitte
 Automated EOD Digest: At 8:00 PM daily, the system compiles and emails a summary report to management detailing quota compliance per rep, total volume sold, and High-Priority Market Intel notes.
 
 Technical & Data Constraints:
-Image Compression: The system must automatically compress uploaded Viber screenshots to a maximum of 200KB before saving to local cache or cloud to preserve device storage and regional network bandwidth. 
+Image Compression: The system must automatically compress uploaded Viber screenshots to a maximum of 200KB before saving to local cache or cloud to preserve device storage and regional network bandwidth.
 Immutable Logs: Once an interaction log is saved, the rep cannot edit or delete the timestamp or core log details.
 Automated Metadata Capture: The backend must silently capture the following tracking fields for every submission:
 
@@ -109,6 +105,3 @@ Contact ID
 Name
 Phone Number
 Email
-
-
-

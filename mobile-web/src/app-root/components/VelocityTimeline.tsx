@@ -135,7 +135,11 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
       )}
 
       {/* Logs timeline list */}
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
         {stats.logs.map((log, index) => {
           return (
             <Box

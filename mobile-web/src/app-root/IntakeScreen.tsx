@@ -212,7 +212,11 @@ export function IntakeScreen() {
         </TouchableOpacity>
       </Box>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+      >
         {/* New Item Form Card */}
         <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
           <Text variant="title" mb="m">
