@@ -185,9 +185,9 @@ export const NavBar: React.FC<NavBarProps> = ({
                       paddingVertical: 8,
                       paddingHorizontal: 12,
                       backgroundColor: isSelected
-                        ? 'rgba(90, 49, 244, 0.08)'
+                        ? activeTheme.colors.brandBg
                         : hovered
-                          ? 'rgba(0, 0, 0, 0.04)'
+                          ? activeTheme.colors.secondaryBackground
                           : 'transparent',
                       borderRadius: 4,
                       marginBottom: 2,
@@ -456,9 +456,9 @@ export const NavBar: React.FC<NavBarProps> = ({
                           paddingVertical: 8,
                           paddingHorizontal: 12,
                           backgroundColor: isSelected
-                            ? 'rgba(90, 49, 244, 0.08)'
+                            ? activeTheme.colors.brandBg
                             : hovered
-                              ? 'rgba(0, 0, 0, 0.04)'
+                              ? activeTheme.colors.secondaryBackground
                               : 'transparent',
                           borderRadius: 6,
                           marginBottom: 2,

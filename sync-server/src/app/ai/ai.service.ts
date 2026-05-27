@@ -120,7 +120,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
 
     const [response, err] = await guardAsync(requestPromise);
     if (err) {
-      this.logger.warn(
+      this.logger.debug(
         `Ollama dispatch failed: ${(err as any).message || err}`,
       );
       return null;

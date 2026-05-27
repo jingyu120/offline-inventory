@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, ActivityIndicator, Pressable } from 'react-native';
-import { Box, Text, Card, Button } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
+import { useTheme } from '@shopify/restyle';
 import { ProcessedShop } from '../../../hooks/useGeographicHeatmapData';
 import { Contact } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../utils/i18n';
@@ -38,6 +39,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   maxHeight,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
   const [viewingShop, setViewingShop] = React.useState<ProcessedShop | null>(
     null,
   );
@@ -280,8 +282,8 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
           borderRadius="m"
           borderWidth={1}
           style={{
-            backgroundColor: 'rgba(90, 49, 244, 0.05)',
-            borderColor: 'rgba(90, 49, 244, 0.15)',
+            backgroundColor: theme.colors.brandBg,
+            borderColor: theme.colors.brandBorder,
           }}
         >
           <Box

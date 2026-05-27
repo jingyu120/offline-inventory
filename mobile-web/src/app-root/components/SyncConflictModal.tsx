@@ -128,7 +128,7 @@ const SyncConflictModalContent: React.FC = () => {
         >
           {/* Header */}
           <Box mb="m" borderBottomWidth={1} borderColor="borderColor" pb="s">
-            <Text variant="title" style={{ color: '#EF4444' }}>
+            <Text variant="title" style={{ color: theme.colors.dangerText }}>
               ⚠️ {t('syncConflictTitle')}
             </Text>
             <Text variant="bodySecondary" mt="xs">
@@ -169,7 +169,7 @@ const SyncConflictModalContent: React.FC = () => {
                 borderRadius="m"
                 borderWidth={1.5}
                 borderColor="primaryButton"
-                style={{ backgroundColor: 'rgba(79, 70, 229, 0.03)' }}
+                style={{ backgroundColor: theme.colors.brandBg }}
                 mb="m"
               >
                 <Text
@@ -198,7 +198,7 @@ const SyncConflictModalContent: React.FC = () => {
                 borderRadius="m"
                 borderWidth={1.5}
                 borderColor="success"
-                style={{ backgroundColor: 'rgba(16, 185, 129, 0.03)' }}
+                style={{ backgroundColor: theme.colors.successBg }}
                 mb="m"
               >
                 <Text variant="body" fontWeight="bold" color="success" mb="m">

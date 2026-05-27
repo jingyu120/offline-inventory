@@ -184,7 +184,7 @@ export const darkTheme = {
   colors: {
     ...theme.colors,
     mainBackground: palette.slate900,
-    secondaryBackground: palette.slate800,
+    secondaryBackground: palette.slate700,
     cardBackground: palette.slate800,
     primaryText: palette.pureWhite,
     secondaryText: palette.slate400,
@@ -196,6 +196,29 @@ export const darkTheme = {
     brand: palette.brand,
     brandBg: 'rgba(90, 49, 244, 0.12)',
     brandBorder: 'rgba(90, 49, 244, 0.25)',
+
+    // Dark theme status overrides
+    success: '#34D399',
+    successBg: 'rgba(16, 185, 129, 0.16)',
+    successLight: 'rgba(16, 185, 129, 0.16)',
+    successText: '#34D399',
+
+    warning: '#FBBF24',
+    warningBg: 'rgba(245, 158, 11, 0.16)',
+    warningLight: 'rgba(245, 158, 11, 0.16)',
+    warningText: '#FBBF24',
+
+    danger: '#F87171',
+    dangerBg: 'rgba(239, 68, 68, 0.16)',
+    dangerLight: 'rgba(239, 68, 68, 0.16)',
+    dangerText: '#F87171',
+
+    info: '#38BDF8',
+    infoBg: 'rgba(2, 132, 199, 0.16)',
+    infoText: '#38BDF8',
+
+    errorText: '#F87171',
+    errorBackground: 'rgba(239, 68, 68, 0.16)',
   },
 };
 

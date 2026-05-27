@@ -15,9 +15,15 @@ export interface TableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   keyExtractor: (item: T) => string;
+  minWidth?: number | string;
 }
 
-export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
+export function Table<T>({
+  data,
+  columns,
+  keyExtractor,
+  minWidth = 600,
+}: TableProps<T>) {
   const renderHeader = () => (
     <Box
       flexDirection="row"
@@ -88,7 +94,7 @@ export function Table<T>({ data, columns, keyExtractor }: TableProps<T>) {
     >
       <Box
         flex={1}
-        minWidth={600}
+        minWidth={minWidth as any}
         bg="cardBackground"
         borderRadius="m"
         p="m"

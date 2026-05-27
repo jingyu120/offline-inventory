@@ -32,9 +32,13 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
 
   // SKU demand mock metrics (could be dynamically fetched or computed from logs)
   const skuMetrics = [
-    { label: 'Premium Beer 640ml', value: 85, color: '#4F46E5' },
-    { label: 'Classic Cider 500ml', value: 60, color: '#10B981' },
-    { label: 'Special Stout 320ml', value: 45, color: '#F59E0B' },
+    {
+      label: 'Premium Beer 640ml',
+      value: 85,
+      color: theme.colors.primaryButton,
+    },
+    { label: 'Classic Cider 500ml', value: 60, color: theme.colors.success },
+    { label: 'Special Stout 320ml', value: 45, color: theme.colors.warning },
   ];
 
   // Circular Gauge Calculations
@@ -74,8 +78,8 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
                 height={12}
                 width="100%"
                 borderRadius="s"
+                bg="secondaryBackground"
                 style={{
-                  backgroundColor: 'rgba(0,0,0,0.06)',
                   overflow: 'hidden',
                 }}
               >
@@ -114,7 +118,7 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
                   cy="70"
                   r={radius}
                   fill="transparent"
-                  stroke="rgba(0,0,0,0.06)"
+                  stroke={theme.colors.secondaryBackground}
                   strokeWidth="12"
                 />
                 {/* Foreground Circle */}
@@ -123,7 +127,7 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
                   cy="70"
                   r={radius}
                   fill="transparent"
-                  stroke="#4F46E5"
+                  stroke={theme.colors.primaryButton}
                   strokeWidth="12"
                   strokeDasharray={circumference}
                   strokeDashoffset={strokeDashoffset}

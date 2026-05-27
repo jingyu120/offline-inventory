@@ -127,18 +127,17 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
               })}
             </ScrollView>
 
-            <TouchableOpacity
-              onPress={() => setIsOpen(false)}
-              style={styles.closeBtn}
-            >
-              <Text
-                variant="body"
-                fontWeight="bold"
-                color="danger"
-                textAlign="center"
-              >
-                Cancel
-              </Text>
+            <TouchableOpacity onPress={() => setIsOpen(false)}>
+              <Box borderTopWidth={1} borderColor="borderColor" mt="m" pt="s">
+                <Text
+                  variant="body"
+                  fontWeight="bold"
+                  color="danger"
+                  textAlign="center"
+                >
+                  Cancel
+                </Text>
+              </Box>
             </TouchableOpacity>
           </Card>
         </TouchableOpacity>
@@ -161,11 +160,5 @@ const styles = StyleSheet.create({
   },
   scrollStyle: {
     marginVertical: 8,
-  },
-  closeBtn: {
-    marginTop: 12,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
   },
 });
