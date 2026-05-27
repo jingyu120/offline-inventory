@@ -8,24 +8,24 @@ import {
   getThemeForLanguage,
   Box,
 } from '@burma-inventory/ui-components';
-import { ShopLedgerScreen } from './ShopLedgerScreen';
-import { GeographicHeatmapScreen } from './admin/GeographicHeatmapScreen';
-import { TeamPulseScreen } from './admin/TeamPulseScreen';
-import { IntakeScreen } from './IntakeScreen';
-import { ViberSimulator } from './components/ViberSimulator';
-import { SyncConflictModal } from './components/SyncConflictModal';
-import { ToastProvider } from './components/ToastProvider';
-import { LanguageProvider, useTranslation } from '../utils/i18n';
-import { syncData } from '../sync';
-import { powerSyncDb } from '../database';
+import { ShopLedgerScreen } from '../features/audit/screens/ShopLedgerScreen';
+import { GeographicHeatmapScreen } from '../features/admin/screens/GeographicHeatmapScreen';
+import { TeamPulseScreen } from '../features/admin/screens/TeamPulseScreen';
+import { IntakeScreen } from '../features/inventory/screens/IntakeScreen';
+import { ViberSimulator } from '../features/viber/components/ViberSimulator';
+import { SyncConflictModal } from '../features/sync/components/SyncConflictModal';
+import { ToastProvider } from '../core/components/ToastProvider';
+import { LanguageProvider, useTranslation } from '../core/i18n/i18n';
+import { syncData } from '../features/sync/sync';
+import { powerSyncDb } from '../core/database/database';
 import { useWindowDimensions, Platform, Alert } from 'react-native';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
-import { ImageUploadQueue } from '../utils/ImageUploadQueue';
-import { AuthProvider, useAuth } from '../utils/auth';
-import { NavBar, ROLE_SCREENS } from './components/NavBar';
-import { BottomTabBar } from './components/BottomTabBar';
-import { SyncStatusBar } from './components/SyncStatusBar';
+import { ImageUploadQueue } from '../features/sync/ImageUploadQueue';
+import { AuthProvider, useAuth } from '../core/auth/auth';
+import { NavBar, ROLE_SCREENS } from '../core/components/NavBar';
+import { BottomTabBar } from '../core/components/BottomTabBar';
+import { SyncStatusBar } from '../features/sync/components/SyncStatusBar';
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
