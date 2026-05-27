@@ -47,28 +47,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const getBorderColor = (type: ToastType) => {
-    switch (type) {
-      case 'success':
-        return '#10B981';
-      case 'warning':
-        return '#F59E0B';
-      case 'error':
-        return '#EF4444';
-    }
-  };
-
-  const getBgColor = (type: ToastType) => {
-    switch (type) {
-      case 'success':
-        return 'rgba(16, 185, 129, 0.1)';
-      case 'warning':
-        return 'rgba(245, 158, 11, 0.1)';
-      case 'error':
-        return 'rgba(239, 68, 68, 0.1)';
-    }
-  };
-
   const getEmoji = (type: ToastType) => {
     switch (type) {
       case 'success':
@@ -85,54 +63,61 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
       {/* Toast container floating at bottom-right on web / bottom on mobile */}
       <View style={[styles.container, !isDesktop && { bottom: 80 }]}>
-        {toasts.map((toast) => (
-          <TouchableOpacity
-            key={toast.id}
-            onPress={() => handleDismiss(toast.id)}
-            activeOpacity={0.9}
-          >
-            <Box
-              p="m"
-              mb="s"
-              borderRadius="m"
-              borderWidth={1.5}
-              style={
-                {
-                  borderColor: getBorderColor(toast.type),
-                  backgroundColor: getBgColor(toast.type),
-                  ...(Platform.OS === 'web'
-                    ? { boxShadow: '0px 4px 8px rgba(0,0,0,0.10)' }
-                    : {
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 8,
-                      }),
-                  elevation: 4,
-                  backdropFilter: 'blur(8px)', // Glassmorphism
-                  minWidth: 280,
-                  maxWidth: 400,
-                } as any
-              }
-              flexDirection="row"
-              alignItems="center"
+        {toasts.map((toast) => {
+          const borderThemeColor =
+            toast.type === 'error' ? 'danger' : toast.type;
+          const bgThemeColor =
+            toast.type === 'error' ? 'dangerBg' : (`${toast.type}Bg` as const);
+
+          return (
+            <TouchableOpacity
+              key={toast.id}
+              onPress={() => handleDismiss(toast.id)}
+              activeOpacity={0.9}
             >
-              <Text fontSize={18} style={{ marginRight: 10 }}>
-                {getEmoji(toast.type)}
-              </Text>
-              <Box style={{ flex: 1 }}>
-                <Text
-                  variant="body"
-                  fontSize={13}
-                  fontWeight="semibold"
-                  color="primaryText"
-                >
-                  {toast.message}
+              <Box
+                p="m"
+                mb="s"
+                borderRadius="m"
+                borderWidth={1.5}
+                borderColor={borderThemeColor}
+                bg={bgThemeColor}
+                flexDirection="row"
+                alignItems="center"
+                style={
+                  {
+                    ...(Platform.OS === 'web'
+                      ? { boxShadow: '0px 4px 8px rgba(0,0,0,0.10)' }
+                      : {
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 8,
+                        }),
+                    elevation: 4,
+                    backdropFilter: 'blur(8px)', // Glassmorphism
+                    minWidth: 280,
+                    maxWidth: 400,
+                  } as any
+                }
+              >
+                <Text fontSize={18} style={{ marginRight: 10 }}>
+                  {getEmoji(toast.type)}
                 </Text>
+                <Box style={{ flex: 1 }}>
+                  <Text
+                    variant="body"
+                    fontSize={13}
+                    fontWeight="semibold"
+                    color="primaryText"
+                  >
+                    {toast.message}
+                  </Text>
+                </Box>
               </Box>
-            </Box>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </ToastContext.Provider>
   );

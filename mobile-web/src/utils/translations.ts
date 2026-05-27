@@ -357,6 +357,10 @@ export const translations = {
     backToList: '← Back to list',
     offlinePending: 'Offline - Pending changes',
     synced: 'Synced',
+    tabCheckIn: 'Check-In',
+    tabHistory: 'History',
+    tabAiInsights: 'AI Insights',
+    tabScorecard: 'Scorecard',
   },
   my: {
     title: 'မြန်မာ ကုန်ပစ္စည်း စာရင်း',
@@ -737,5 +741,9 @@ export const translations = {
     backToList: '← စာရင်းသို့ ပြန်သွားရန်',
     offlinePending: 'အော့ဖ်လိုင်း - ပြင်ဆင်ရန်စောင့်ဆိုင်းနေသောဒေတာများ',
     synced: 'ချိတ်ဆက်ပြီးပါပြီ',
+    tabCheckIn: 'ချက်အင်ဝင်ရန်',
+    tabHistory: 'မှတ်တမ်း',
+    tabAiInsights: 'AI ဆန်းစစ်ချက်',
+    tabScorecard: 'စွမ်းဆောင်ရည်',
   },
 };

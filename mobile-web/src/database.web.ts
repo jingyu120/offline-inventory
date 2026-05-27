@@ -168,6 +168,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         id TEXT PRIMARY KEY NOT NULL,
         item_id TEXT NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
+        pending_allocation_count INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -199,6 +200,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         selected_currency TEXT NOT NULL DEFAULT 'MMK',
         selected_unit TEXT NOT NULL DEFAULT 'PCS',
         stock_condition TEXT NOT NULL DEFAULT 'GOOD',
+        pending_allocation_count INTEGER NOT NULL DEFAULT 0,
+        fulfillment_status TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -358,6 +361,21 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
       "TEXT NOT NULL DEFAULT 'GOOD'",
     );
     alterTable('interaction_logs', 'project_id', 'TEXT');
+    alterTable(
+      'item_stocks',
+      'pending_allocation_count',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
+    alterTable(
+      'interaction_items',
+      'pending_allocation_count',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
+    alterTable(
+      'interaction_items',
+      'fulfillment_status',
+      "TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT'",
+    );
 
     // Check if shops table is empty
     let isEmpty = true;

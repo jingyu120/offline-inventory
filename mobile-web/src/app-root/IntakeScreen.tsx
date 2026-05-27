@@ -4,6 +4,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import {
   Box,
@@ -40,6 +41,8 @@ interface ExtendedItem extends Item {
 export function IntakeScreen() {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [items, setItems] = useState<ExtendedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -234,7 +237,7 @@ export function IntakeScreen() {
             flexWrap="wrap"
             style={{ marginHorizontal: -8 }}
           >
-            <Box width="50%" px="s">
+            <Box width={isDesktop ? '50%' : '100%'} px="s">
               <TextField
                 label={t('skuCode')}
                 value={sku}
@@ -243,7 +246,7 @@ export function IntakeScreen() {
               />
             </Box>
 
-            <Box width="50%" px="s">
+            <Box width={isDesktop ? '50%' : '100%'} px="s">
               <TextField
                 label={t('productName')}
                 value={name}
@@ -252,7 +255,7 @@ export function IntakeScreen() {
               />
             </Box>
 
-            <Box width="33.3%" px="s">
+            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
               <TextField
                 label={t('priceMmk')}
                 value={unitPrice}
@@ -262,7 +265,7 @@ export function IntakeScreen() {
               />
             </Box>
 
-            <Box width="33.3%" px="s">
+            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
               <TextField
                 label={t('category')}
                 value={category}
@@ -271,7 +274,7 @@ export function IntakeScreen() {
               />
             </Box>
 
-            <Box width="33.3%" px="s">
+            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
               <TextField
                 label={t('initialStockQty')}
                 value={initialStock}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, Pressable, Platform } from 'react-native';
 import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Shop, Contact, sqliteSchema } from '@burma-inventory/shared-types';
@@ -53,6 +53,9 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   const [recommendedItem, setRecommendedItem] = React.useState<any>(null);
   const [repScore, setRepScore] = React.useState<any>(null);
   const [pointsLogs, setPointsLogs] = React.useState<any[]>([]);
+  const [activeMobileTab, setActiveMobileTab] = React.useState<
+    'checkin' | 'history' | 'ai_insights' | 'scorecard'
+  >('checkin');
 
   const mapRepScore = (s: any) => ({
     id: s.id,
@@ -228,16 +231,84 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     );
   };
 
+  const renderMobileTabBar = () => {
+    return (
+      <Box
+        flexDirection="row"
+        bg="secondaryBackground"
+        borderRadius="m"
+        p="xs"
+        mb="m"
+      >
+        {(['checkin', 'history', 'ai_insights', 'scorecard'] as const).map(
+          (tab) => {
+            const isActive = activeMobileTab === tab;
+            const labelKeys = {
+              checkin: 'tabCheckIn',
+              history: 'tabHistory',
+              ai_insights: 'tabAiInsights',
+              scorecard: 'tabScorecard',
+            } as const;
+            const labelKey = labelKeys[tab];
+
+            return (
+              <Pressable
+                key={tab}
+                onPress={() => setActiveMobileTab(tab)}
+                style={{ flex: 1 }}
+              >
+                <Box
+                  bg={isActive ? 'cardBackground' : 'transparent'}
+                  py="s"
+                  borderRadius="s"
+                  alignItems="center"
+                  justifyContent="center"
+                  style={
+                    isActive
+                      ? Platform.OS === 'web'
+                        ? { boxShadow: '0px 1px 3px rgba(0,0,0,0.1)' }
+                        : {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 1,
+                          }
+                      : undefined
+                  }
+                >
+                  <Text
+                    variant="bodySecondary"
+                    fontWeight="bold"
+                    color={isActive ? 'primaryText' : 'secondaryText'}
+                    style={{ fontSize: 12 }}
+                  >
+                    {t(labelKey)}
+                  </Text>
+                </Box>
+              </Pressable>
+            );
+          },
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Box flex={1} bg="mainBackground" p="m">
       <Box
-        flexDirection="row"
+        flexDirection={isDesktop ? 'row' : 'column'}
         justifyContent="space-between"
-        alignItems="center"
+        alignItems={isDesktop ? 'center' : 'stretch'}
         mb="m"
+        style={!isDesktop ? { gap: 12 } : undefined}
       >
-        <Box flexDirection="row" alignItems="center">
-          <Box mr="s">
+        <Box
+          flexDirection="row"
+          alignItems="center"
+          flexWrap="wrap"
+          style={{ flex: 1, gap: 8 }}
+        >
+          <Box>
             <Button
               title={isDesktop ? t('backToOverview') : t('back')}
               onPress={() => setSelectedShop(null)}
@@ -262,7 +333,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
             {shop.name}
           </Text>
           {hasPlannedRoute && (
-            <Box bg="infoBg" px="s" py="xs" borderRadius="s" ml="s">
+            <Box bg="infoBg" px="s" py="xs" borderRadius="s">
               <Text
                 variant="badge"
                 color="info"
@@ -274,11 +345,13 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
             </Box>
           )}
         </Box>
-        <Button
-          title={t('logInteraction')}
-          onPress={() => onLogInteraction?.(shop)}
-          variant="primary"
-        />
+        <Box style={!isDesktop ? { alignSelf: 'stretch' } : undefined}>
+          <Button
+            title={t('logInteraction')}
+            onPress={() => onLogInteraction?.(shop)}
+            variant="primary"
+          />
+        </Box>
       </Box>
 
       <ScrollView
@@ -286,84 +359,94 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {/* Shop Meta Stats */}
-        <Box
-          flexDirection="row"
-          flexWrap="wrap"
-          style={{ marginHorizontal: -8 }}
-          mb="m"
-        >
-          <Box width={isDesktop ? '33.3%' : '100%'} p="s">
-            <Card flexDirection="row" alignItems="center" p="m">
-              <Box bg="infoBg" p="s" borderRadius="m" mr="m">
-                <MapPin size={20} stroke={theme.colors.info} />
+        {!isDesktop && renderMobileTabBar()}
+
+        {/* Shop Meta Stats, GPS Check-in & Contacts (shown on Desktop, or Mobile Check-In Tab) */}
+        {(isDesktop || activeMobileTab === 'checkin') && (
+          <>
+            <Box
+              flexDirection="row"
+              flexWrap="wrap"
+              style={{ marginHorizontal: -8 }}
+              mb="m"
+            >
+              <Box width={isDesktop ? '33.3%' : '100%'} p="s">
+                <Card flexDirection="row" alignItems="center" p="m">
+                  <Box bg="infoBg" p="s" borderRadius="m" mr="m">
+                    <MapPin size={20} stroke={theme.colors.info} />
+                  </Box>
+                  <Box flex={1}>
+                    <Text variant="bodySecondary">{t('address')}</Text>
+                    <Text variant="body" fontWeight="bold" numberOfLines={2}>
+                      {shop.address || t('noAddress')}
+                    </Text>
+                  </Box>
+                </Card>
               </Box>
-              <Box flex={1}>
-                <Text variant="bodySecondary">{t('address')}</Text>
-                <Text variant="body" fontWeight="bold" numberOfLines={2}>
-                  {shop.address || t('noAddress')}
-                </Text>
+
+              <Box width={isDesktop ? '33.3%' : '50%'} p="s">
+                <Card flexDirection="row" alignItems="center" p="m">
+                  <Box bg="successBg" p="s" borderRadius="m" mr="m">
+                    <DollarSign size={20} stroke={theme.colors.success} />
+                  </Box>
+                  <Box flex={1}>
+                    <Text variant="bodySecondary">{t('lifetimeValue')}</Text>
+                    <Text variant="body" fontWeight="bold">
+                      K{shop.lifetimeValue?.toLocaleString() || '0.00'}
+                    </Text>
+                  </Box>
+                </Card>
               </Box>
-            </Card>
-          </Box>
 
-          <Box width={isDesktop ? '33.3%' : '50%'} p="s">
-            <Card flexDirection="row" alignItems="center" p="m">
-              <Box bg="successBg" p="s" borderRadius="m" mr="m">
-                <DollarSign size={20} stroke={theme.colors.success} />
+              <Box width={isDesktop ? '33.3%' : '50%'} p="s">
+                <Card flexDirection="row" alignItems="center" p="m">
+                  <Box bg="warningBg" p="s" borderRadius="m" mr="m">
+                    <Star size={20} stroke={theme.colors.warning} />
+                  </Box>
+                  <Box flex={1}>
+                    <Text variant="bodySecondary">{t('sentimentTrend')}</Text>
+                    <Box mt="xs" alignItems="flex-start">
+                      {renderTrendBadge(shop.sentimentTrend)}
+                    </Box>
+                  </Box>
+                </Card>
               </Box>
-              <Box flex={1}>
-                <Text variant="bodySecondary">{t('lifetimeValue')}</Text>
-                <Text variant="body" fontWeight="bold">
-                  K{shop.lifetimeValue?.toLocaleString() || '0.00'}
-                </Text>
-              </Box>
-            </Card>
-          </Box>
+            </Box>
 
-          <Box width={isDesktop ? '33.3%' : '50%'} p="s">
-            <Card flexDirection="row" alignItems="center" p="m">
-              <Box bg="warningBg" p="s" borderRadius="m" mr="m">
-                <Star size={20} stroke={theme.colors.warning} />
-              </Box>
-              <Box flex={1}>
-                <Text variant="bodySecondary">{t('sentimentTrend')}</Text>
-                <Box mt="xs" alignItems="flex-start">
-                  {renderTrendBadge(shop.sentimentTrend)}
-                </Box>
-              </Box>
-            </Card>
-          </Box>
-        </Box>
+            <GPSCheckInCard
+              shop={shop}
+              todayCheckIn={todayCheckIn}
+              loadDetails={loadDetails}
+              isDesktop={isDesktop}
+            />
 
-        {/* GPS Check-in */}
-        <GPSCheckInCard
-          shop={shop}
-          todayCheckIn={todayCheckIn}
-          loadDetails={loadDetails}
-          isDesktop={isDesktop}
-        />
+            <ContactsCard shopContacts={shopContacts} isDesktop={isDesktop} />
+          </>
+        )}
 
-        {/* Predictive Analytics & AI Recommendations */}
-        <PredictionAnalyticsCard
-          shop={shop}
-          predictionLog={predictionLog}
-          recommendedOrder={recommendedOrder}
-          recommendedItem={recommendedItem}
-          onLogInteraction={onLogInteraction}
-          historicalNotes={shopLogsWithItems
-            .map((l) => l.log.notes)
-            .filter(Boolean)}
-        />
+        {/* Predictive Analytics & AI Recommendations (shown on Desktop, or Mobile AI Insights Tab) */}
+        {(isDesktop || activeMobileTab === 'ai_insights') && (
+          <PredictionAnalyticsCard
+            shop={shop}
+            predictionLog={predictionLog}
+            recommendedOrder={recommendedOrder}
+            recommendedItem={recommendedItem}
+            onLogInteraction={onLogInteraction}
+            historicalNotes={shopLogsWithItems
+              .map((l) => l.log.notes)
+              .filter(Boolean)}
+          />
+        )}
 
-        {/* Gamification Scorecard */}
-        <RepScorecardCard repScore={repScore} pointsLogs={pointsLogs} />
+        {/* Gamification Scorecard (shown on Desktop, or Mobile Scorecard Tab) */}
+        {(isDesktop || activeMobileTab === 'scorecard') && (
+          <RepScorecardCard repScore={repScore} pointsLogs={pointsLogs} />
+        )}
 
-        {/* Contacts Section */}
-        <ContactsCard shopContacts={shopContacts} isDesktop={isDesktop} />
-
-        {/* Recent Interactions Timeline */}
-        <InteractionsTimeline shopLogsWithItems={shopLogsWithItems} />
+        {/* Recent Interactions Timeline (shown on Desktop, or Mobile History Tab) */}
+        {(isDesktop || activeMobileTab === 'history') && (
+          <InteractionsTimeline shopLogsWithItems={shopLogsWithItems} />
+        )}
       </ScrollView>
     </Box>
   );
