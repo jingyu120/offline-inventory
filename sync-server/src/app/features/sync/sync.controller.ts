@@ -11,8 +11,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SyncService } from './sync.service';
+import { PushChangesPayloadSchema } from '@burma-inventory/shared-types';
 import type { PushChangesBody } from '@burma-inventory/shared-types';
 import { AiService } from '../ai/ai.service';
+import { ZodValidationPipe } from '../../core/pipes/zod-validation.pipe';
 import { AppConfig } from '../../core/config/app-config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname, join } from 'path';
@@ -58,7 +60,8 @@ export class SyncController {
 
   @Post()
   async pushChanges(
-    @Body() body: PushChangesBody & { device_id?: string; user_id?: string },
+    @Body(new ZodValidationPipe(PushChangesPayloadSchema))
+    body: PushChangesBody & { device_id?: string; user_id?: string },
   ) {
     if (!body.changes) {
       return { success: false, error: 'No changes provided' };

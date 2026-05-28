@@ -1,4 +1,5 @@
 const LAST_SYNCED_KEY = 'burma_last_synced_at';
+const ACTIVE_REP_ID_KEY = 'active_rep_id';
 
 export async function getLastSyncedAt(): Promise<number> {
   if (typeof window === 'undefined' || !window.localStorage) return 0;
@@ -25,5 +26,10 @@ export async function getDeviceId(): Promise<string> {
 
 export async function getActiveRepId(): Promise<string | null> {
   if (typeof window === 'undefined' || !window.localStorage) return null;
-  return localStorage.getItem('active_rep_id');
+  return localStorage.getItem(ACTIVE_REP_ID_KEY);
+}
+
+export async function saveActiveRepId(repId: string): Promise<void> {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  localStorage.setItem(ACTIVE_REP_ID_KEY, repId);
 }

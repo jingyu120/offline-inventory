@@ -43,36 +43,15 @@ cmd_wipe() {
 
 cmd_push() {
   ensure_docker
-  # Use docker exec to run SQL directly — avoids Prisma CLI auth issues on macOS
-  # Generate SQL from Prisma schema
-  echo "Applying schema via Prisma..."
+  echo "Applying schema via Drizzle-kit..."
+  DB_URL="postgresql://postgres:postgres@localhost:5433/inventory_db?schema=public"
 
-  # Explicit URL with gssencmode=disable bypasses macOS Kerberos/GSSAPI auth failures
-  DB_URL="postgresql://postgres:postgres@localhost:5433/inventory_db?schema=public&gssencmode=disable"
-
-  npx prisma db push \
-    --schema "$SCHEMA_PATH" \
-    --url "$DB_URL" \
-    --accept-data-loss 2>&1 || {
-    warn "Prisma db push failed (known macOS Kerberos issue)."
-    warn "Falling back to docker exec method..."
-
-    # Generate a migration SQL and apply it via docker exec
-    npx prisma migrate diff \
-      --from-empty \
-      --to-schema "$SCHEMA_PATH" \
-      --url "$DB_URL" \
-      --script \
-      | docker exec -i "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME"
-    log "Schema applied via SQL fallback"
-    return
-  }
-  log "Schema pushed via Prisma"
+  DATABASE_URL="$DB_URL" npx drizzle-kit push --config=drizzle.config.ts --force
+  log "Schema pushed via Drizzle-kit"
 }
 
 cmd_generate() {
-  npx prisma generate --schema "$SCHEMA_PATH"
-  log "Prisma client generated"
+  log "Drizzle does not require code generation step"
 }
 
 cmd_reset() {

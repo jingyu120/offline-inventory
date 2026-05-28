@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Platform, FlatList } from 'react-native';
+import { Pressable, Platform } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import {
   Box,
   Text,
@@ -158,9 +159,10 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
         {t('selectedQuantities')}
       </Text>
 
-      <FlatList
+      <FlashList
         data={selectedItems}
         keyExtractor={(si) => si.item.id}
+        estimatedItemSize={250}
         renderItem={({ item: si }) => {
           const qty = parseInt(si.quantity.toString() || '0', 10);
           const price = Number(si.unitPrice || 0);

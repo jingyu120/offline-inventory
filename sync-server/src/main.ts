@@ -4,6 +4,8 @@ import * as dotenv from 'dotenv';
 // Load .env from monorepo root — single source of truth
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+import './env';
+
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';

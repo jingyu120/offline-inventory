@@ -1,6 +1,6 @@
 import { SYNC_CONFIG } from '../../config/appConfig';
 import { database } from '../../core/database/database';
-import { sqliteSchema } from '@burma-inventory/shared-types';
+import { sqliteSchema, RECORD_SCHEMAS } from '@burma-inventory/shared-types';
 import axios from 'axios';
 import { SYNC_API_URL } from '../../config/appConfig';
 import { eq, inArray, isNull, gt, sql } from 'drizzle-orm';
@@ -29,22 +29,32 @@ async function applyPullChanges(changes: any): Promise<void> {
       }
     }
 
+    const recordSchema = RECORD_SCHEMAS[tableName];
+
     // Apply Creates
     if (typedChangeset.created && typedChangeset.created.length > 0) {
       for (const record of typedChangeset.created) {
+        const validatedRecord = recordSchema
+          ? recordSchema.parse(record)
+          : record;
         // Delete first to prevent primary key conflicts, then insert
-        await database.delete(tableSchema).where(eq(tableSchema.id, record.id));
-        await database.insert(tableSchema).values(record);
+        await database
+          .delete(tableSchema)
+          .where(eq(tableSchema.id, validatedRecord.id));
+        await database.insert(tableSchema).values(validatedRecord);
       }
     }
 
     // Apply Updates
     if (typedChangeset.updated && typedChangeset.updated.length > 0) {
       for (const record of typedChangeset.updated) {
+        const validatedRecord = recordSchema
+          ? recordSchema.parse(record)
+          : record;
         await database
           .update(tableSchema)
-          .set(record)
-          .where(eq(tableSchema.id, record.id));
+          .set(validatedRecord)
+          .where(eq(tableSchema.id, validatedRecord.id));
       }
     }
   }

@@ -24,8 +24,26 @@ export default tseslint.config(
           allow: [],
           depConstraints: [
             {
-              sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*'],
+              sourceTag: 'scope:mobile',
+              onlyDependOnLibsWithTags: [
+                'scope:shared-types',
+                'scope:ui-components',
+              ],
+            },
+            {
+              sourceTag: 'scope:server',
+              onlyDependOnLibsWithTags: ['scope:shared-types'],
+            },
+            {
+              sourceTag: 'scope:shared-types',
+              onlyDependOnLibsWithTags: ['scope:shared-types'],
+            },
+            {
+              sourceTag: 'scope:ui-components',
+              onlyDependOnLibsWithTags: [
+                'scope:shared-types',
+                'scope:ui-components',
+              ],
             },
           ],
         },

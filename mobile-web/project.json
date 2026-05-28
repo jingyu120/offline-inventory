@@ -3,7 +3,7 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "mobile-web/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:mobile"],
   "targets": {
     "serve": {
       "continuous": true,

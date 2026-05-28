@@ -1,3 +1,4 @@
+import '../env';
 import React, { useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -26,6 +27,9 @@ import { AuthProvider, useAuth } from '../core/auth/auth';
 import { NavBar, ROLE_SCREENS } from '../core/components/NavBar';
 import { BottomTabBar } from '../core/components/BottomTabBar';
 import { SyncStatusBar } from '../features/sync/components/SyncStatusBar';
+import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundaryFallback } from '../core/components/ErrorBoundaryFallback';
+import { DatabaseInitializer } from '../core/database/DatabaseInitializer';
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
@@ -197,15 +201,19 @@ const AppWithTheme = ({ themeMode, setThemeMode }: any) => {
 
   return (
     <ThemeProvider theme={activeTheme}>
-      <AuthProvider>
-        <ToastProvider>
-          <AppContent
-            themeMode={themeMode}
-            setThemeMode={setThemeMode}
-            activeTheme={activeTheme}
-          />
-        </ToastProvider>
-      </AuthProvider>
+      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+        <DatabaseInitializer>
+          <AuthProvider>
+            <ToastProvider>
+              <AppContent
+                themeMode={themeMode}
+                setThemeMode={setThemeMode}
+                activeTheme={activeTheme}
+              />
+            </ToastProvider>
+          </AuthProvider>
+        </DatabaseInitializer>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 };

@@ -1,589 +1,196 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma';
+import { DrizzleService } from '../../core/drizzle';
 import { guardAsync } from '@burma-inventory/shared-types';
 import { AiService } from '../ai/ai.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
+import * as schema from '@burma-inventory/shared-types';
+import { eq, and, gt, lte, isNull, inArray, desc } from 'drizzle-orm';
 import type {
   PullChangesResponse,
   PushChangesBody,
   WatermelonChangeSet,
 } from '@burma-inventory/shared-types';
 
-// ─── Table Sync Configuration ───────────────────────────────────────
-// Each entry maps a WatermelonDB table name to its Prisma delegate,
-// pull mapper (Prisma→WatermelonDB record), and push mapper (record→Prisma).
-// Adding a new table to sync only requires adding one entry here.
-
-interface TableSyncConfig<TRecord = unknown> {
-  /** Prisma delegate accessor name (e.g. 'region', 'shop') */
+interface TableSyncConfig<TRecord = any> {
   delegate: string;
-  /** Whether this table supports soft deletes (has deletedAt field) */
   softDelete: boolean;
-  /** Whether this table has createdAt/updatedAt for incremental pull */
   hasTimestamps: boolean;
-  /** Prisma row → WatermelonDB sync record */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toRecord: (row: any) => TRecord;
-  /** WatermelonDB sync record → Prisma create/update data */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toPrisma: (record: TRecord) => any;
+  toDrizzle: (record: TRecord) => any;
 }
 
-/** Helper: safely convert Prisma DateTime → epoch ms, or null */
-const toEpoch = (d: Date | null | undefined): number | null =>
-  d ? d.getTime() : null;
-
-/** Helper: safely convert Prisma Decimal → number */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toNum = (d: any): number =>
-  typeof d === 'number' ? d : (d?.toNumber?.() ?? 0);
-
-/** Helper: maps standard timestamps to watermelon schema record */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapTimestampsRecord = (r: any) => ({
-  created_at: r.createdAt.getTime(),
-  updated_at: r.updatedAt.getTime(),
-});
-
-/** Helper: maps standard timestamps to prisma model */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapTimestampsPrisma = (r: any) => ({
-  createdAt: new Date(r.created_at),
-  updatedAt: new Date(r.updated_at),
-});
-
-// ─── Registry ───────────────────────────────────────────────────────
-// Order matters for push (FK dependencies: regions → shops → contacts, etc.)
 const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
   regions: {
-    delegate: 'region',
+    delegate: 'regions',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      name: r.name,
-      division: r.division,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      name: r.name,
-      division: r.division,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
   },
   shops: {
-    delegate: 'shop',
+    delegate: 'shops',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (s: any) => ({
-      id: s.id,
-      name: s.name,
-      address: s.address,
-      latitude: s.latitude,
-      longitude: s.longitude,
-      region_id: s.regionId,
-      assigned_rep_id: s.assignedRepId,
-      lifetime_value: toNum(s.lifetimeValue),
-      sentiment_trend: s.sentimentTrend,
-      price_book_id: s.priceBookId,
-      price_tier: s.priceTier,
-      ...mapTimestampsRecord(s),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (s: any) => ({
-      id: s.id,
-      name: s.name,
-      address: s.address,
-      latitude: s.latitude,
-      longitude: s.longitude,
-      regionId: s.region_id,
-      assignedRepId: s.assigned_rep_id,
-      lifetimeValue: s.lifetime_value,
-      sentimentTrend: s.sentiment_trend,
-      priceBookId: s.price_book_id,
-      priceTier: s.price_tier,
-      ...mapTimestampsPrisma(s),
-    }),
+    toRecord: (s) => s,
+    toDrizzle: (s) => s,
   },
   contacts: {
-    delegate: 'contact',
+    delegate: 'contacts',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (c: any) => ({
-      id: c.id,
-      shop_id: c.shopId,
-      name: c.name,
-      phone_number: c.phoneNumber,
-      email: c.email,
-      is_primary: c.isPrimary,
-      ...mapTimestampsRecord(c),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (c: any) => ({
-      id: c.id,
-      shopId: c.shop_id,
-      name: c.name,
-      phoneNumber: c.phone_number,
-      email: c.email,
-      isPrimary: c.is_primary,
-      ...mapTimestampsPrisma(c),
-    }),
+    toRecord: (c) => c,
+    toDrizzle: (c) => c,
   },
   items: {
-    delegate: 'item',
+    delegate: 'items',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (i: any) => ({
-      id: i.id,
-      sku: i.sku,
-      name: i.name,
-      unit_price: toNum(i.unitPrice),
-      category: i.category,
-      brand_id: i.brandId,
-      thickness: i.thickness,
-      weight: i.weight,
-      unit_type: i.unitType,
-      conversion_factor: i.conversionFactor,
-      color: i.color,
-      material_sub_type: i.materialSubType,
-      hardware_finish: i.hardwareFinish,
-      is_in_deficit: i.isInDeficit,
-      ...mapTimestampsRecord(i),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (i: any) => ({
-      id: i.id,
-      sku: i.sku,
-      name: i.name,
-      unitPrice: i.unit_price,
-      category: i.category,
-      brandId: i.brand_id,
-      thickness: i.thickness,
-      weight: i.weight,
-      unitType: i.unit_type,
-      conversionFactor: i.conversion_factor,
-      color: i.color,
-      materialSubType: i.material_sub_type,
-      hardwareFinish: i.hardware_finish,
-      isInDeficit: i.is_in_deficit,
-      ...mapTimestampsPrisma(i),
-    }),
+    toRecord: (i) => i,
+    toDrizzle: (i) => i,
   },
-
   interaction_logs: {
-    delegate: 'interactionLog',
+    delegate: 'interaction_logs',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (l: any) => ({
-      id: l.id,
-      shop_id: l.shopId,
-      rep_id: l.repId,
-      project_id: l.projectId,
-      type: l.type,
-      commercial_status: l.commercialStatus,
-      notes: l.notes,
-      next_follow_up_date: toEpoch(l.nextFollowUpDate),
-      viber_screenshot_url: l.viberScreenshotUrl,
-      created_at_local: l.createdAtLocal.getTime(),
-      synced_at_server: toEpoch(l.syncedAtServer),
-      is_offline_entry: l.isOfflineEntry,
-      device_id: l.deviceId,
-      ...mapTimestampsRecord(l),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (l: any) => ({
-      id: l.id,
-      shopId: l.shop_id,
-      repId: l.rep_id,
-      projectId: l.project_id,
-      type: l.type,
-      commercialStatus: l.commercial_status,
-      notes: l.notes,
-      nextFollowUpDate: l.next_follow_up_date
-        ? new Date(l.next_follow_up_date)
-        : null,
-      viberScreenshotUrl: l.viber_screenshot_url,
-      createdAtLocal: new Date(l.created_at_local),
-      syncedAtServer: new Date(),
-      isOfflineEntry: l.is_offline_entry,
-      deviceId: l.device_id,
-      ...mapTimestampsPrisma(l),
+    toRecord: (l) => l,
+    toDrizzle: (l) => ({
+      ...l,
+      synced_at_server: Date.now(),
     }),
   },
   interaction_items: {
-    delegate: 'interactionItem',
+    delegate: 'interaction_items',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (i: any) => ({
-      id: i.id,
-      interaction_log_id: i.interactionLogId,
-      item_id: i.itemId,
-      quantity: i.quantity,
-      unit_price_at_sale: toNum(i.unitPriceAtSale),
-      interest_level: i.interestLevel,
-      unit_price: toNum(i.unitPrice),
-      selected_currency: i.selectedCurrency,
-      selected_unit: i.selectedUnit,
-      stock_condition: i.stockCondition,
-      pending_allocation_count: i.pendingAllocationCount,
-      fulfillment_status: i.fulfillmentStatus,
-      ...mapTimestampsRecord(i),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (i: any) => ({
-      id: i.id,
-      interactionLogId: i.interaction_log_id,
-      itemId: i.item_id,
-      quantity: i.quantity,
-      unitPriceAtSale: i.unit_price_at_sale,
-      interestLevel: i.interest_level,
-      unitPrice: i.unit_price,
-      selectedCurrency: i.selected_currency,
-      selectedUnit: i.selected_unit,
-      stockCondition: i.stock_condition || 'GOOD',
-      pendingAllocationCount: i.pending_allocation_count || 0,
-      fulfillmentStatus: i.fulfillment_status || 'PENDING_FULFILLMENT',
-      ...mapTimestampsPrisma(i),
+    toRecord: (i) => i,
+    toDrizzle: (i) => ({
+      ...i,
+      stock_condition: i.stock_condition || 'GOOD',
+      pending_allocation_count: i.pending_allocation_count || 0,
+      fulfillment_status: i.fulfillment_status || 'PENDING_FULFILLMENT',
     }),
   },
   daily_quotas: {
-    delegate: 'dailyQuota',
+    delegate: 'daily_quotas',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (q: any) => ({
-      id: q.id,
-      user_id: q.userId,
-      target_visits: q.targetVisits,
-      target_phone: q.targetPhone,
-      target_viber: q.targetViber,
-      effective_from: q.effectiveFrom.getTime(),
-      ...mapTimestampsRecord(q),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (q: any) => ({
-      id: q.id,
-      userId: q.user_id,
-      targetVisits: q.target_visits,
-      targetPhone: q.target_phone,
-      targetViber: q.target_viber,
-      effectiveFrom: new Date(q.effective_from),
-      ...mapTimestampsPrisma(q),
-    }),
+    toRecord: (q) => q,
+    toDrizzle: (q) => q,
   },
   item_stocks: {
-    delegate: 'itemStock',
+    delegate: 'item_stocks',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (s: any) => ({
-      id: s.id,
-      item_id: s.itemId,
-      quantity: s.quantity,
-      pending_allocation_count: s.pendingAllocationCount,
-      ...mapTimestampsRecord(s),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (s: any) => ({
-      id: s.id,
-      itemId: s.item_id,
-      quantity: s.quantity,
-      pendingAllocationCount: s.pending_allocation_count || 0,
-      ...mapTimestampsPrisma(s),
+    toRecord: (s) => s,
+    toDrizzle: (s) => ({
+      ...s,
+      pending_allocation_count: s.pending_allocation_count || 0,
     }),
   },
   planned_routes: {
-    delegate: 'plannedRoute',
+    delegate: 'planned_routes',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      rep_id: r.repId,
-      date: r.date,
-      shop_ids: r.shopIds,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      repId: r.rep_id,
-      date: r.date,
-      shopIds: r.shop_ids,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
   },
   check_in_logs: {
-    delegate: 'checkInLog',
+    delegate: 'check_in_logs',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      shop_id: r.shopId,
-      rep_id: r.repId,
-      check_in_time: r.checkInTime.getTime(),
-      latitude: r.latitude,
-      longitude: r.longitude,
-      verified: r.verified,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      shopId: r.shop_id,
-      repId: r.rep_id,
-      checkInTime: new Date(r.check_in_time),
-      latitude: r.latitude,
-      longitude: r.longitude,
-      verified: r.verified,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (c) => c,
+    toDrizzle: (c) => c,
   },
   prediction_logs: {
-    delegate: 'predictionLog',
+    delegate: 'prediction_logs',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      shop_id: r.shopId,
-      predicted_ltv: r.predictedLtv,
-      churn_risk: r.churnRisk,
-      stockout_risk: r.stockoutRisk,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      shopId: r.shop_id,
-      predictedLtv: r.predicted_ltv,
-      churnRisk: r.churn_risk,
-      stockoutRisk: r.stockout_risk,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (p) => p,
+    toDrizzle: (p) => p,
   },
   recommended_orders: {
-    delegate: 'recommendedOrder',
+    delegate: 'recommended_orders',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      shop_id: r.shopId,
-      item_id: r.itemId,
-      quantity: r.quantity,
-      confidence: r.confidence,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      shopId: r.shop_id,
-      itemId: r.item_id,
-      quantity: r.quantity,
-      confidence: r.confidence,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
   },
   price_books: {
-    delegate: 'priceBook',
+    delegate: 'price_books',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      name: r.name,
-      region_id: r.regionId,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      name: r.name,
-      regionId: r.region_id,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (p) => p,
+    toDrizzle: (p) => p,
   },
   price_book_items: {
-    delegate: 'priceBookItem',
+    delegate: 'price_book_items',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      price_book_id: r.priceBookId,
-      item_id: r.itemId,
-      price: toNum(r.price),
-      currency: r.currency,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      priceBookId: r.price_book_id,
-      itemId: r.item_id,
-      price: r.price,
-      currency: r.currency,
-      ...mapTimestampsPrisma(r),
-    }),
+    toRecord: (p) => p,
+    toDrizzle: (p) => p,
   },
   exchange_rates: {
-    delegate: 'exchangeRate',
+    delegate: 'exchange_rates',
     softDelete: false,
     hasTimestamps: false,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      from_currency: r.fromCurrency,
-      to_currency: r.toCurrency,
-      rate: toNum(r.rate),
-      updated_at: r.updatedAt.getTime(),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      fromCurrency: r.from_currency,
-      toCurrency: r.to_currency,
-      rate: r.rate,
-      updatedAt: new Date(r.updated_at),
-    }),
+    toRecord: (e) => e,
+    toDrizzle: (e) => e,
   },
   rep_scores: {
-    delegate: 'repScore',
+    delegate: 'rep_scores',
     softDelete: false,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      rep_id: r.repId,
-      points: r.points,
-      streak_days: r.streakDays,
-      badges: r.badges,
-      ...mapTimestampsRecord(r),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      repId: r.rep_id,
-      points: r.points,
-      streakDays: r.streak_days,
-      badges: r.badges,
-      ...mapTimestampsPrisma(r),
+    toRecord: (s) => s,
+    toDrizzle: (s) => ({
+      ...s,
+      badges: s.badges || '[]',
     }),
   },
   points_logs: {
-    delegate: 'pointsLog',
+    delegate: 'points_logs',
     softDelete: false,
     hasTimestamps: false,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (r: any) => ({
-      id: r.id,
-      rep_id: r.repId,
-      points_added: r.pointsAdded,
-      reason: r.reason,
-      created_at: r.createdAt.getTime(),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (r: any) => ({
-      id: r.id,
-      repId: r.rep_id,
-      pointsAdded: r.points_added,
-      reason: r.reason,
-      createdAt: new Date(r.created_at),
-    }),
+    toRecord: (p) => p,
+    toDrizzle: (p) => p,
   },
   brands: {
-    delegate: 'brand',
+    delegate: 'brands',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (b: any) => ({
-      id: b.id,
-      name: b.name,
-      ...mapTimestampsRecord(b),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (b: any) => ({
-      id: b.id,
-      name: b.name,
-      ...mapTimestampsPrisma(b),
-    }),
+    toRecord: (b) => b,
+    toDrizzle: (b) => b,
   },
   stock_locations: {
-    delegate: 'stockLocation',
+    delegate: 'stock_locations',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (l: any) => ({
-      id: l.id,
-      name: l.name,
-      ...mapTimestampsRecord(l),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (l: any) => ({
-      id: l.id,
-      name: l.name,
-      ...mapTimestampsPrisma(l),
-    }),
+    toRecord: (s) => s,
+    toDrizzle: (s) => s,
   },
   stock_balances: {
-    delegate: 'stockBalance',
+    delegate: 'stock_balances',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (b: any) => ({
-      id: b.id,
-      item_id: b.itemId,
-      location_id: b.locationId,
-      quantity: b.quantity,
-      ...mapTimestampsRecord(b),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (b: any) => ({
-      id: b.id,
-      itemId: b.item_id,
-      locationId: b.location_id,
-      quantity: b.quantity,
-      ...mapTimestampsPrisma(b),
-    }),
+    toRecord: (s) => s,
+    toDrizzle: (s) => s,
   },
   projects: {
-    delegate: 'project',
+    delegate: 'projects',
     softDelete: true,
     hasTimestamps: true,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toRecord: (p: any) => ({
-      id: p.id,
-      name: p.name,
-      ...mapTimestampsRecord(p),
-    }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    toPrisma: (p: any) => ({
-      id: p.id,
-      name: p.name,
-      ...mapTimestampsPrisma(p),
-    }),
+    toRecord: (p) => p,
+    toDrizzle: (p) => p,
   },
 };
-
-// ─── Service ────────────────────────────────────────────────────────
 
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly drizzle: DrizzleService,
     private readonly aiService: AiService,
   ) {}
 
@@ -594,66 +201,61 @@ export class SyncService {
     deviceId?: string,
     userId?: string,
   ): Promise<PullChangesResponse> {
-    const since = new Date(lastPulledAt || 0);
-
     const pullOne = async (
+      tableName: string,
       cfg: TableSyncConfig,
     ): Promise<WatermelonChangeSet<unknown>> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const model = (this.prisma as any)[cfg.delegate];
+      const table = (schema.pgSchema as any)[cfg.delegate];
+      if (!table) {
+        throw new Error(`Drizzle table for ${cfg.delegate} is not defined`);
+      }
 
       if (!cfg.hasTimestamps) {
-        // Tables without timestamps: return all as "created" on first sync
-        const all = await model.findMany();
+        const all = await this.drizzle.db.select().from(table);
         return { created: all.map(cfg.toRecord), updated: [], deleted: [] };
       }
 
       const [newRecords, updated, softDeleted] = await Promise.all([
-        // Fetch ALL records created since last pull (regardless of deletion status)
-        // so records that were created AND deleted in the same window are captured.
-        model.findMany({
-          where: { createdAt: { gt: since } },
-        }),
-        model.findMany({
-          where: {
-            updatedAt: { gt: since },
-            createdAt: { lte: since },
-            ...(cfg.softDelete ? { deletedAt: null } : {}),
-          },
-        }),
+        this.drizzle.db
+          .select()
+          .from(table)
+          .where(gt(table.created_at, lastPulledAt)),
+        this.drizzle.db
+          .select()
+          .from(table)
+          .where(
+            and(
+              gt(table.updated_at, lastPulledAt),
+              lte(table.created_at, lastPulledAt),
+              cfg.softDelete ? isNull(table.deleted_at) : undefined,
+            ),
+          ),
         cfg.softDelete
-          ? model.findMany({
-              where: { deletedAt: { gt: since } },
-              select: { id: true },
-            })
+          ? this.drizzle.db
+              .select({ id: table.id })
+              .from(table)
+              .where(gt(table.deleted_at, lastPulledAt))
           : Promise.resolve([]),
       ]);
 
-      // Partition new records: those already soft-deleted go to deleted[], not created[]
-      const softDeletedIds = new Set(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        softDeleted.map((r: any) => r.id),
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const softDeletedIds = new Set(softDeleted.map((r: any) => r.id));
       const created = newRecords.filter((r: any) => !softDeletedIds.has(r.id));
-      // Records created AND deleted in same window: add their IDs to deleted list
       const newlyDeleted = newRecords
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((r: any) => softDeletedIds.has(r.id))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((r: any) => ({ id: r.id }));
       const deleted = [...softDeleted, ...newlyDeleted];
 
       return {
         created: created.map(cfg.toRecord),
         updated: updated.map(cfg.toRecord),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         deleted: deleted.map((r: any) => r.id),
       };
     };
 
     const entries = Object.entries(TABLE_REGISTRY);
-    const results = await Promise.all(entries.map(([, cfg]) => pullOne(cfg)));
+    const results = await Promise.all(
+      entries.map(([tableName, cfg]) => pullOne(tableName, cfg)),
+    );
 
     const changes: Record<string, WatermelonChangeSet<unknown>> = {};
     let totalPulled = 0;
@@ -666,23 +268,23 @@ export class SyncService {
     });
 
     if (deviceId) {
-      await this.prisma.syncAuditLog
-        .create({
-          data: {
-            deviceId,
-            userId: userId || null,
-            action: 'PULL',
-            recordsPulled: totalPulled,
-            recordsPushed: 0,
-            status: 'SUCCESS',
-          },
+      await this.drizzle.db
+        .insert(schema.pgSchema.sync_audit_logs)
+        .values({
+          id: crypto.randomUUID(),
+          device_id: deviceId,
+          user_id: userId || null,
+          action: 'PULL',
+          records_pulled: totalPulled,
+          records_pushed: 0,
+          status: 'SUCCESS',
+          created_at: Date.now(),
         })
         .catch((err) => {
           this.logger.error(`Failed to write pull audit log: ${err.message}`);
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { changes: changes as any, timestamp: Date.now() };
   }
 
@@ -704,59 +306,37 @@ export class SyncService {
     }
 
     const [, error] = await guardAsync(
-      this.prisma.$transaction(async (tx) => {
-        // Process tables in registry order (FK-safe)
+      this.drizzle.db.transaction(async (tx) => {
         for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
           const changeset = (changes as Record<string, unknown>)[tableName] as
             | WatermelonChangeSet<{ id: string }>
             | undefined;
           if (!changeset) continue;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const model = (tx as any)[cfg.delegate];
+          const table = (schema.pgSchema as any)[cfg.delegate];
+          if (!table) continue;
 
           // Creates
           if (changeset.created.length > 0) {
-            await model.createMany({
-              data: changeset.created.map(cfg.toPrisma),
-              skipDuplicates: true,
-            });
-
-            // Automatically deduct stock levels when orders/quantities are created
-            // Omitted for now: Treat all orders purely as 'Requested Bookings' or sales leads
-            /*
-            if (tableName === 'interaction_items') {
-              for (const item of changeset.created.map(cfg.toPrisma)) {
-                await tx.itemStock
-                  .update({
-                    where: { itemId: item.itemId },
-                    data: {
-                      quantity: { decrement: item.quantity },
-                    },
-                  })
-                  .catch((err: any) => {
-                    this.logger.warn(
-                      `Could not deduct stock for item ID ${item.itemId}: ${err.message}`,
-                    );
-                  });
-              }
-            }
-            */
+            await tx
+              .insert(table)
+              .values(changeset.created.map(cfg.toDrizzle))
+              .onConflictDoNothing();
           }
 
           // Updates
           for (const record of changeset.updated) {
-            const incomingPrisma = cfg.toPrisma(record);
-            const existing = await model
-              .findUnique({ where: { id: record.id } })
-              .catch(() => null);
+            const incomingDrizzle = cfg.toDrizzle(record);
+            const existingRows = await tx
+              .select()
+              .from(table)
+              .where(eq(table.id, record.id));
+            const existing = existingRows[0] || null;
 
             if (!existing) {
-              // If the record doesn't exist on the server yet, create it
-              await model
-                .create({
-                  data: incomingPrisma,
-                })
+              await tx
+                .insert(table)
+                .values(incomingDrizzle)
                 .catch((err: any) => {
                   this.logger.warn(
                     `Could not create missing update record ${record.id}: ${err.message}`,
@@ -765,27 +345,19 @@ export class SyncService {
               continue;
             }
 
-            const incomingTime =
-              incomingPrisma.updatedAt instanceof Date
-                ? incomingPrisma.updatedAt.getTime()
-                : 0;
-            const existingTime =
-              existing.updatedAt instanceof Date
-                ? existing.updatedAt.getTime()
-                : 0;
+            const incomingTime = incomingDrizzle.updated_at || 0;
+            const existingTime = existing.updated_at || 0;
 
             if (incomingTime > existingTime) {
-              // Client is newer: patch all incoming fields
-              await model.update({
-                where: { id: record.id },
-                data: incomingPrisma,
-              });
+              await tx
+                .update(table)
+                .set(incomingDrizzle)
+                .where(eq(table.id, record.id));
             } else {
-              // Server is newer (conflict): only patch fields that are null/empty on the server
               const patchData: Record<string, any> = {};
-              for (const [key, val] of Object.entries(incomingPrisma)) {
+              for (const [key, val] of Object.entries(incomingDrizzle)) {
                 if (val !== undefined && val !== null) {
-                  const existingVal = existing[key];
+                  const existingVal = (existing as any)[key];
                   if (
                     existingVal === null ||
                     existingVal === undefined ||
@@ -796,14 +368,13 @@ export class SyncService {
                 }
               }
 
-              // Keep server's newer updatedAt
-              patchData.updatedAt = existing.updatedAt;
+              patchData.updated_at = existing.updated_at;
 
               if (Object.keys(patchData).length > 1) {
-                await model.update({
-                  where: { id: record.id },
-                  data: patchData,
-                });
+                await tx
+                  .update(table)
+                  .set(patchData)
+                  .where(eq(table.id, record.id));
               }
             }
           }
@@ -811,14 +382,14 @@ export class SyncService {
           // Deletes
           if (changeset.deleted.length > 0) {
             if (cfg.softDelete) {
-              await model.updateMany({
-                where: { id: { in: changeset.deleted } },
-                data: { deletedAt: new Date() },
-              });
+              await tx
+                .update(table)
+                .set({ deleted_at: Date.now() })
+                .where(inArray(table.id, changeset.deleted));
             } else {
-              await model.deleteMany({
-                where: { id: { in: changeset.deleted } },
-              });
+              await tx
+                .delete(table)
+                .where(inArray(table.id, changeset.deleted));
             }
           }
 
@@ -830,17 +401,18 @@ export class SyncService {
     );
 
     if (deviceId) {
-      await this.prisma.syncAuditLog
-        .create({
-          data: {
-            deviceId,
-            userId: userId || null,
-            action: 'PUSH',
-            recordsPulled: 0,
-            recordsPushed: totalPushed,
-            status: error ? 'FAILED' : 'SUCCESS',
-            errorMessage: error ? (error as Error).message : null,
-          },
+      await this.drizzle.db
+        .insert(schema.pgSchema.sync_audit_logs)
+        .values({
+          id: crypto.randomUUID(),
+          device_id: deviceId,
+          user_id: userId || null,
+          action: 'PUSH',
+          records_pulled: 0,
+          records_pushed: totalPushed,
+          status: error ? 'FAILED' : 'SUCCESS',
+          error_message: error ? (error as Error).message : null,
+          created_at: Date.now(),
         })
         .catch((err) => {
           this.logger.error(`Failed to write push audit log: ${err.message}`);
@@ -855,7 +427,6 @@ export class SyncService {
       throw error;
     }
 
-    // Trigger post-push screenshot audit for newly pushed logs that contain screenshots
     this.triggerAuditForPushedLogs(changes.interaction_logs).catch((err) => {
       this.logger.error(
         `Failed to trigger post-push screenshot audit: ${err.message}`,
@@ -873,17 +444,20 @@ export class SyncService {
     ];
     for (const record of records) {
       const logId = record.id;
-      const log = await this.prisma.interactionLog.findUnique({
-        where: { id: logId },
-      });
-      if (log && log.viberScreenshotUrl && !log.aiVerificationStatus) {
-        const filename = path.basename(log.viberScreenshotUrl);
+      const logs = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.interaction_logs)
+        .where(eq(schema.pgSchema.interaction_logs.id, logId))
+        .limit(1);
+      const log = logs[0] || null;
+
+      if (log && log.viber_screenshot_url && !log.ai_verification_status) {
+        const filename = path.basename(log.viber_screenshot_url);
         const filePath = path.join(process.cwd(), 'uploads', filename);
         if (fs.existsSync(filePath)) {
           this.logger.log(
             `Post-push hook matched file ${filename} for log ${logId}. Starting audit...`,
           );
-          // Trigger vision processing asynchronously
           this.aiService.processScreenshot(logId, filePath).catch((err) => {
             this.logger.error(
               `Error processing screenshot for pushed log ${logId}: ${err.message}`,
@@ -899,20 +473,21 @@ export class SyncService {
     filename: string,
   ): Promise<string> {
     const url = `/api/sync/uploads/${filename}`;
-    const existing = await this.prisma.interactionLog
-      .findUnique({
-        where: { id: interactionLogId },
-      })
-      .catch(() => null);
+    const existingRows = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.interaction_logs)
+      .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId))
+      .limit(1);
+    const existing = existingRows[0] || null;
 
     if (existing) {
-      await this.prisma.interactionLog.update({
-        where: { id: interactionLogId },
-        data: {
-          viberScreenshotUrl: url,
-          updatedAt: new Date(),
-        },
-      });
+      await this.drizzle.db
+        .update(schema.pgSchema.interaction_logs)
+        .set({
+          viber_screenshot_url: url,
+          updated_at: Date.now(),
+        })
+        .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId));
       this.logger.log(
         `[SyncService] Updated interaction log ${interactionLogId} screenshot URL to ${url}`,
       );
@@ -926,21 +501,33 @@ export class SyncService {
   }
 
   async getSyncLogs() {
-    const logs = await this.prisma.syncAuditLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    const logs = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.sync_audit_logs)
+      .orderBy(desc(schema.pgSchema.sync_audit_logs.created_at))
+      .limit(50);
+
     const userIds = [
-      ...new Set(logs.map((l) => l.userId).filter(Boolean)),
+      ...new Set(logs.map((l) => l.user_id).filter(Boolean)),
     ] as string[];
-    const users = await this.prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: { id: true, username: true, role: true },
-    });
+
+    let users: any[] = [];
+    if (userIds.length > 0) {
+      users = await this.drizzle.db
+        .select({
+          id: schema.pgSchema.users.id,
+          username: schema.pgSchema.users.username,
+          role: schema.pgSchema.users.role,
+        })
+        .from(schema.pgSchema.users)
+        .where(inArray(schema.pgSchema.users.id, userIds));
+    }
+
     const userMap = new Map(users.map((u) => [u.id, u]));
     return logs.map((l) => ({
       ...l,
-      user: l.userId ? userMap.get(l.userId) : null,
+      createdAt: new Date(l.created_at),
+      user: l.user_id ? userMap.get(l.user_id) : null,
     }));
   }
 
@@ -1029,18 +616,20 @@ export class SyncService {
         continue;
       }
 
-      // Check duplicate phone number in DB
-      const existingContact = await this.prisma.contact.findFirst({
-        where: { phoneNumber },
-      });
+      const contacts = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.contacts)
+        .where(eq(schema.pgSchema.contacts.phone_number, phoneNumber))
+        .limit(1);
+      const existingContact = contacts[0] || null;
 
       if (existingContact) {
-        const existingShop = await this.prisma.shop
-          .findUnique({
-            where: { id: existingContact.shopId },
-            select: { name: true },
-          })
-          .catch(() => null);
+        const existingShops = await this.drizzle.db
+          .select({ name: schema.pgSchema.shops.name })
+          .from(schema.pgSchema.shops)
+          .where(eq(schema.pgSchema.shops.id, existingContact.shop_id))
+          .limit(1);
+        const existingShop = existingShops[0] || null;
         warnings.push(
           `Row ${i + 2}: Skipped duplicate phone number '${phoneNumber}' (exists for contact '${
             existingContact.name
@@ -1049,45 +638,60 @@ export class SyncService {
         continue;
       }
 
-      // Resolve Region
       let region = null;
       if (regionName) {
-        region = await this.prisma.region.findFirst({
-          where: { name: regionName },
-        });
+        const regions = await this.drizzle.db
+          .select()
+          .from(schema.pgSchema.regions)
+          .where(eq(schema.pgSchema.regions.name, regionName))
+          .limit(1);
+        region = regions[0] || null;
 
         if (!region) {
-          region = await this.prisma.region.create({
-            data: {
+          const newRegionId = `region-${regionName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+          const newRegions = await this.drizzle.db
+            .insert(schema.pgSchema.regions)
+            .values({
+              id: newRegionId,
               name: regionName,
               division: division,
-            },
-          });
+              created_at: Date.now(),
+              updated_at: Date.now(),
+            })
+            .returning();
+          region = newRegions[0];
         }
       }
 
       const finalRegionId = region ? region.id : 'region-yangon';
 
-      // Create Shop
-      const shop = await this.prisma.shop.create({
-        data: {
+      const shopId = `shop-${crypto.randomUUID()}`;
+      const newShops = await this.drizzle.db
+        .insert(schema.pgSchema.shops)
+        .values({
+          id: shopId,
           name,
           address: address || 'No Address',
-          regionId: finalRegionId,
-          priceTier: priceTier,
-          lifetimeValue: parseFloat(ltvVal) || 0.0,
-        },
-      });
+          region_id: finalRegionId,
+          price_tier: priceTier,
+          lifetime_value: parseFloat(ltvVal) || 0.0,
+          sentiment_trend: 'STABLE',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        })
+        .returning();
+      const shop = newShops[0];
 
-      // Create Contact
-      await this.prisma.contact.create({
-        data: {
-          shopId: shop.id,
-          name: contactName || 'Primary Contact',
-          phoneNumber,
-          email: email || null,
-          isPrimary: true,
-        },
+      const contactId = `contact-${crypto.randomUUID()}`;
+      await this.drizzle.db.insert(schema.pgSchema.contacts).values({
+        id: contactId,
+        shop_id: shop.id,
+        name: contactName || 'Primary Contact',
+        phone_number: phoneNumber,
+        email: email || null,
+        is_primary: true,
+        created_at: Date.now(),
+        updated_at: Date.now(),
       });
 
       importedCount++;

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
-import { PrismaModule } from '../../core/prisma';
+import { DrizzleModule } from '../../core/drizzle';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [DrizzleModule],
   controllers: [AiController],
   providers: [AiService],
   exports: [AiService],

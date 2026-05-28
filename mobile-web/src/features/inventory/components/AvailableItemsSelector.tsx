@@ -1,9 +1,10 @@
 import React from 'react';
-import { FlatList, TextInput, TouchableOpacity } from 'react-native';
+import { TextInput, TouchableOpacity } from 'react-native';
 import { Box, Text, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { FlashList } from '@shopify/flash-list';
 
 interface AvailableItemsSelectorProps {
   skuSearch: string;
@@ -50,10 +51,11 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         value={skuSearch}
         onChangeText={setSkuSearch}
       />
-      <Box style={{ maxHeight: 150 }} mb="m">
-        <FlatList
+      <Box style={{ height: 150 }} mb="m">
+        <FlashList
           data={availableItems}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={65}
           renderItem={({ item }) => {
             const isSelected = selectedItems.find((i) => i.item.id === item.id);
             return (
@@ -98,7 +100,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
               </TouchableOpacity>
             );
           }}
-          ItemSeparatorComponent={() => <Box height={theme.spacing.m} />}
+          ItemSeparatorComponent={() => <Box height={theme.spacing.s} />}
           nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { getActiveRepId, saveActiveRepId } from '../storage/platformStorage';
 
 export interface RepUser {
   id: string;
@@ -69,18 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadRep = async () => {
       try {
-        if (Platform.OS !== 'web') {
-          const saved = await SecureStore.getItemAsync('active_rep_id');
-          if (saved) {
-            const found = REPS.find((r) => r.id === saved);
-            if (found) setActiveRepState(found);
-          }
-        } else {
-          const saved = localStorage.getItem('active_rep_id');
-          if (saved) {
-            const found = REPS.find((r) => r.id === saved);
-            if (found) setActiveRepState(found);
-          }
+        const saved = await getActiveRepId();
+        if (saved) {
+          const found = REPS.find((r) => r.id === saved);
+          if (found) setActiveRepState(found);
         }
       } catch (e) {
         console.error('Failed to load active rep:', e);
@@ -92,11 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const setActiveRep = async (rep: RepUser) => {
     setActiveRepState(rep);
     try {
-      if (Platform.OS !== 'web') {
-        await SecureStore.setItemAsync('active_rep_id', rep.id);
-      } else {
-        localStorage.setItem('active_rep_id', rep.id);
-      }
+      await saveActiveRepId(rep.id);
     } catch (e) {
       console.error('Failed to save active rep:', e);
     }

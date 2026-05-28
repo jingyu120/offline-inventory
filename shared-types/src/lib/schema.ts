@@ -16,6 +16,7 @@ export const regions = pgTable(
     division: text('division').notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     nameIdx: index('regions_name_idx').on(table.name),
@@ -38,6 +39,7 @@ export const shops = pgTable(
     price_tier: text('price_tier').notNull().default('Retailer'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     nameIdx: index('shops_name_idx').on(table.name),
@@ -59,6 +61,7 @@ export const contacts = pgTable(
     is_primary: boolean('is_primary').notNull().default(false),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     shopIdIdx: index('contacts_shop_id_idx').on(table.shop_id),
@@ -86,6 +89,7 @@ export const items = pgTable(
     is_in_deficit: boolean('is_in_deficit').notNull().default(false),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
@@ -103,6 +107,7 @@ export const item_stocks = pgTable(
       .default(0),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     itemIdIdx: index('item_stocks_item_id_idx').on(table.item_id),
@@ -127,6 +132,9 @@ export const interaction_logs = pgTable(
     device_id: text('device_id').notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
+    ai_verification_status: text('ai_verification_status'),
+    ai_verification_notes: text('ai_verification_notes'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -155,6 +163,7 @@ export const interaction_items = pgTable(
       .default('PENDING_FULFILLMENT'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     logIdIdx: index('interaction_items_log_id_idx').on(
@@ -175,6 +184,7 @@ export const daily_quotas = pgTable(
     effective_from: bigint('effective_from', { mode: 'number' }).notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     userIdIdx: index('daily_quotas_user_id_idx').on(table.user_id),
@@ -324,6 +334,7 @@ export const brands = pgTable(
     name: text('name').notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     nameIdx: index('brands_name_idx').on(table.name),
@@ -337,6 +348,7 @@ export const stock_locations = pgTable(
     name: text('name').notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     nameIdx: index('stock_locations_name_idx').on(table.name),
@@ -352,6 +364,7 @@ export const stock_balances = pgTable(
     quantity: integer('quantity').notNull().default(0),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     itemIdIdx: index('stock_balances_item_id_idx').on(table.item_id),
@@ -368,8 +381,37 @@ export const projects = pgTable(
     name: text('name').notNull(),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
   },
   (table) => ({
     nameIdx: index('projects_name_idx').on(table.name),
   }),
 );
+
+export const users = pgTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    username: text('username').notNull(),
+    password: text('password').notNull(),
+    role: text('role').notNull().default('sales'),
+    region_id: text('region_id'),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    usernameIdx: index('users_username_idx').on(table.username),
+  }),
+);
+
+export const sync_audit_logs = pgTable('sync_audit_logs', {
+  id: text('id').primaryKey(),
+  device_id: text('device_id').notNull(),
+  user_id: text('user_id'),
+  action: text('action').notNull(),
+  records_pulled: integer('records_pulled').notNull().default(0),
+  records_pushed: integer('records_pushed').notNull().default(0),
+  status: text('status').notNull(),
+  error_message: text('error_message'),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+});

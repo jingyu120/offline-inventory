@@ -4,12 +4,14 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma';
+import { DrizzleService } from '../../core/drizzle';
 import { AppConfig } from '../../core/config/app-config';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { guardAsync } from '@burma-inventory/shared-types';
+import * as schema from '@burma-inventory/shared-types';
+import { eq, and, gte, lte, isNull, desc } from 'drizzle-orm';
 
 @Injectable()
 export class AiService implements OnModuleInit, OnModuleDestroy {
@@ -18,7 +20,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
   private processingFiles = new Set<string>();
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly drizzle: DrizzleService,
     private readonly config: AppConfig,
   ) {}
 
@@ -47,7 +49,6 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
       this.watcher = fs.watch(uploadDir, (eventType, filename) => {
         if (eventType === 'rename' && filename) {
           const filePath = path.join(uploadDir, filename);
-          // Wait a short delay to ensure file is completely written by Multer
           setTimeout(() => {
             if (fs.existsSync(filePath)) {
               this.handleNewFileInUploads(filename, filePath).catch((err) => {
@@ -74,13 +75,17 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const url = `${this.config.uploadsUrlPrefix}${filename}`;
-      // Check if there is an interaction log with this screenshot URL and pending verification
-      const log = await this.prisma.interactionLog.findFirst({
-        where: {
-          viberScreenshotUrl: url,
-          aiVerificationStatus: null,
-        },
-      });
+      const logs = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.interaction_logs)
+        .where(
+          and(
+            eq(schema.pgSchema.interaction_logs.viber_screenshot_url, url),
+            isNull(schema.pgSchema.interaction_logs.ai_verification_status),
+          ),
+        )
+        .limit(1);
+      const log = logs[0] || null;
 
       if (log) {
         this.logger.log(
@@ -93,9 +98,6 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Helper to dispatch prompt (and optional base64 image) to local Ollama instance.
-   */
   private async dispatchModel(
     prompt: string,
     images?: string[],
@@ -137,9 +139,6 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
     return response.data.response;
   }
 
-  /**
-   * Gemma 4 implementation for parsing unstructured notes.
-   */
   async parseInteractionNote(note: string) {
     const prompt = `You are a sales assistant parsing notes for Burma Inventory. Parse the following note and return a JSON object with keys:
 1. 'commercialStatus': one of 'FOLLOWED_UP', 'INTERESTED', 'ORDER_PLACED', 'NOT_INTERESTED'.
@@ -223,7 +222,7 @@ Return ONLY raw JSON.`;
   }
 
   async ocrInvoice(base64Image: string) {
-    const dbItems = await this.prisma.item.findMany();
+    const dbItems = await this.drizzle.db.select().from(schema.pgSchema.items);
     const prompt = `OCR the invoice/shelf photo. Extract all products and their quantities. Return a JSON object with:
 1. 'items': array of objects with 'name' (string) and 'quantity' (integer).
 2. 'explanation': string explaining the OCR.
@@ -301,9 +300,6 @@ Return ONLY raw JSON.`;
     };
   }
 
-  /**
-   * Gemma 4 Semantic Sentiment Analysis over historical rep notes.
-   */
   async analyzeSentiment(notes: string[]) {
     if (!notes || notes.length === 0) {
       return {
@@ -390,9 +386,6 @@ Return ONLY raw JSON.`;
     };
   }
 
-  /**
-   * Local End-of-Day (EOD) Analytics Compiler
-   */
   async compileEod(date: string) {
     const MYANMAR_OFFSET_MS = 6.5 * 60 * 60 * 1000;
     const startOfDay = new Date(
@@ -402,20 +395,37 @@ Return ONLY raw JSON.`;
       new Date(`${date}T23:59:59.999`).getTime() - MYANMAR_OFFSET_MS,
     );
 
-    const logs = await this.prisma.interactionLog.findMany({
-      where: {
-        createdAtLocal: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        rep: true,
-        shop: true,
-      },
-    });
+    const rows = await this.drizzle.db
+      .select({
+        id: schema.pgSchema.interaction_logs.id,
+        notes: schema.pgSchema.interaction_logs.notes,
+        commercial_status: schema.pgSchema.interaction_logs.commercial_status,
+        repUsername: schema.pgSchema.users.username,
+        shopName: schema.pgSchema.shops.name,
+      })
+      .from(schema.pgSchema.interaction_logs)
+      .innerJoin(
+        schema.pgSchema.users,
+        eq(schema.pgSchema.interaction_logs.rep_id, schema.pgSchema.users.id),
+      )
+      .innerJoin(
+        schema.pgSchema.shops,
+        eq(schema.pgSchema.interaction_logs.shop_id, schema.pgSchema.shops.id),
+      )
+      .where(
+        and(
+          gte(
+            schema.pgSchema.interaction_logs.created_at_local,
+            startOfDay.getTime(),
+          ),
+          lte(
+            schema.pgSchema.interaction_logs.created_at_local,
+            endOfDay.getTime(),
+          ),
+        ),
+      );
 
-    if (logs.length === 0) {
+    if (rows.length === 0) {
       return {
         topPerformingRep: {
           username: 'N/A',
@@ -426,10 +436,10 @@ Return ONLY raw JSON.`;
       };
     }
 
-    const noteBlocks = logs
+    const noteBlocks = rows
       .map(
         (log) =>
-          `[Rep: ${log.rep.username}, Shop: ${log.shop.name}, Status: ${log.commercialStatus}] Notes: "${log.notes}"`,
+          `[Rep: ${log.repUsername}, Shop: ${log.shopName}, Status: ${log.commercial_status}] Notes: "${log.notes}"`,
       )
       .join('\n');
 
@@ -486,12 +496,11 @@ No markdown tags like \`\`\`json, no explanations.`;
       }
     }
 
-    // Heuristics Fallback
     let topRepName = 'None';
     let maxLogs = 0;
     const repLogsCount: Record<string, number> = {};
-    for (const log of logs) {
-      const uname = log.rep.username;
+    for (const log of rows) {
+      const uname = log.repUsername;
       repLogsCount[uname] = (repLogsCount[uname] || 0) + 1;
       if (repLogsCount[uname] > maxLogs) {
         maxLogs = repLogsCount[uname];
@@ -504,7 +513,7 @@ No markdown tags like \`\`\`json, no explanations.`;
     let logisticsBlockages = 0;
     let priceComplaints = 0;
 
-    logs.forEach((log) => {
+    rows.forEach((log) => {
       const note = log.notes.toLowerCase();
       if (note.includes('competitor') || note.includes('discount'))
         competitorMovements++;
@@ -540,10 +549,10 @@ No markdown tags like \`\`\`json, no explanations.`;
     }
 
     const complianceWarnings = [];
-    for (const log of logs) {
+    for (const log of rows) {
       if (log.notes.trim().length < 10) {
         complianceWarnings.push({
-          username: log.rep.username,
+          username: log.repUsername,
           issue: `Logged a very brief note: "${log.notes}"`,
         });
       }
@@ -559,11 +568,7 @@ No markdown tags like \`\`\`json, no explanations.`;
     };
   }
 
-  /**
-   * Generates Daily Executive EOD briefing compiled by Gemma 4.
-   */
   async generateEodDigest(dateStr: string) {
-    // Myanmar Standard Time = UTC+6:30. Build date boundaries in ICT, not UTC.
     const MYANMAR_OFFSET_MS = 6.5 * 60 * 60 * 1000;
     const startOfDay = new Date(
       new Date(`${dateStr}T00:00:00`).getTime() - MYANMAR_OFFSET_MS,
@@ -572,48 +577,73 @@ No markdown tags like \`\`\`json, no explanations.`;
       new Date(`${dateStr}T23:59:59.999`).getTime() - MYANMAR_OFFSET_MS,
     );
 
-    // 1. Retrieve all interaction logs for target day
-    const logs = await this.prisma.interactionLog.findMany({
-      where: {
-        createdAtLocal: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        rep: true,
-        shop: true,
-      },
-    });
+    const rows = await this.drizzle.db
+      .select({
+        id: schema.pgSchema.interaction_logs.id,
+        notes: schema.pgSchema.interaction_logs.notes,
+        commercial_status: schema.pgSchema.interaction_logs.commercial_status,
+        rep_id: schema.pgSchema.interaction_logs.rep_id,
+        created_at_local: schema.pgSchema.interaction_logs.created_at_local,
+        repUsername: schema.pgSchema.users.username,
+        shopName: schema.pgSchema.shops.name,
+      })
+      .from(schema.pgSchema.interaction_logs)
+      .innerJoin(
+        schema.pgSchema.users,
+        eq(schema.pgSchema.interaction_logs.rep_id, schema.pgSchema.users.id),
+      )
+      .innerJoin(
+        schema.pgSchema.shops,
+        eq(schema.pgSchema.interaction_logs.shop_id, schema.pgSchema.shops.id),
+      )
+      .where(
+        and(
+          gte(
+            schema.pgSchema.interaction_logs.created_at_local,
+            startOfDay.getTime(),
+          ),
+          lte(
+            schema.pgSchema.interaction_logs.created_at_local,
+            endOfDay.getTime(),
+          ),
+        ),
+      );
 
-    // 2. Query all active sales representatives
-    const reps = await this.prisma.user.findMany({
-      include: {
-        dailyQuotas: {
-          where: {
-            effectiveFrom: {
-              lte: endOfDay,
-            },
-          },
-          orderBy: {
-            effectiveFrom: 'desc',
-          },
-          take: 1,
-        },
-      },
-    });
+    const reps = await this.drizzle.db.select().from(schema.pgSchema.users);
 
-    // 3. Compute Compliance Scorecard
+    const repsWithQuotas = await Promise.all(
+      reps.map(async (rep) => {
+        const quotas = await this.drizzle.db
+          .select()
+          .from(schema.pgSchema.daily_quotas)
+          .where(
+            and(
+              eq(schema.pgSchema.daily_quotas.user_id, rep.id),
+              lte(
+                schema.pgSchema.daily_quotas.effective_from,
+                endOfDay.getTime(),
+              ),
+            ),
+          )
+          .orderBy(desc(schema.pgSchema.daily_quotas.effective_from))
+          .limit(1);
+        return {
+          ...rep,
+          dailyQuotas: quotas,
+        };
+      }),
+    );
+
     const complianceList = [];
     const warnings: string[] = [];
     let topRepName = 'None';
     let maxLogs = 0;
 
-    for (const rep of reps) {
-      const repLogs = logs.filter((l) => l.repId === rep.id);
+    for (const rep of repsWithQuotas) {
+      const repLogs = rows.filter((l) => l.rep_id === rep.id);
       const quota = rep.dailyQuotas[0];
       const target = quota
-        ? quota.targetVisits + quota.targetPhone + quota.targetViber
+        ? quota.target_visits + quota.target_phone + quota.target_viber
         : 3;
 
       let complianceStatus: 'GREEN' | 'YELLOW' | 'RED' = 'RED';
@@ -625,13 +655,12 @@ No markdown tags like \`\`\`json, no explanations.`;
 
       let batchDumpingFlagged = false;
       const sortedLogs = [...repLogs].sort(
-        (a, b) => a.createdAtLocal.getTime() - b.createdAtLocal.getTime(),
+        (a, b) => a.created_at_local - b.created_at_local,
       );
 
       for (let i = 0; i < sortedLogs.length - 4; i++) {
         const diffMs =
-          sortedLogs[i + 4].createdAtLocal.getTime() -
-          sortedLogs[i].createdAtLocal.getTime();
+          sortedLogs[i + 4].created_at_local - sortedLogs[i].created_at_local;
         if (diffMs <= 15 * 60 * 1000) {
           batchDumpingFlagged = true;
           break;
@@ -665,10 +694,8 @@ No markdown tags like \`\`\`json, no explanations.`;
       }
     }
 
-    // 4. Call compileEod to fetch AI-synthesized parts
     const aiResult = await this.compileEod(dateStr);
 
-    // Merge AI warnings with rule-based warnings
     const allWarnings = [...warnings];
     if (aiResult.complianceWarnings && aiResult.complianceWarnings.length > 0) {
       for (const w of aiResult.complianceWarnings) {
@@ -693,7 +720,6 @@ No markdown tags like \`\`\`json, no explanations.`;
       marketSynthesis: aiResult.marketSynthesis,
     };
 
-    // 5. Save the output to files simulating a persistent EOD archive
     try {
       const dir = path.join(
         __dirname,
@@ -717,38 +743,56 @@ No markdown tags like \`\`\`json, no explanations.`;
     return digest;
   }
 
-  /**
-   * Local Asynchronous Multimodal Screenshot Auditing
-   */
   async processScreenshot(logId: string, filePath?: string) {
     this.logger.log(
       `Starting processScreenshot for logId: ${logId}, file: ${filePath || 'from db'}`,
     );
 
-    const log = await this.prisma.interactionLog.findUnique({
-      where: { id: logId },
-      include: {
-        shop: true,
-        interactionItems: {
-          include: {
-            item: true,
-          },
-        },
-      },
-    });
+    const logs = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.interaction_logs)
+      .where(eq(schema.pgSchema.interaction_logs.id, logId))
+      .limit(1);
+    const log = logs[0] || null;
 
     if (!log) {
       this.logger.error(`InteractionLog not found: ${logId}`);
       return;
     }
 
+    const shops = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.shops)
+      .where(eq(schema.pgSchema.shops.id, log.shop_id))
+      .limit(1);
+    const shop = shops[0] || null;
+
+    const interactionItems = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.interaction_items)
+      .where(eq(schema.pgSchema.interaction_items.interaction_log_id, logId));
+
+    const itemsWithDetails = await Promise.all(
+      interactionItems.map(async (ii) => {
+        const items = await this.drizzle.db
+          .select()
+          .from(schema.pgSchema.items)
+          .where(eq(schema.pgSchema.items.id, ii.item_id))
+          .limit(1);
+        return {
+          ...ii,
+          item: items[0] || null,
+        };
+      }),
+    );
+
     let resolvedPath = filePath;
     if (!resolvedPath) {
-      if (!log.viberScreenshotUrl) {
+      if (!log.viber_screenshot_url) {
         this.logger.warn(`No screenshot URL for log: ${logId}`);
         return;
       }
-      const filename = path.basename(log.viberScreenshotUrl);
+      const filename = path.basename(log.viber_screenshot_url);
       resolvedPath = path.join(process.cwd(), this.config.uploadsDir, filename);
     }
 
@@ -760,17 +804,17 @@ No markdown tags like \`\`\`json, no explanations.`;
     const fileBuffer = fs.readFileSync(resolvedPath);
     const base64Image = fileBuffer.toString('base64');
 
-    const itemsDescription = log.interactionItems
+    const itemsDescription = itemsWithDetails
       .map(
         (ii) =>
-          `- ${ii.item.name} (SKU: ${ii.item.sku}): Quantity: ${ii.quantity}, Price: ${ii.unitPriceAtSale} MMK`,
+          `- ${ii.item?.name || 'Unknown'} (SKU: ${ii.item?.sku || 'N/A'}): Quantity: ${ii.quantity}, Price: ${ii.unit_price_at_sale} MMK`,
       )
       .join('\n');
 
     const prompt = `Analyze this Viber screenshot. Extract the quantities and product items ordered by the customer. Compare these values against our database logs.
 If they align perfectly, return 'VERIFIED'. If there are item or price mismatches, return 'MISMATCH' along with a specific explanation of the discrepancy.
 
-Our database log for Shop "${log.shop.name}" contains the following details:
+Our database log for Shop "${shop?.name || 'Unknown'}" contains the following details:
 ${itemsDescription}
 
 Your output must be a JSON object with:
@@ -827,22 +871,19 @@ Return ONLY raw JSON. Do not include any markdown fences or comments.`;
       }
     }
 
-    await this.prisma.interactionLog.update({
-      where: { id: logId },
-      data: {
-        aiVerificationStatus: status,
-        aiVerificationNotes: explanation,
-      },
-    });
+    await this.drizzle.db
+      .update(schema.pgSchema.interaction_logs)
+      .set({
+        ai_verification_status: status,
+        ai_verification_notes: explanation,
+      })
+      .where(eq(schema.pgSchema.interaction_logs.id, logId));
 
     this.logger.log(
       `Completed screenshot audit for logId: ${logId}. Status: ${status}, Notes: ${explanation}`,
     );
   }
 
-  /**
-   * Gemma 4 Dynamic Quota Optimizations suggestions.
-   */
   async getDynamicQuotaOptimizations() {
     const prompt = `Suggest regional sales visit quota optimizations for Burma Inventory based on monsoonal road conditions and sales responses. Return a JSON array of objects with keys:
 - 'region': division/state name
