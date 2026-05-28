@@ -34,6 +34,39 @@ export class AiQueueService implements OnModuleDestroy {
     });
   }
 
+  async getFailedJobs() {
+    const jobs = await this.queue.getFailed(0, 100);
+    return jobs.map((j) => ({
+      id: j.id,
+      name: j.name,
+      data: j.data,
+      failedReason: j.failedReason,
+      stacktrace: j.stacktrace,
+      timestamp: j.timestamp,
+    }));
+  }
+
+  async updateJobData(jobId: string, data: any) {
+    const job = await this.queue.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found`);
+    await job.updateData(data);
+    return { success: true };
+  }
+
+  async retryJob(jobId: string) {
+    const job = await this.queue.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found`);
+    await job.retry();
+    return { success: true };
+  }
+
+  async removeJob(jobId: string) {
+    const job = await this.queue.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found`);
+    await job.remove();
+    return { success: true };
+  }
+
   async onModuleDestroy() {
     await this.queue.close();
   }

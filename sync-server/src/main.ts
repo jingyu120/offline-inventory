@@ -11,7 +11,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const prefix = process.env['SYNC_SERVER_PREFIX'] || 'api';
   const port = process.env['SYNC_SERVER_PORT'] || 3000;

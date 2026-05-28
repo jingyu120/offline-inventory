@@ -32,6 +32,21 @@ if (typeof window === 'undefined') {
       return;
     }
 
+    // Bypass intercepting same-origin sub-resources (only intercept main page navigation/documents)
+    try {
+      const url = new URL(r.url);
+      const isSameOrigin = url.origin === self.location.origin;
+      const isNavigation =
+        r.mode === 'navigate' ||
+        r.destination === 'document' ||
+        r.destination === 'iframe';
+      if (isSameOrigin && !isNavigation) {
+        return;
+      }
+    } catch (err) {
+      // Fallback if URL parsing fails
+    }
+
     const request =
       coepCredentialless && r.mode === 'no-cors'
         ? new Request(r, {
@@ -63,7 +78,10 @@ if (typeof window === 'undefined') {
             });
           });
         })
-        .catch((e) => console.error(e)),
+        .catch((e) => {
+          console.error(e);
+          throw e;
+        }),
     );
   });
 } else {

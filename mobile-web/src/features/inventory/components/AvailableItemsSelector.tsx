@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { TextInput, TouchableOpacity } from 'react-native';
-// @ts-expect-error - react-native-gesture-handler types might not fully resolve in monorepo
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+import Swipeable, {
+  SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Box, Text, Theme, SkeletonRow } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
@@ -37,7 +38,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
-  const swipeableRefs = useRef<Record<string, Swipeable>>({});
+  const swipeableRefs = useRef<Record<string, SwipeableMethods>>({});
 
   const renderLeftActions = () => {
     return (

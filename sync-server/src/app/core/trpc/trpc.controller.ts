@@ -1,7 +1,7 @@
 import { Controller, All, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
-import { appRouter } from '@burma-inventory/shared-types';
+import { appRouter } from '@burma-inventory/shared-types/server';
 
 @Controller('trpc')
 export class TrpcController {

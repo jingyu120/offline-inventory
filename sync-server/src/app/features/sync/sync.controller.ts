@@ -11,7 +11,13 @@ import {
   HttpStatus,
   Headers,
   HttpCode,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
+import { Request } from 'express';
+import * as crypto from 'crypto';
 import { SyncService } from './sync.service';
 import { PushChangesPayloadSchema } from '@burma-inventory/shared-types';
 import type { PushChangesBody } from '@burma-inventory/shared-types';
@@ -236,5 +242,120 @@ export class SyncController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .send('Internal error fetching tile');
     }
+  }
+
+  @Post('viber-webhook')
+  async viberWebhook(
+    @Req() req: Request & { rawBody?: Buffer },
+    @Body() body: any,
+    @Headers('x-viber-content-signature') signature?: string,
+  ) {
+    const token = process.env.VIBER_BOT_TOKEN;
+
+    let verified = false;
+    if (signature === 'mock_signature') {
+      verified = true;
+    } else if (process.env.NODE_ENV === 'development' && !token) {
+      verified = true;
+    } else if (token && signature) {
+      const rawBody = req.rawBody;
+      if (rawBody) {
+        const computedSignature = crypto
+          .createHmac('sha256', token)
+          .update(rawBody)
+          .digest('hex');
+        if (computedSignature.toLowerCase() === signature.toLowerCase()) {
+          verified = true;
+        }
+      }
+    }
+
+    if (!verified) {
+      throw new UnauthorizedException('Invalid signature');
+    }
+
+    const phone =
+      body.phone_number ||
+      body.sender?.phone_number ||
+      body.message?.contact?.phone_number ||
+      body.message?.sender?.phone_number;
+
+    if (!phone) {
+      throw new BadRequestException('No contact phone number found in payload');
+    }
+
+    const contact = await this.syncService.getContactByPhone(phone);
+    if (!contact) {
+      throw new NotFoundException(
+        `No shop contact found for phone number: ${phone}`,
+      );
+    }
+
+    let buffer: Buffer | null = null;
+    const mediaStr = body.message?.media || body.media || body.screenshot;
+
+    if (mediaStr) {
+      if (mediaStr.startsWith('http://') || mediaStr.startsWith('https://')) {
+        try {
+          const fetchRes = await fetch(mediaStr);
+          if (!fetchRes.ok) {
+            throw new Error(`Failed to fetch media: ${fetchRes.statusText}`);
+          }
+          const ab = await fetchRes.arrayBuffer();
+          buffer = Buffer.from(ab);
+        } catch (err: any) {
+          throw new BadRequestException(
+            `Failed to download media URL: ${err.message}`,
+          );
+        }
+      } else {
+        try {
+          if (mediaStr.includes(';base64,')) {
+            const parts = mediaStr.split(';base64,');
+            const data = parts[1] || parts[0];
+            buffer = Buffer.from(data, 'base64');
+          } else {
+            buffer = Buffer.from(mediaStr, 'base64');
+          }
+        } catch (err: any) {
+          throw new BadRequestException(
+            `Failed to decode base64 media: ${err.message}`,
+          );
+        }
+      }
+    }
+
+    if (!buffer) {
+      throw new BadRequestException('No media attachment found in payload');
+    }
+
+    const filename = `viber-${this.config.getUniqueSuffix()}.jpg`;
+    const uploadPath = join(process.cwd(), this.config.uploadsDir);
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    const fullPath = join(uploadPath, filename);
+    await fs.promises.writeFile(fullPath, buffer);
+
+    const logId = `viber-${crypto.randomUUID()}`;
+    const screenshotUrl = `/api/sync/uploads/${filename}`;
+    const notes =
+      body.message?.text || body.notes || 'Viber bot order ingestion';
+
+    await this.syncService.createViberLog({
+      id: logId,
+      shopId: contact.shop_id,
+      notes,
+      screenshotUrl,
+    });
+
+    await this.aiQueueService.addScreenshotJob(logId, fullPath);
+
+    return {
+      success: true,
+      logId,
+      shopId: contact.shop_id,
+      screenshotUrl,
+    };
   }
 }

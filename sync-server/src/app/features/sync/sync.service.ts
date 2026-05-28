@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as schema from '@burma-inventory/shared-types';
-import { eq, and, gt, lte, isNull, inArray, ne, gte } from 'drizzle-orm';
+import { eq, and, gt, lte, isNull, inArray, ne, gte, desc } from 'drizzle-orm';
 import type {
   PullChangesResponse,
   PushChangesBody,
@@ -892,6 +892,127 @@ export class SyncService {
       }
     }
     return null;
+  }
+
+  async getMismatchLogs() {
+    const logs = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.interaction_logs)
+      .where(
+        eq(schema.pgSchema.interaction_logs.ai_verification_status, 'MISMATCH'),
+      )
+      .orderBy(desc(schema.pgSchema.interaction_logs.created_at));
+
+    const result = [];
+    for (const log of logs) {
+      const shop = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.shops)
+        .where(eq(schema.pgSchema.shops.id, log.shop_id))
+        .limit(1);
+      const itemsList = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.interaction_items)
+        .where(
+          eq(schema.pgSchema.interaction_items.interaction_log_id, log.id),
+        );
+
+      result.push({
+        ...log,
+        shopName: shop[0]?.name || 'Unknown Shop',
+        items: itemsList,
+      });
+    }
+    return result;
+  }
+
+  async resolveMismatchLog(input: {
+    logId: string;
+    shopId: string;
+    notes: string;
+    items: {
+      itemId: string;
+      quantity: number;
+      unitPrice: number;
+      selectedUnit: string;
+      stockCondition: string;
+    }[];
+  }) {
+    await this.drizzle.db.transaction(async (tx) => {
+      // 1. Update log
+      await tx
+        .update(schema.pgSchema.interaction_logs)
+        .set({
+          shop_id: input.shopId,
+          notes: input.notes,
+          ai_verification_status: 'VERIFIED',
+          ai_verification_notes:
+            'Manually verified and resolved by administrator.',
+          updated_at: Date.now(),
+        })
+        .where(eq(schema.pgSchema.interaction_logs.id, input.logId));
+
+      // 2. Delete old items
+      await tx
+        .delete(schema.pgSchema.interaction_items)
+        .where(
+          eq(schema.pgSchema.interaction_items.interaction_log_id, input.logId),
+        );
+
+      // 3. Insert new verified items
+      if (input.items.length > 0) {
+        const newItems = input.items.map((item, index) => ({
+          id: `man_ii_${input.logId}_${index}`,
+          interaction_log_id: input.logId,
+          item_id: item.itemId,
+          quantity: item.quantity,
+          unit_price_at_sale: item.unitPrice,
+          unit_price: item.unitPrice,
+          selected_currency: 'MMK',
+          selected_unit: item.selectedUnit || 'PCS',
+          stock_condition: item.stockCondition || 'GOOD',
+          fulfillment_status: 'PENDING_FULFILLMENT',
+          compliance_status: 'APPROVED',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        }));
+        await tx.insert(schema.pgSchema.interaction_items).values(newItems);
+      }
+    });
+
+    return { success: true };
+  }
+
+  async getContactByPhone(phone: string) {
+    const contact = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.contacts)
+      .where(eq(schema.pgSchema.contacts.phone_number, phone))
+      .limit(1);
+    return contact[0] || null;
+  }
+
+  async createViberLog(data: {
+    id: string;
+    shopId: string;
+    notes: string;
+    screenshotUrl: string;
+  }) {
+    await this.drizzle.db.insert(schema.pgSchema.interaction_logs).values({
+      id: data.id,
+      shop_id: data.shopId,
+      rep_id: 'viber_bot',
+      type: 'VIBER',
+      commercial_status: 'ORDER_PLACED',
+      notes: data.notes,
+      viber_screenshot_url: data.screenshotUrl,
+      ai_verification_status: 'PENDING',
+      ai_verification_notes: 'Queued for AI verification',
+      created_at_local: Date.now(),
+      device_id: 'viber_bot',
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
   }
 
   async saveIdempotency(key: string, response: any): Promise<void> {

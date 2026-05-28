@@ -2,9 +2,18 @@
   "name": "@burma-inventory/shared-types",
   "version": "0.0.1",
   "private": true,
-  "type": "commonjs",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./server": {
+      "types": "./dist/src/lib/trpc.d.ts",
+      "default": "./dist/src/lib/trpc.js"
+    }
+  },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "tslib": "^2.3.0",

@@ -134,7 +134,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         price_book_id TEXT,
         price_tier TEXT NOT NULL DEFAULT 'Retailer',
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER
       );
       CREATE TABLE IF NOT EXISTS contacts (
         id TEXT PRIMARY KEY NOT NULL,
@@ -161,8 +162,12 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         material_sub_type TEXT,
         hardware_finish TEXT,
         is_in_deficit INTEGER NOT NULL DEFAULT 0,
+        base_wholesale_price REAL,
+        base_currency TEXT,
+        volume_discount_brackets TEXT,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER
       );
       CREATE TABLE IF NOT EXISTS item_stocks (
         id TEXT PRIMARY KEY NOT NULL,
@@ -210,7 +215,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER
       );
       CREATE TABLE IF NOT EXISTS daily_quotas (
         id TEXT PRIMARY KEY NOT NULL,
@@ -376,6 +382,21 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
     // Migration helper: Add columns if they do not exist in existing database schemas
     const alterTable = (table: string, column: string, definition: string) => {
       try {
+        let columnExists = false;
+        const infoStmt = sqljsDb.prepare(`PRAGMA table_info(${table});`);
+        while (infoStmt.step()) {
+          const row = infoStmt.getAsObject();
+          if (row.name === column) {
+            columnExists = true;
+            break;
+          }
+        }
+        infoStmt.free();
+
+        if (columnExists) {
+          return;
+        }
+
         sqljsDb.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
         console.log(
           `Successfully migrated database: Added column ${column} to table ${table}`,
@@ -417,6 +438,9 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
       "TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT'",
     );
     alterTable('image_upload_queue', 'competitor_insight_id', 'TEXT');
+    alterTable('shops', 'deleted_at', 'INTEGER');
+    alterTable('items', 'deleted_at', 'INTEGER');
+    alterTable('projects', 'deleted_at', 'INTEGER');
 
     // Check if shops table is empty
     let isEmpty = true;

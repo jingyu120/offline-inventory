@@ -12,6 +12,7 @@ import {
   SENTIMENT_TRENDS,
   guardAsync,
 } from './shared-types';
+import { semanticSearch } from './semanticSearch';
 
 describe('shared-types', () => {
   describe('Domain constants', () => {
@@ -198,6 +199,38 @@ describe('shared-types', () => {
       const [result, error] = await guardAsync(promise);
       expect(result).toBeNull();
       expect(error).toBe(mockError);
+    });
+  });
+
+  describe('SemanticSearchEngine', () => {
+    const items = [
+      { id: '1', name: 'Aluzinc Corrugated Sheets', sku: 'SKU-AZ-100' },
+      { id: '2', name: 'Steel Roofing Sheets Green', sku: 'SKU-SR-200' },
+      { id: '3', name: 'Premium Cement Bag 50kg', sku: 'SKU-CM-50' },
+      { id: '4', name: 'PVC Pipe 2 inch', sku: 'SKU-PVCP-2' },
+    ];
+
+    it('matches exactly on SKU', () => {
+      const results = semanticSearch(items, 'SKU-PVCP-2');
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('4');
+    });
+
+    it('matches exactly on partial name', () => {
+      const results = semanticSearch(items, 'Cement');
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('3');
+    });
+
+    it('performs semantic matching with synonym expansion for "waterproof roofing"', () => {
+      const results = semanticSearch(items, 'waterproof roofing');
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      expect(results[0].name).toMatch(/zinc|roofing/i);
+    });
+
+    it('returns all items on empty query', () => {
+      const results = semanticSearch(items, '');
+      expect(results).toHaveLength(items.length);
     });
   });
 });

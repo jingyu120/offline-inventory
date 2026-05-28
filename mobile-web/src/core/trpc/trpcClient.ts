@@ -1,5 +1,5 @@
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import { AppRouter } from '@burma-inventory/shared-types';
+import type { AppRouter } from '@burma-inventory/shared-types';
 import { API_BASE_URL } from '../../config/appConfig';
 
 export const trpcClient = createTRPCProxyClient<AppRouter>({

@@ -9,7 +9,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
-import { Shop, Item, sqliteSchema } from '@burma-inventory/shared-types';
+import {
+  Shop,
+  Item,
+  sqliteSchema,
+  semanticSearch,
+} from '@burma-inventory/shared-types';
 import { database } from '../../../core/database/database';
 import { eq, desc, and } from 'drizzle-orm';
 import {
@@ -350,13 +355,7 @@ export function InteractionLoggingScreen({
   const loadItems = async () => {
     try {
       const { items, stocksMap: allStocks } = await fetchItemsAndStockLevel();
-      const filtered = skuSearch
-        ? items.filter(
-            (i) =>
-              i.name.toLowerCase().includes(skuSearch.toLowerCase()) ||
-              i.sku.toLowerCase().includes(skuSearch.toLowerCase()),
-          )
-        : items;
+      const filtered = skuSearch ? semanticSearch(items, skuSearch) : items;
       setAvailableItems(filtered);
       setStocksMap(allStocks);
 

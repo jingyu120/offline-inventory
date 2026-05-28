@@ -93,6 +93,13 @@ export function TextField({
     ? rest.keyboardType || 'decimal-pad'
     : rest.keyboardType;
 
+  const resolvedName =
+    name ||
+    (label ? label.replace(/\s+/g, '-').toLowerCase() : undefined) ||
+    (rest.placeholder
+      ? rest.placeholder.replace(/\s+/g, '-').toLowerCase()
+      : 'text-input');
+
   const finalValue = convertedValue !== null ? convertedValue : rest.value;
   const finalEditable = convertedValue !== null ? false : rest.editable;
   const finalIsNumeric = isNumeric || convertedValue !== null;
@@ -158,6 +165,11 @@ export function TextField({
         }}
         value={finalValue}
         editable={finalEditable}
+        {...({
+          id: resolvedName,
+          name: resolvedName,
+          nativeID: resolvedName,
+        } as any)}
         {...rest}
       />
       {error && (

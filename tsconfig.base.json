@@ -22,6 +22,9 @@
     "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@burma-inventory/shared-types": ["./shared-types/src/index.ts"],
+      "@burma-inventory/shared-types/server": [
+        "./shared-types/src/lib/trpc.ts"
+      ],
       "@burma-inventory/ui-components": ["./ui-components/src/index.ts"],
       "@burma-inventory/mobile-web/*": ["./mobile-web/src/*"],
       "@burma-inventory/sync-server/*": ["./sync-server/src/app/*"],

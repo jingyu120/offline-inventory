@@ -9,7 +9,7 @@
       "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/shared-types",
+        "outputPath": "shared-types/dist",
         "main": "shared-types/src/index.ts",
         "tsConfig": "shared-types/tsconfig.lib.json",
         "assets": ["shared-types/*.md"]
