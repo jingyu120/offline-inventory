@@ -47,6 +47,47 @@ export class ImageUploadQueue {
     }
   }
 
+  static async enqueueCompetitorInsightImage(
+    competitorInsightId: string,
+    tempUri: string,
+  ): Promise<void> {
+    console.log(
+      `[ImageUploadQueue] Enqueuing photo for competitor insight ${competitorInsightId}, tempUri: ${tempUri}`,
+    );
+
+    const localFilePath = tempUri;
+
+    if (tempUri.startsWith('blob:')) {
+      activeSessionBlobs.add(tempUri);
+    }
+
+    const queueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+      await database.insert(sqliteSchema.image_upload_queue).values({
+        id: queueId,
+        local_file_path: localFilePath,
+        competitor_insight_id: competitorInsightId,
+        status: 'pending',
+        created_at: now,
+        updated_at: now,
+      });
+      console.log(
+        `[ImageUploadQueue] Enqueued competitor insight task ${queueId}`,
+      );
+
+      this.processQueue().catch((err) => {
+        console.error('[ImageUploadQueue] background process error:', err);
+      });
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to write competitor insight queue entry to local db:',
+        err,
+      );
+    }
+  }
+
   static async processQueue(): Promise<void> {
     if (isProcessing) {
       console.log(
@@ -75,7 +116,7 @@ export class ImageUploadQueue {
 
       for (const task of tasks) {
         console.log(
-          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id})`,
+          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id || 'null'}, competitor ID: ${task.competitor_insight_id || 'null'})`,
         );
 
         const now = Math.floor(Date.now() / 1000);
@@ -106,7 +147,11 @@ export class ImageUploadQueue {
           }
 
           formData.append('file', blob, 'screenshot.jpg');
-          formData.append('interactionLogId', task.interaction_log_id);
+          if (task.competitor_insight_id) {
+            formData.append('competitorInsightId', task.competitor_insight_id);
+          } else {
+            formData.append('interactionLogId', task.interaction_log_id || '');
+          }
 
           const uploadRes = await axios.post(
             `${SYNC_API_URL}/upload`,
@@ -124,16 +169,31 @@ export class ImageUploadQueue {
               `[ImageUploadQueue] Upload succeeded. Server URL: ${serverUrl}`,
             );
 
-            await database
-              .update(sqliteSchema.interaction_logs)
-              .set({
-                viber_screenshot_url: serverUrl,
-                synced_at_server: null,
-                updated_at: Math.floor(Date.now() / 1000),
-              })
-              .where(
-                eq(sqliteSchema.interaction_logs.id, task.interaction_log_id),
-              );
+            if (task.competitor_insight_id) {
+              await database
+                .update(sqliteSchema.competitor_insights)
+                .set({
+                  photo_url: serverUrl,
+                  updated_at: Math.floor(Date.now() / 1000),
+                })
+                .where(
+                  eq(
+                    sqliteSchema.competitor_insights.id,
+                    task.competitor_insight_id,
+                  ),
+                );
+            } else if (task.interaction_log_id) {
+              await database
+                .update(sqliteSchema.interaction_logs)
+                .set({
+                  viber_screenshot_url: serverUrl,
+                  synced_at_server: null,
+                  updated_at: Math.floor(Date.now() / 1000),
+                })
+                .where(
+                  eq(sqliteSchema.interaction_logs.id, task.interaction_log_id),
+                );
+            }
 
             await database
               .delete(sqliteSchema.image_upload_queue)

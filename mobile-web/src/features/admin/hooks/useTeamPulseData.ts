@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import axios from 'axios';
+import { trpcClient } from '../../../core/trpc/trpcClient';
 import {
   AI_EOD_DIGEST_URL,
   AI_QUOTAS_OPTIMIZATIONS_URL,
@@ -82,8 +83,8 @@ export const useTeamPulseData = () => {
   const fetchQuotaOptimizations = async () => {
     setOptimizationsLoading(true);
     try {
-      const response = await axios.get(AI_QUOTAS_OPTIMIZATIONS_URL);
-      setQuotaOptimizations(response.data);
+      const response = await trpcClient.quotaOptimizations.query();
+      setQuotaOptimizations(response);
     } catch (e) {
       console.error(
         'Failed to fetch quota optimizations, utilizing mockup fallback:',
@@ -200,10 +201,10 @@ export const useTeamPulseData = () => {
     setLoadingDigest(true);
     setDigestResult(null);
     try {
-      const response = await axios.post(AI_EOD_DIGEST_URL, {
+      const response = await trpcClient.eodDigest.mutate({
         date: digestDate,
       });
-      setDigestResult(response.data);
+      setDigestResult(response);
     } catch (e) {
       console.error('Failed to compile digest, using fallback mocks:', e);
       setDigestResult({

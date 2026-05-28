@@ -1,5 +1,6 @@
 import '../env';
 import React, { useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '@shopify/restyle';
@@ -8,7 +9,9 @@ import {
   darkTheme,
   getThemeForLanguage,
   Box,
+  registerExchangeRateResolver,
 } from '@burma-inventory/ui-components';
+import { sqliteSchema } from '@burma-inventory/shared-types';
 import { ShopLedgerScreen } from '../features/audit/screens/ShopLedgerScreen';
 import { GeographicHeatmapScreen } from '../features/admin/screens/GeographicHeatmapScreen';
 import { TeamPulseScreen } from '../features/admin/screens/TeamPulseScreen';
@@ -18,7 +21,7 @@ import { SyncConflictModal } from '../features/sync/components/SyncConflictModal
 import { ToastProvider } from '../core/components/ToastProvider';
 import { LanguageProvider, useTranslation } from '../core/i18n/i18n';
 import { syncData } from '../features/sync/sync';
-import { powerSyncDb } from '../core/database/database';
+import { powerSyncDb, database } from '../core/database/database';
 import { useWindowDimensions, Platform, Alert } from 'react-native';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
@@ -32,6 +35,19 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { ErrorBoundaryFallback } from '../core/components/ErrorBoundaryFallback';
 import { DatabaseInitializer } from '../core/database/DatabaseInitializer';
 import { TelemetryLogger } from '../core/utils/telemetry';
+
+registerExchangeRateResolver(async (currency) => {
+  try {
+    const rates = await database
+      .select()
+      .from(sqliteSchema.currency_exchange_rates);
+    const rateObj = rates.find((r: any) => r.currency === currency);
+    return rateObj ? rateObj.rate_to_kyat : undefined;
+  } catch (err) {
+    console.warn('[App] Failed to resolve exchange rate from database:', err);
+    return undefined;
+  }
+});
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
@@ -78,10 +94,35 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
       window.addEventListener('unhandledrejection', webPromiseHandler);
     }
 
-    // 1. Process pending image uploads from background queue on startup
-    ImageUploadQueue.processQueue().catch((err) => {
-      console.error('[App] Background upload queue error:', err);
-    });
+    // 1. Prioritize lightweight JSON data sync first on startup
+    const startSync = async () => {
+      try {
+        console.log('[App] Performing startup delta synchronization...');
+        const { syncData } = await import('../features/sync/sync');
+        await syncData();
+
+        // 2. Process pending image uploads only if connection is not degraded
+        const NetInfo = (await import('@react-native-community/netinfo'))
+          .default;
+        const state = await NetInfo.fetch();
+        const is2G =
+          state.type === 'cellular' &&
+          state.details?.cellularGeneration === '2g';
+        const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+
+        if (is2G || isMockDegraded) {
+          console.log(
+            '[App] Connection degraded. Postponing image upload queue processing.',
+          );
+        } else {
+          await ImageUploadQueue.processQueue();
+        }
+      } catch (err) {
+        console.error('[App] Startup sync or upload queue error:', err);
+      }
+    };
+
+    startSync();
 
     // Register background sync task
     registerBackgroundSyncAsync().catch((err) => {
@@ -250,19 +291,21 @@ const AppWithTheme = ({ themeMode, setThemeMode }: any) => {
 
   return (
     <ThemeProvider theme={activeTheme}>
-      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-        <DatabaseInitializer>
-          <AuthProvider>
-            <ToastProvider>
-              <AppContent
-                themeMode={themeMode}
-                setThemeMode={setThemeMode}
-                activeTheme={activeTheme}
-              />
-            </ToastProvider>
-          </AuthProvider>
-        </DatabaseInitializer>
-      </ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+          <DatabaseInitializer>
+            <AuthProvider>
+              <ToastProvider>
+                <AppContent
+                  themeMode={themeMode}
+                  setThemeMode={setThemeMode}
+                  activeTheme={activeTheme}
+                />
+              </ToastProvider>
+            </AuthProvider>
+          </DatabaseInitializer>
+        </ErrorBoundary>
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
 };

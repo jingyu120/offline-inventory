@@ -321,7 +321,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
       CREATE TABLE IF NOT EXISTS image_upload_queue (
         id TEXT PRIMARY KEY NOT NULL,
         local_file_path TEXT NOT NULL,
-        interaction_log_id TEXT NOT NULL,
+        interaction_log_id TEXT,
+        competitor_insight_id TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -356,6 +357,20 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS currency_exchange_rates (
+        id TEXT PRIMARY KEY NOT NULL,
+        currency TEXT NOT NULL,
+        rate_to_kyat REAL NOT NULL,
+        pushed_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS competitor_insights (
+        id TEXT PRIMARY KEY NOT NULL,
+        product_name TEXT NOT NULL,
+        street_price REAL NOT NULL,
+        photo_url TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Migration helper: Add columns if they do not exist in existing database schemas
@@ -377,6 +392,9 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
     alterTable('items', 'material_sub_type', 'TEXT');
     alterTable('items', 'hardware_finish', 'TEXT');
     alterTable('items', 'is_in_deficit', 'INTEGER NOT NULL DEFAULT 0');
+    alterTable('items', 'base_wholesale_price', 'REAL');
+    alterTable('items', 'base_currency', 'TEXT');
+    alterTable('items', 'volume_discount_brackets', 'TEXT');
     alterTable(
       'interaction_items',
       'stock_condition',
@@ -398,6 +416,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
       'fulfillment_status',
       "TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT'",
     );
+    alterTable('image_upload_queue', 'competitor_insight_id', 'TEXT');
 
     // Check if shops table is empty
     let isEmpty = true;

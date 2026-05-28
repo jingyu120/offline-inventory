@@ -1,0 +1,22 @@
+{
+  "name": "@burma-inventory/sync-server",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@burma-inventory/shared-types": "*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.23",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@trpc/server": "^11.17.0",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.77.6",
+    "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.11.0",
+    "pg": "^8.20.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "zod": "^4.4.3"
+  }
+}

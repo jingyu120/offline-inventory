@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as schema from '@burma-inventory/shared-types';
-import { eq, and, gt, lte, isNull, inArray, desc, ne, gte } from 'drizzle-orm';
+import { eq, and, gt, lte, isNull, inArray, ne, gte } from 'drizzle-orm';
 import type {
   PullChangesResponse,
   PushChangesBody,
@@ -197,6 +197,20 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     toRecord: (k) => k,
     toDrizzle: (k) => k,
   },
+  currency_exchange_rates: {
+    delegate: 'currency_exchange_rates',
+    softDelete: false,
+    hasTimestamps: false,
+    toRecord: (e) => e,
+    toDrizzle: (e) => e,
+  },
+  competitor_insights: {
+    delegate: 'competitor_insights',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (c) => c,
+    toDrizzle: (c) => c,
+  },
 };
 
 @Injectable()
@@ -207,6 +221,12 @@ export class SyncService {
     private readonly drizzle: DrizzleService,
     private readonly aiService: AiService,
   ) {}
+
+  private generateSequentialId(): string {
+    const timestamp = Date.now().toString().padStart(15, '0');
+    const randomSuffix = crypto.randomBytes(8).toString('hex');
+    return `${timestamp}-${randomSuffix}`;
+  }
 
   // ── Pull ──────────────────────────────────────────────────────────
 
@@ -224,27 +244,50 @@ export class SyncService {
         throw new Error(`Drizzle table for ${cfg.delegate} is not defined`);
       }
 
-      if (!cfg.hasTimestamps) {
+      const hasCreatedAt = 'created_at' in table;
+      const hasUpdatedAt = 'updated_at' in table;
+
+      if (!hasCreatedAt && !hasUpdatedAt) {
         const all = await this.drizzle.db.select().from(table);
         return { created: all.map(cfg.toRecord), updated: [], deleted: [] };
       }
 
+      const conditions: any[] = [];
+      const updatedConditions: any[] = [];
+
+      if (hasCreatedAt) {
+        conditions.push(gt(table.created_at, lastPulledAt));
+      } else if (hasUpdatedAt) {
+        conditions.push(gt(table.updated_at, lastPulledAt));
+      }
+
+      if (hasUpdatedAt && hasCreatedAt) {
+        updatedConditions.push(
+          gt(table.updated_at, lastPulledAt),
+          lte(table.created_at, lastPulledAt),
+        );
+      } else if (hasUpdatedAt) {
+        updatedConditions.push(gt(table.updated_at, lastPulledAt));
+      }
+
+      if (cfg.softDelete && 'deleted_at' in table) {
+        updatedConditions.push(isNull(table.deleted_at));
+      }
+
       const [newRecords, updated, softDeleted] = await Promise.all([
-        this.drizzle.db
-          .select()
-          .from(table)
-          .where(gt(table.created_at, lastPulledAt)),
-        this.drizzle.db
-          .select()
-          .from(table)
-          .where(
-            and(
-              gt(table.updated_at, lastPulledAt),
-              lte(table.created_at, lastPulledAt),
-              cfg.softDelete ? isNull(table.deleted_at) : undefined,
-            ),
-          ),
-        cfg.softDelete
+        conditions.length > 0
+          ? this.drizzle.db
+              .select()
+              .from(table)
+              .where(and(...conditions))
+          : Promise.resolve([]),
+        hasUpdatedAt && updatedConditions.length > 0
+          ? this.drizzle.db
+              .select()
+              .from(table)
+              .where(and(...updatedConditions))
+          : Promise.resolve([]),
+        cfg.softDelete && 'deleted_at' in table
           ? this.drizzle.db
               .select({ id: table.id })
               .from(table)
@@ -285,7 +328,7 @@ export class SyncService {
       await this.drizzle.db
         .insert(schema.pgSchema.sync_audit_logs)
         .values({
-          id: crypto.randomUUID(),
+          id: this.generateSequentialId(),
           device_id: deviceId,
           user_id: userId || null,
           action: 'PULL',
@@ -418,7 +461,7 @@ export class SyncService {
       await this.drizzle.db
         .insert(schema.pgSchema.sync_audit_logs)
         .values({
-          id: crypto.randomUUID(),
+          id: this.generateSequentialId(),
           device_id: deviceId,
           user_id: userId || null,
           action: 'PUSH',
@@ -559,6 +602,38 @@ export class SyncService {
     }
   }
 
+  async updateCompetitorInsightPhoto(
+    competitorInsightId: string,
+    filename: string,
+  ): Promise<string> {
+    const url = `/api/sync/uploads/${filename}`;
+    const existingRows = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.competitor_insights)
+      .where(eq(schema.pgSchema.competitor_insights.id, competitorInsightId))
+      .limit(1);
+    const existing = existingRows[0] || null;
+
+    if (existing) {
+      await this.drizzle.db
+        .update(schema.pgSchema.competitor_insights)
+        .set({
+          photo_url: url,
+          updated_at: Date.now(),
+        })
+        .where(eq(schema.pgSchema.competitor_insights.id, competitorInsightId));
+      this.logger.log(
+        `[SyncService] Updated competitor insight ${competitorInsightId} photo URL to ${url}`,
+      );
+    } else {
+      this.logger.log(
+        `[SyncService] Photo uploaded for competitor insight ${competitorInsightId}, but record does not exist on server yet. URL ${url} will sync via client push.`,
+      );
+    }
+
+    return url;
+  }
+
   async updateInteractionLogScreenshot(
     interactionLogId: string,
     filename: string,
@@ -591,12 +666,18 @@ export class SyncService {
     return url;
   }
 
-  async getSyncLogs() {
-    const logs = await this.drizzle.db
-      .select()
-      .from(schema.pgSchema.sync_audit_logs)
-      .orderBy(desc(schema.pgSchema.sync_audit_logs.created_at))
-      .limit(50);
+  async getSyncLogs(lastSeenId?: string, limit = 20) {
+    let query = this.drizzle.db.select().from(schema.pgSchema.sync_audit_logs);
+
+    if (lastSeenId) {
+      query = query.where(
+        gt(schema.pgSchema.sync_audit_logs.id, lastSeenId),
+      ) as any;
+    }
+
+    const logs = await query
+      .orderBy(schema.pgSchema.sync_audit_logs.id)
+      .limit(limit);
 
     const userIds = [
       ...new Set(logs.map((l) => l.user_id).filter(Boolean)),
@@ -718,7 +799,12 @@ export class SyncService {
         const existingShops = await this.drizzle.db
           .select({ name: schema.pgSchema.shops.name })
           .from(schema.pgSchema.shops)
-          .where(eq(schema.pgSchema.shops.id, existingContact.shop_id))
+          .where(
+            and(
+              eq(schema.pgSchema.shops.id, existingContact.shop_id),
+              isNull(schema.pgSchema.shops.deleted_at),
+            ),
+          )
           .limit(1);
         const existingShop = existingShops[0] || null;
         warnings.push(

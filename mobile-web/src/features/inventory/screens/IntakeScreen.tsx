@@ -14,6 +14,7 @@ import {
   TextField,
   DropdownSelector,
 } from '@burma-inventory/ui-components';
+import { ImageAnnotationModal } from '../components/ImageAnnotationModal';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from '@burma-inventory/ui-components';
 import { database } from '../../../core/database/database';
@@ -40,6 +41,9 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
 
 const calculateDistance = (
   lat1: number,
@@ -83,6 +87,127 @@ export function IntakeScreen() {
   const [category, setCategory] = useState('Beverage');
   const [initialStock, setInitialStock] = useState('100');
   const [isAdding, setIsAdding] = useState(false);
+
+  // Competitor insights form states
+  const [compName, setCompName] = useState('');
+  const [compPrice, setCompPrice] = useState('');
+  const [compPhotoUri, setCompPhotoUri] = useState<string | null>(null);
+  const [isSavingComp, setIsSavingComp] = useState(false);
+
+  const [annotationModalVisible, setAnnotationModalVisible] = useState(false);
+  const [pendingAnnotationUri, setPendingAnnotationUri] = useState<
+    string | null
+  >(null);
+
+  const handleInterceptPhoto = (uri: string) => {
+    setPendingAnnotationUri(uri);
+    setAnnotationModalVisible(true);
+  };
+
+  const handlePickCompetitorImage = async (useCamera = false) => {
+    const permissionResult = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        t('permissionRequired') || 'Permission Required',
+        useCamera
+          ? 'Camera permissions are required to snap a photo.'
+          : t('cameraRollPermissionDesc') || 'Need library permissions.',
+      );
+      return;
+    }
+
+    const pickerResult = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          quality: 1,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          quality: 1,
+        });
+
+    if (
+      !pickerResult.canceled &&
+      pickerResult.assets &&
+      pickerResult.assets.length > 0
+    ) {
+      const uri = pickerResult.assets[0].uri;
+      try {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          uri,
+          [{ resize: { width: 1080 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        handleInterceptPhoto(manipResult.uri);
+      } catch (err) {
+        console.error('Image compression failed for competitor insight', err);
+        handleInterceptPhoto(uri);
+      }
+    }
+  };
+
+  const handleSaveCompetitorInsight = async () => {
+    if (!compName || !compPrice) {
+      Alert.alert(
+        t('validationError') || 'Validation Error',
+        'Please enter a competitive product name and street price.',
+      );
+      return;
+    }
+
+    const parsedPrice = parseFloat(compPrice);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert(
+        t('validationError') || 'Validation Error',
+        'Please enter a valid street price.',
+      );
+      return;
+    }
+
+    setIsSavingComp(true);
+    try {
+      const insightId = `insight-${Math.random().toString(36).substring(2, 15)}`;
+      const now = Date.now();
+
+      await database.insert(sqliteSchema.competitor_insights).values({
+        id: insightId,
+        product_name: compName,
+        street_price: parsedPrice,
+        photo_url: null,
+        created_at: now,
+        updated_at: now,
+      });
+
+      if (compPhotoUri) {
+        await ImageUploadQueue.enqueueCompetitorInsightImage(
+          insightId,
+          compPhotoUri,
+        );
+      }
+
+      setCompName('');
+      setCompPrice('');
+      setCompPhotoUri(null);
+
+      Alert.alert(
+        t('success') || 'Success',
+        'Competitor street price insight logged successfully.',
+      );
+    } catch (e: any) {
+      console.error('Failed to save competitor insight:', e);
+      Alert.alert(
+        t('error') || 'Error',
+        'Failed to save competitor price insight.',
+      );
+    } finally {
+      setIsSavingComp(false);
+    }
+  };
 
   // Geofence states
   const [shops, setShops] = useState<Shop[]>([]);
@@ -472,6 +597,72 @@ export function IntakeScreen() {
           </Card>
         </Box>
 
+        {/* Competitor Intelligence Capture Card */}
+        <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+          <Text variant="title" mb="m">
+            🕵️ Competitor Intelligence Capture
+          </Text>
+          <Text variant="bodySecondary" mb="m">
+            Capture observed competitor product street prices and snap evidence
+            photo.
+          </Text>
+
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            style={{ marginHorizontal: -8 }}
+          >
+            <Box width={isDesktop ? '50%' : '100%'} px="s">
+              <TextField
+                label="Competitor Product Name"
+                value={compName}
+                onChangeText={setCompName}
+                placeholder="e.g. Tiger Cement 50kg"
+              />
+            </Box>
+            <Box width={isDesktop ? '50%' : '100%'} px="s">
+              <TextField
+                label="Observed Street Price (MMK)"
+                value={compPrice}
+                onChangeText={setCompPrice}
+                placeholder="e.g. 18500"
+                keyboardType="numeric"
+              />
+            </Box>
+          </Box>
+
+          <Box flexDirection="row" alignItems="center" mt="m" mb="m" gap="s">
+            <Button
+              title="Snap Photo"
+              onPress={() => handlePickCompetitorImage(true)}
+              variant="secondary"
+            />
+            <Button
+              title="Choose Gallery"
+              onPress={() => handlePickCompetitorImage(false)}
+              variant="secondary"
+            />
+            {compPhotoUri && (
+              <Text
+                variant="bodySecondary"
+                color="successText"
+                fontWeight="bold"
+              >
+                Photo attached ✓
+              </Text>
+            )}
+          </Box>
+
+          <Box alignItems="flex-end">
+            <Button
+              title={isSavingComp ? 'Saving...' : 'Save Insight'}
+              onPress={handleSaveCompetitorInsight}
+              variant="primary"
+              disabled={isSavingComp}
+            />
+          </Box>
+        </Card>
+
         {/* Master Catalog Table Grid */}
         <Text variant="title" mb="s">
           📦 {t('masterStockLevels')}
@@ -590,6 +781,19 @@ export function IntakeScreen() {
           </Box>
         )}
       </ScrollView>
+      <ImageAnnotationModal
+        visible={annotationModalVisible}
+        imageUri={pendingAnnotationUri}
+        onClose={() => {
+          setAnnotationModalVisible(false);
+          setPendingAnnotationUri(null);
+        }}
+        onAnnotated={(croppedUri) => {
+          setCompPhotoUri(croppedUri);
+          setAnnotationModalVisible(false);
+          setPendingAnnotationUri(null);
+        }}
+      />
     </Box>
   );
 }

@@ -25,6 +25,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     sqliteSchema.stock_balances,
     sqliteSchema.projects,
     sqliteSchema.rep_kpis,
+    sqliteSchema.currency_exchange_rates,
+    sqliteSchema.competitor_insights,
   ];
 
   for (const table of tables) {
@@ -136,6 +138,10 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       material_sub_type: 'MR',
       hardware_finish: null,
       is_in_deficit: true,
+      base_wholesale_price: 3.2,
+      base_currency: 'USD',
+      volume_discount_brackets:
+        '[{"quantity": 10, "discount_percent": 5}, {"quantity": 50, "discount_percent": 10}]',
       created_at: now,
       updated_at: now,
     },
@@ -154,6 +160,9 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       material_sub_type: 'RE',
       hardware_finish: null,
       is_in_deficit: false,
+      base_wholesale_price: 35,
+      base_currency: 'THB',
+      volume_discount_brackets: '[{"quantity": 100, "discount_percent": 5}]',
       created_at: now,
       updated_at: now,
     },
@@ -352,6 +361,21 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       to_currency: 'MMK',
       rate: 58.5,
       updated_at: now,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.currency_exchange_rates).values([
+    {
+      id: 'rate-usd',
+      currency: 'USD',
+      rate_to_kyat: 4200.0,
+      pushed_at: now,
+    },
+    {
+      id: 'rate-thb',
+      currency: 'THB',
+      rate_to_kyat: 115.0,
+      pushed_at: now,
     },
   ]);
 

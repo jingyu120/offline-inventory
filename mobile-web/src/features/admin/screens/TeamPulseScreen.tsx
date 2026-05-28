@@ -23,6 +23,7 @@ import { useTranslation } from '../../../core/i18n/i18n';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../config/appConfig';
 import { SyncLogsTable } from '../components/SyncLogsTable';
+import { trpcClient } from '../../../core/trpc/trpcClient';
 import { SKU_METRICS } from '../../../config/appConfig';
 
 export const TeamPulseScreen: React.FC = () => {
@@ -62,6 +63,8 @@ export const TeamPulseScreen: React.FC = () => {
 
   const [syncLogs, setSyncLogs] = useState<any[]>([]);
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   // Focus states for emerald focus rings on inputs
   const [dateFocused, setDateFocused] = useState(false);
@@ -77,22 +80,41 @@ export const TeamPulseScreen: React.FC = () => {
         } as any)
       : {};
 
-  const fetchSyncLogs = async () => {
-    setSyncLogsLoading(true);
+  const fetchSyncLogs = async (isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setSyncLogsLoading(true);
+    }
     try {
-      const response = await axios.get(`${API_BASE_URL}/sync/sync-logs`);
-      if (response.data && response.data.success) {
-        setSyncLogs(response.data.logs);
+      const lastLog = syncLogs[syncLogs.length - 1];
+      const lastSeenId = isLoadMore && lastLog ? lastLog.id : undefined;
+      const limit = 20;
+
+      const response = await trpcClient.getSyncLogs.query({
+        lastSeenId,
+        limit,
+      });
+
+      if (response && response.success) {
+        const newLogs = response.logs || [];
+        if (isLoadMore) {
+          setSyncLogs((prev) => [...prev, ...newLogs]);
+        } else {
+          setSyncLogs(newLogs);
+        }
+        setHasMore(newLogs.length === limit);
       }
     } catch (e) {
-      console.error('Failed to fetch sync logs:', e);
+      console.error('Failed to fetch sync logs via tRPC:', e);
     } finally {
       setSyncLogsLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchSyncLogs();
+    fetchSyncLogs(false);
   }, []);
 
   if (loading) {
@@ -503,7 +525,7 @@ export const TeamPulseScreen: React.FC = () => {
                 if (response.data.success) {
                   setCsvText('');
                   loadDatabaseData();
-                  fetchSyncLogs();
+                  fetchSyncLogs(false);
                 }
               } catch (e: any) {
                 setImportResult({
@@ -619,7 +641,7 @@ export const TeamPulseScreen: React.FC = () => {
           </Box>
           <Button
             title={syncLogsLoading ? 'Refreshing...' : 'Refresh'}
-            onPress={fetchSyncLogs}
+            onPress={() => fetchSyncLogs(false)}
             variant="outline"
             size="small"
             disabled={syncLogsLoading}
@@ -646,7 +668,13 @@ export const TeamPulseScreen: React.FC = () => {
             <Text variant="bodySecondary">No sync logs recorded.</Text>
           </Box>
         ) : (
-          <SyncLogsTable syncLogs={syncLogs} isDesktop={isDesktop} />
+          <SyncLogsTable
+            syncLogs={syncLogs}
+            isDesktop={isDesktop}
+            onLoadMore={() => fetchSyncLogs(true)}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+          />
         )}
       </Card>
     </ScrollView>

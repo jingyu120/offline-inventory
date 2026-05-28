@@ -24,7 +24,11 @@
       "@burma-inventory/shared-types": ["./shared-types/src/index.ts"],
       "@burma-inventory/ui-components": ["./ui-components/src/index.ts"],
       "@burma-inventory/mobile-web/*": ["./mobile-web/src/*"],
-      "@burma-inventory/sync-server/*": ["./sync-server/src/app/*"]
+      "@burma-inventory/sync-server/*": ["./sync-server/src/app/*"],
+      "expo-file-system": ["./node_modules/expo-file-system/build/index.d.ts"],
+      "expo-file-system/legacy": [
+        "./node_modules/expo-file-system/build/legacy/index.d.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]

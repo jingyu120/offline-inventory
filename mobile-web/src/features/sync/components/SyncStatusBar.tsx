@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { useNetworkQuality } from '../hooks/useNetworkQuality';
 
 interface SyncStatusBarProps {
   isSyncing: boolean;
@@ -16,6 +17,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
   lastSync,
 }) => {
   const { t } = useTranslation();
+  const quality = useNetworkQuality();
 
   let bgKey: 'successLight' | 'warningLight' | 'dangerLight' = 'successLight';
   let textColorKey: 'successText' | 'warningText' | 'dangerText' =
@@ -26,6 +28,10 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
     bgKey = 'dangerLight';
     textColorKey = 'dangerText';
     statusText = `${t('syncError') || 'Sync Error'}: ${syncError}`;
+  } else if (quality.isDegraded) {
+    bgKey = 'warningLight';
+    textColorKey = 'warningText';
+    statusText = `⚠️ Connection degraded (2G/EDGE) - Image sync paused.`;
   } else if (isSyncing) {
     bgKey = 'warningLight';
     textColorKey = 'warningText';

@@ -88,6 +88,9 @@ export const items = pgTable(
     material_sub_type: text('material_sub_type'),
     hardware_finish: text('hardware_finish'),
     is_in_deficit: boolean('is_in_deficit').notNull().default(false),
+    base_wholesale_price: doublePrecision('base_wholesale_price'),
+    base_currency: text('base_currency'),
+    volume_discount_brackets: text('volume_discount_brackets'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
     deleted_at: bigint('deleted_at', { mode: 'number' }),
@@ -467,3 +470,19 @@ export const interactionLogsRelations = relations(
     }),
   }),
 );
+
+export const currency_exchange_rates = pgTable('currency_exchange_rates', {
+  id: text('id').primaryKey(),
+  currency: text('currency').notNull(),
+  rate_to_kyat: doublePrecision('rate_to_kyat').notNull(),
+  pushed_at: bigint('pushed_at', { mode: 'number' }).notNull(),
+});
+
+export const competitor_insights = pgTable('competitor_insights', {
+  id: text('id').primaryKey(),
+  product_name: text('product_name').notNull(),
+  street_price: doublePrecision('street_price').notNull(),
+  photo_url: text('photo_url'),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+  updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+});

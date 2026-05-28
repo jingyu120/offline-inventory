@@ -9,6 +9,17 @@ export interface TextFieldProps extends TextInputProps {
   error?: string;
   name?: string;
   isBelowFloor?: boolean;
+  baseValuation?: { amount: number; currency: 'USD' | 'THB' };
+}
+
+export type ExchangeRateResolver = (
+  currency: 'USD' | 'THB',
+) => Promise<number | undefined>;
+
+let rateResolver: ExchangeRateResolver | null = null;
+
+export function registerExchangeRateResolver(r: ExchangeRateResolver) {
+  rateResolver = r;
 }
 
 export function TextField({
@@ -19,10 +30,55 @@ export function TextField({
   onFocus,
   onBlur,
   isBelowFloor,
+  baseValuation,
   ...rest
 }: TextFieldProps) {
   const theme = useTheme<Theme>();
   const [isFocused, setIsFocused] = useState(false);
+  const [convertedValue, setConvertedValue] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!baseValuation) {
+      setConvertedValue(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    const performConversion = async () => {
+      try {
+        let rateVal: number | undefined;
+        if (rateResolver) {
+          rateVal = await rateResolver(baseValuation.currency);
+        }
+
+        if (rateVal === undefined) {
+          rateVal = baseValuation.currency === 'USD' ? 4200 : 115;
+        }
+
+        if (isMounted) {
+          const kyatAmt = Math.round(baseValuation.amount * rateVal);
+          setConvertedValue(`${kyatAmt.toLocaleString()} MMK`);
+        }
+      } catch (err) {
+        console.warn(
+          'Failed to perform currency conversion in TextField:',
+          err,
+        );
+        if (isMounted) {
+          const rateVal = baseValuation.currency === 'USD' ? 4200 : 115;
+          const kyatAmt = Math.round(baseValuation.amount * rateVal);
+          setConvertedValue(`${kyatAmt.toLocaleString()} MMK`);
+        }
+      }
+    };
+
+    performConversion();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [baseValuation?.amount, baseValuation?.currency]);
 
   const isNumeric =
     rest.keyboardType === 'numeric' ||
@@ -36,6 +92,10 @@ export function TextField({
   const resolvedKeyboardType = isNumeric
     ? rest.keyboardType || 'decimal-pad'
     : rest.keyboardType;
+
+  const finalValue = convertedValue !== null ? convertedValue : rest.value;
+  const finalEditable = convertedValue !== null ? false : rest.editable;
+  const finalIsNumeric = isNumeric || convertedValue !== null;
 
   return (
     <Box my="s">
@@ -68,7 +128,7 @@ export function TextField({
 
             color: theme.colors.primaryText,
             outlineWidth: 0, // Avoid default thick outline on web browser focus
-            fontFamily: isNumeric ? 'monospace' : undefined,
+            fontFamily: finalIsNumeric ? 'monospace' : undefined,
             ...(Platform.OS === 'web'
               ? {
                   boxShadow: isFocused
@@ -96,6 +156,8 @@ export function TextField({
           setIsFocused(false);
           onBlur?.(e);
         }}
+        value={finalValue}
+        editable={finalEditable}
         {...rest}
       />
       {error && (

@@ -32,45 +32,48 @@ Refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.
 
 ### Prerequisites
 
-- Node.js (v18+)
-- Docker (for local PostgreSQL database)
+- **Node.js v22+** — check `.nvmrc` and use `nvm` to match the version
+- **Docker** — for the local PostgreSQL database
 
-### Installation
+### First-Time Setup (after `git clone`)
 
-Install dependencies in the root directory:
+Run the one-shot init script. It is **non-destructive** — it skips steps that are already complete (e.g. existing `node_modules` or a running DB):
 
 ```bash
-npm install
+npm run init
 ```
 
-### Running the Services
+This single command will:
 
-1. **Start the Database**:
-   Launch the containerized Postgres database:
+1. Verify Node.js ≥ 22 and Docker are available
+2. `npm install` root + `mobile-web` dependencies
+3. Start the Docker PostgreSQL container (if not already running)
+4. Wait for the DB to be ready and push the Drizzle schema
+5. Run the initial `sync-server` build so `dist/` exists
 
-   ```bash
-   npm run db:up
-   ```
+Then simply start developing:
 
-2. **Run Sync Server**:
-   Start the sync backend in development mode:
+```bash
+npm run dev
+```
 
-   ```bash
-   npx nx serve sync-server
-   ```
+---
 
-3. **Run Client Application**:
-   Start the Expo development server:
+### Other Useful Commands
 
-   ```bash
-   npx nx start mobile-web
-   ```
+| Command               | Description                                                 |
+| --------------------- | ----------------------------------------------------------- |
+| `npm run dev`         | Start all services (DB check → build → NX watch + serve)    |
+| `npm run db:push`     | Push Drizzle schema to the running DB                       |
+| `npm run db:reset`    | Wipe + re-push schema (preserves Docker volume)             |
+| `npm run check`       | Typecheck + lint + test + format-check                      |
+| `npm run clean-setup` | **Destructive** full reset — wipes DB volume & node_modules |
 
-4. **Run Code Validation**:
-   Validate code formatting, lint rules, types, and unit tests:
-   ```bash
-   npm run check
-   ```
+### Code Validation
+
+```bash
+npm run check
+```
 
 ---
 

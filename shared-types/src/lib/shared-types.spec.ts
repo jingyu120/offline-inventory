@@ -93,10 +93,16 @@ describe('shared-types', () => {
         material_sub_type: null,
         hardware_finish: null,
         is_in_deficit: false,
+        base_wholesale_price: 5.5,
+        base_currency: 'USD',
+        volume_discount_brackets: '[{"quantity": 10, "discount_percent": 5}]',
         created_at: 10000,
         updated_at: 10000,
       };
       expect(record.sku).toBe('SKU-PB-640');
+      expect(record.base_wholesale_price).toBe(5.5);
+      expect(record.base_currency).toBe('USD');
+      expect(record.volume_discount_brackets).toContain('discount_percent');
     });
 
     it('InteractionLogRecord has all sync fields', () => {

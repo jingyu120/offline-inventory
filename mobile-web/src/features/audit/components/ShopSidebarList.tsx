@@ -14,6 +14,8 @@ import { useTheme } from '@shopify/restyle';
 import { Clock, MapPin, Zap } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { DesignPatternGallery } from '../../../core/components/DesignPatternGallery';
+import { database } from '../../../core/database/database';
+import { sqliteSchema } from '@burma-inventory/shared-types';
 
 interface ShopSidebarListProps {
   shops: ShopWithDetails[];
@@ -47,6 +49,94 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
 }) => {
   const theme = useTheme<Theme>();
   const { t } = useTranslation();
+
+  const [restockAlerts, setRestockAlerts] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!selectedShop) {
+      setRestockAlerts([]);
+      return;
+    }
+
+    const calculateRestockHeuristics = async () => {
+      try {
+        // Fetch logs for this shop
+        const logs = await database
+          .select()
+          .from(sqliteSchema.interaction_logs);
+        const shopLogs = logs.filter((l: any) => l.shop_id === selectedShop.id);
+        if (shopLogs.length === 0) {
+          setRestockAlerts([]);
+          return;
+        }
+
+        const logIds = shopLogs.map((l: any) => l.id);
+
+        // Fetch items and stocks
+        const allItems = await database.select().from(sqliteSchema.items);
+        const allStocks = await database
+          .select()
+          .from(sqliteSchema.item_stocks);
+
+        // Fetch interaction items
+        const allIntItems = await database
+          .select()
+          .from(sqliteSchema.interaction_items);
+        const shopIntItems = allIntItems.filter((ii: any) =>
+          logIds.includes(ii.interaction_log_id),
+        );
+
+        // Group by item_id
+        const itemSales: Record<string, { qty: number; dates: number[] }> = {};
+        for (const sale of shopIntItems) {
+          if (!itemSales[sale.item_id]) {
+            itemSales[sale.item_id] = { qty: 0, dates: [] };
+          }
+          itemSales[sale.item_id].qty += sale.quantity;
+          itemSales[sale.item_id].dates.push(sale.created_at || Date.now());
+        }
+
+        const alerts: any[] = [];
+        for (const [itemId, sales] of Object.entries(itemSales)) {
+          const item = allItems.find((i: any) => i.id === itemId);
+          if (!item) continue;
+
+          const stock = allStocks.find((s: any) => s.item_id === itemId);
+          const stockQty = stock ? stock.quantity : 0;
+
+          // Simple moving average calculation
+          const firstDate = Math.min(...sales.dates);
+          const elapsedMs = Date.now() - firstDate;
+          const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24));
+          const depletionRatePerDay = sales.qty / elapsedDays;
+
+          if (depletionRatePerDay > 0) {
+            const daysRemaining = stockQty / depletionRatePerDay;
+            if (daysRemaining < 3) {
+              const suggestedQty = Math.max(
+                1,
+                Math.ceil(depletionRatePerDay * 10) - stockQty,
+              );
+              alerts.push({
+                itemId,
+                itemName: item.name,
+                itemSku: item.sku,
+                daysRemaining,
+                suggestedQty,
+                currentStock: stockQty,
+              });
+            }
+          }
+        }
+
+        setRestockAlerts(alerts);
+      } catch (err) {
+        console.error('Failed to calculate restocking heuristics:', err);
+      }
+    };
+
+    calculateRestockHeuristics();
+  }, [selectedShop]);
 
   const formatLastContact = (date: Date | undefined) => {
     if (!date) return t('noInteractions');
@@ -118,6 +208,74 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
+        {selectedShop && restockAlerts.length > 0 && (
+          <Box mb="m">
+            {restockAlerts.map((alert) => (
+              <Card
+                key={alert.itemId}
+                p="m"
+                mb="s"
+                bg="warningBg"
+                borderWidth={1.5}
+                borderColor="warning"
+                borderRadius="m"
+              >
+                <Box
+                  flexDirection="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb="xs"
+                >
+                  <Text
+                    variant="title"
+                    color="warningText"
+                    fontSize={15}
+                    fontWeight="bold"
+                  >
+                    ⚠️ {t('suggestedRestock')}
+                  </Text>
+                  <Text
+                    variant="bodySecondary"
+                    color="warningText"
+                    fontSize={11}
+                    style={{ opacity: 0.8 }}
+                  >
+                    {alert.itemSku}
+                  </Text>
+                </Box>
+                <Text
+                  variant="body"
+                  color="warningText"
+                  fontWeight="bold"
+                  fontSize={14}
+                  mb="xs"
+                >
+                  {alert.itemName}
+                </Text>
+                <Text variant="bodySecondary" color="warningText" mb="s">
+                  {t('depletionPredict').replace(
+                    '{days}',
+                    alert.daysRemaining.toFixed(1),
+                  )}
+                </Text>
+                <Box
+                  flexDirection="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Text variant="caption" color="warningText">
+                    {t('currentStock')}: {alert.currentStock}
+                  </Text>
+                  <Box bg="warning" px="s" py="xs" borderRadius="s">
+                    <Text color="pureWhite" fontWeight="bold" fontSize={12}>
+                      +{alert.suggestedQty}
+                    </Text>
+                  </Box>
+                </Box>
+              </Card>
+            ))}
+          </Box>
+        )}
         {shops.map((s) => {
           const isSelected = selectedShop?.id === s.id;
           const initial = s.name ? s.name.charAt(0).toUpperCase() : '?';

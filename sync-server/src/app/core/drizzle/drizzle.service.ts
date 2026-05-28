@@ -160,6 +160,10 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: 'MR',
           hardware_finish: null,
           is_in_deficit: true,
+          base_wholesale_price: 3.2,
+          base_currency: 'USD',
+          volume_discount_brackets:
+            '[{"quantity": 10, "discount_percent": 5}, {"quantity": 50, "discount_percent": 10}]',
         },
         {
           id: 'item-2',
@@ -172,6 +176,10 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: 'RE',
           hardware_finish: null,
           is_in_deficit: false,
+          base_wholesale_price: 35.0,
+          base_currency: 'THB',
+          volume_discount_brackets:
+            '[{"quantity": 100, "discount_percent": 5}]',
         },
         {
           id: 'item-3',
@@ -184,6 +192,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: null,
           hardware_finish: 'CP',
           is_in_deficit: false,
+          base_wholesale_price: null,
+          base_currency: null,
+          volume_discount_brackets: null,
         },
         {
           id: 'item-4',
@@ -196,6 +207,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: null,
           hardware_finish: 'BL',
           is_in_deficit: false,
+          base_wholesale_price: null,
+          base_currency: null,
+          volume_discount_brackets: null,
         },
         {
           id: 'item-5',
@@ -208,6 +222,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: 'MR',
           hardware_finish: null,
           is_in_deficit: false,
+          base_wholesale_price: null,
+          base_currency: null,
+          volume_discount_brackets: null,
         },
         {
           id: 'item-6',
@@ -220,6 +237,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: 'RE',
           hardware_finish: null,
           is_in_deficit: false,
+          base_wholesale_price: null,
+          base_currency: null,
+          volume_discount_brackets: null,
         },
         {
           id: 'item-7',
@@ -234,6 +254,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           material_sub_type: null,
           hardware_finish: null,
           is_in_deficit: false,
+          base_wholesale_price: null,
+          base_currency: null,
+          volume_discount_brackets: null,
         },
       ];
 
@@ -251,6 +274,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
             material_sub_type: item.material_sub_type,
             hardware_finish: item.hardware_finish,
             is_in_deficit: item.is_in_deficit,
+            base_wholesale_price: item.base_wholesale_price,
+            base_currency: item.base_currency,
+            volume_discount_brackets: item.volume_discount_brackets,
             created_at: now,
             updated_at: now,
           })
@@ -311,6 +337,24 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           })
           .onConflictDoNothing();
       }
+
+      await this.db
+        .insert(schema.pgSchema.currency_exchange_rates)
+        .values([
+          {
+            id: 'rate-usd',
+            currency: 'USD',
+            rate_to_kyat: 4200.0,
+            pushed_at: now,
+          },
+          {
+            id: 'rate-thb',
+            currency: 'THB',
+            rate_to_kyat: 115.0,
+            pushed_at: now,
+          },
+        ])
+        .onConflictDoNothing();
 
       const shopsData = [
         {

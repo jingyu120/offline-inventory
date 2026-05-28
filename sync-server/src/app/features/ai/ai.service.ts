@@ -248,7 +248,10 @@ Return ONLY raw JSON.`;
   }
 
   async ocrInvoice(base64Image: string, quantization?: string) {
-    const dbItems = await this.drizzle.db.select().from(schema.pgSchema.items);
+    const dbItems = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.items)
+      .where(isNull(schema.pgSchema.items.deleted_at));
     const prompt = `OCR the invoice/shelf photo. Extract all products and their quantities. Return a JSON object with:
 1. 'items': array of objects with 'name' (string) and 'quantity' (integer).
 2. 'explanation': string explaining the OCR.
@@ -454,6 +457,7 @@ Return ONLY raw JSON.`;
             schema.pgSchema.interaction_logs.created_at_local,
             endOfDay.getTime(),
           ),
+          isNull(schema.pgSchema.shops.deleted_at),
         ),
       );
 
@@ -638,6 +642,7 @@ No markdown tags like \`\`\`json, no explanations.`;
             schema.pgSchema.interaction_logs.created_at_local,
             endOfDay.getTime(),
           ),
+          isNull(schema.pgSchema.shops.deleted_at),
         ),
       );
 
@@ -799,7 +804,12 @@ No markdown tags like \`\`\`json, no explanations.`;
     const shops = await this.drizzle.db
       .select()
       .from(schema.pgSchema.shops)
-      .where(eq(schema.pgSchema.shops.id, log.shop_id))
+      .where(
+        and(
+          eq(schema.pgSchema.shops.id, log.shop_id),
+          isNull(schema.pgSchema.shops.deleted_at),
+        ),
+      )
       .limit(1);
     const shop = shops[0] || null;
 
@@ -813,7 +823,12 @@ No markdown tags like \`\`\`json, no explanations.`;
         const items = await this.drizzle.db
           .select()
           .from(schema.pgSchema.items)
-          .where(eq(schema.pgSchema.items.id, ii.item_id))
+          .where(
+            and(
+              eq(schema.pgSchema.items.id, ii.item_id),
+              isNull(schema.pgSchema.items.deleted_at),
+            ),
+          )
           .limit(1);
         return {
           ...ii,

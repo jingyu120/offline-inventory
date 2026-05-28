@@ -1,6 +1,6 @@
 import { database } from '../database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
-import { eq, like, inArray, desc } from 'drizzle-orm';
+import { eq, like, inArray, desc, isNull, and } from 'drizzle-orm';
 import {
   Shop,
   Region,
@@ -84,6 +84,9 @@ export const mapItem = (i: any): Item => ({
   materialSubType: i.material_sub_type,
   hardwareFinish: i.hardware_finish,
   isInDeficit: !!i.is_in_deficit,
+  baseWholesalePrice: i.base_wholesale_price,
+  baseCurrency: i.base_currency,
+  volumeDiscountBrackets: i.volume_discount_brackets,
   createdAt: i.created_at,
   updatedAt: i.updated_at,
 });
@@ -150,8 +153,13 @@ export const fetchShops = async (
   let query = database.select().from(sqliteSchema.shops);
   if (searchQuery) {
     query = query.where(
-      like(sqliteSchema.shops.name, `%${searchQuery}%`),
+      and(
+        like(sqliteSchema.shops.name, `%${searchQuery}%`),
+        isNull(sqliteSchema.shops.deleted_at),
+      ),
     ) as any;
+  } else {
+    query = query.where(isNull(sqliteSchema.shops.deleted_at)) as any;
   }
   const fetchedShops = await query;
 
@@ -222,7 +230,12 @@ export const fetchShopDetails = async (
             const itemDetails = await database
               .select()
               .from(sqliteSchema.items)
-              .where(eq(sqliteSchema.items.id, ii.item_id));
+              .where(
+                and(
+                  eq(sqliteSchema.items.id, ii.item_id),
+                  isNull(sqliteSchema.items.deleted_at),
+                ),
+              );
             const itemDetail = itemDetails[0];
             return {
               id: ii.id,
@@ -258,7 +271,10 @@ export const fetchItemsAndStockLevel = async (): Promise<{
   items: Item[];
   stocksMap: Record<string, number>;
 }> => {
-  const itemsList = await database.select().from(sqliteSchema.items);
+  const itemsList = await database
+    .select()
+    .from(sqliteSchema.items)
+    .where(isNull(sqliteSchema.items.deleted_at));
   const stocks = await database.select().from(sqliteSchema.item_stocks);
 
   const stocksMap: Record<string, number> = {};
@@ -401,7 +417,10 @@ export const fetchInteractionLogs = async (): Promise<InteractionLog[]> => {
 };
 
 export const fetchAllItems = async (): Promise<Item[]> => {
-  const itemsList = await database.select().from(sqliteSchema.items);
+  const itemsList = await database
+    .select()
+    .from(sqliteSchema.items)
+    .where(isNull(sqliteSchema.items.deleted_at));
   return itemsList.map(mapItem);
 };
 

@@ -61,9 +61,7 @@ log "Cleaned dist, .nx, tmp, metro-debug.log, and node_modules"
 # 3. Fresh installation
 echo "📦 Installing root npm dependencies..."
 npm install --no-audit
-echo "📦 Installing mobile-web npm dependencies..."
-npm install --no-audit --prefix mobile-web
-log "Dependencies installed"
+log "All workspace dependencies installed"
 
 # 4. Start database container
 echo "🐳 Starting database container..."

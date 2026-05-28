@@ -7,7 +7,13 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  Card,
+  Theme,
+  SkeletonCard,
+} from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { useShopsData } from '../hooks/useShopsData';
 import { ShopSidebarList } from '../components/ShopSidebarList';
@@ -115,11 +121,12 @@ export function ShopLedgerScreen() {
 
   if (loading && shops.length === 0) {
     return (
-      <Box flex={1} justifyContent="center" alignItems="center">
-        <ActivityIndicator size="large" color={theme.colors.primaryButton} />
-        <Text variant="body" mt="s">
-          {t('syncing')}
-        </Text>
+      <Box flex={1} p="m" bg="mainBackground">
+        <SkeletonCard />
+        <Box height={16} />
+        <SkeletonCard />
+        <Box height={16} />
+        <SkeletonCard />
       </Box>
     );
   }

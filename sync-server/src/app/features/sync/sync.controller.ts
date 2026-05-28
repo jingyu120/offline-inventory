@@ -52,11 +52,13 @@ export class SyncController {
 
   @Get()
   async pullChanges(
-    @Query('last_pulled_at') lastPulledAt: string,
+    @Query('last_pulled_at') lastPulledAt?: string,
+    @Query('last_synced_at') lastSyncedAt?: string,
     @Query('device_id') deviceId?: string,
     @Query('user_id') userId?: string,
   ) {
-    const timestamp = parseInt(lastPulledAt, 10) || 0;
+    const ts = lastSyncedAt || lastPulledAt;
+    const timestamp = parseInt(ts || '0', 10) || 0;
     return this.syncService.pullChanges(timestamp, deviceId, userId);
   }
 
@@ -102,8 +104,12 @@ export class SyncController {
   }
 
   @Get('sync-logs')
-  async getSyncLogs() {
-    const logs = await this.syncService.getSyncLogs();
+  async getSyncLogs(
+    @Query('last_seen_id') lastSeenId?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const logs = await this.syncService.getSyncLogs(lastSeenId, limitNum);
     return { success: true, logs };
   }
 
@@ -112,13 +118,26 @@ export class SyncController {
   @UseInterceptors(FileInterceptor('file', { storage }))
   async uploadFile(
     @UploadedFile() file: any,
-    @Body('interactionLogId') interactionLogId: string,
+    @Body('interactionLogId') interactionLogId?: string,
+    @Body('competitorInsightId') competitorInsightId?: string,
   ) {
     if (!file) {
       return { success: false, error: 'No file uploaded' };
     }
+
+    if (competitorInsightId) {
+      const url = await this.syncService.updateCompetitorInsightPhoto(
+        competitorInsightId,
+        file.filename,
+      );
+      return { success: true, url };
+    }
+
     if (!interactionLogId) {
-      return { success: false, error: 'No interactionLogId provided' };
+      return {
+        success: false,
+        error: 'No interactionLogId or competitorInsightId provided',
+      };
     }
 
     const url = await this.syncService.updateInteractionLogScreenshot(

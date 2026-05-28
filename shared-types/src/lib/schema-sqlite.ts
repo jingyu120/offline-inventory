@@ -36,6 +36,7 @@ export const shops = sqliteTable(
     price_tier: text('price_tier').notNull().default('Retailer'),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    deleted_at: integer('deleted_at'),
   },
   (table) => ({
     nameIdx: index('shops_name_idx').on(table.name),
@@ -84,8 +85,12 @@ export const items = sqliteTable(
     is_in_deficit: integer('is_in_deficit', { mode: 'boolean' })
       .notNull()
       .default(false),
+    base_wholesale_price: real('base_wholesale_price'),
+    base_currency: text('base_currency'),
+    volume_discount_brackets: text('volume_discount_brackets'),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    deleted_at: integer('deleted_at'),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
@@ -367,7 +372,8 @@ export const stock_balances = sqliteTable(
 export const image_upload_queue = sqliteTable('image_upload_queue', {
   id: text('id').primaryKey(),
   local_file_path: text('local_file_path').notNull(),
-  interaction_log_id: text('interaction_log_id').notNull(),
+  interaction_log_id: text('interaction_log_id'),
+  competitor_insight_id: text('competitor_insight_id'),
   status: text('status').notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
@@ -380,6 +386,7 @@ export const projects = sqliteTable(
     name: text('name').notNull(),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    deleted_at: integer('deleted_at'),
   },
   (table) => ({
     nameIdx: index('projects_name_idx').on(table.name),
@@ -424,3 +431,19 @@ export const rep_kpis = sqliteTable(
     repIdIdx: index('rep_kpis_rep_id_idx').on(table.rep_id),
   }),
 );
+
+export const currency_exchange_rates = sqliteTable('currency_exchange_rates', {
+  id: text('id').primaryKey(),
+  currency: text('currency').notNull(),
+  rate_to_kyat: real('rate_to_kyat').notNull(),
+  pushed_at: integer('pushed_at').notNull(),
+});
+
+export const competitor_insights = sqliteTable('competitor_insights', {
+  id: text('id').primaryKey(),
+  product_name: text('product_name').notNull(),
+  street_price: real('street_price').notNull(),
+  photo_url: text('photo_url'),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});

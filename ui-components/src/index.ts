@@ -6,3 +6,4 @@ export * from './lib/Table';
 export * from './lib/theme';
 export * from './lib/Primitives';
 export * from './lib/DropdownSelector';
+export * from './lib/Skeleton';

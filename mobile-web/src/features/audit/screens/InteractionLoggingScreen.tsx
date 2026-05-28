@@ -23,6 +23,7 @@ import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 import { scannerThrottle } from '../../../core/utils/ScannerThrottle';
 import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
+import { useCartStore, defaultSession } from '../../../core/store/cartStore';
 import { API_BASE_URL } from '../../../config/appConfig';
 import { AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@shopify/restyle';
@@ -37,6 +38,7 @@ import { ViberIntegration } from '../../viber/components/ViberIntegration';
 import { GemmaCopilot } from '../components/GemmaCopilot';
 import { AvailableItemsSelector } from '../../inventory/components/AvailableItemsSelector';
 import { SelectedItemsList } from '../components/SelectedItemsList';
+import { ImageAnnotationModal } from '../../inventory/components/ImageAnnotationModal';
 
 interface InteractionLoggingScreenProps {
   visible: boolean;
@@ -52,38 +54,75 @@ export function InteractionLoggingScreen({
   const { t } = useTranslation();
   const { activeRep } = useAuth();
   const theme = useTheme<Theme>();
-  const [type, setType] = useState<string>('SHOP_VISIT');
-  const [commercialStatus, setCommercialStatus] =
-    useState<string>('FOLLOWED_UP');
-  const [notes, setNotes] = useState('');
+  const shopId = shop?.id || 'default';
+  const session = useCartStore(
+    (state) => state.sessions[shopId] || defaultSession,
+  );
+  const updateSession = useCartStore((state) => state.updateSession);
+  const clearSession = useCartStore((state) => state.clearSession);
+
+  const type = session.type;
+  const setType = (val: string) => updateSession(shopId, { type: val });
+
+  const commercialStatus = session.commercialStatus;
+  const setCommercialStatus = (val: string) =>
+    updateSession(shopId, { commercialStatus: val });
+
+  const notes = session.notes;
+  const setNotes = (val: string) => updateSession(shopId, { notes: val });
+
+  const selectedItems = session.selectedItems;
+  const setSelectedItems = (val: any) => {
+    const newItems =
+      typeof val === 'function' ? val(session.selectedItems) : val;
+    updateSession(shopId, { selectedItems: newItems });
+  };
+
+  const selectedProjectId = session.selectedProjectId;
+  const setSelectedProjectId = (val: string | null) =>
+    updateSession(shopId, { selectedProjectId: val });
+
+  const screenshotUri = session.screenshotUri;
+  const setScreenshotUri = (val: string | null) =>
+    updateSession(shopId, { screenshotUri: val });
+
+  const isOverrideMarginAcknowledged = session.isOverrideMarginAcknowledged;
+  const setIsOverrideMarginAcknowledged = (val: boolean) =>
+    updateSession(shopId, { isOverrideMarginAcknowledged: val });
+
+  const hasDiscrepancy = session.hasDiscrepancy;
+  const setHasDiscrepancy = (val: boolean) =>
+    updateSession(shopId, { hasDiscrepancy: val });
+
   const [skuSearch, setSkuSearch] = useState('');
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
-  const [selectedItems, setSelectedItems] = useState<
-    {
-      item: Item;
-      quantity: number | string;
-      selectedUnit: string;
-      unitPrice: number | string;
-      stockCondition: string;
-      pendingAllocationCount?: number;
-    }[]
-  >([]);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
-  const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasDiscrepancy, setHasDiscrepancy] = useState(false);
   const [ocrVerifying, setOcrVerifying] = useState(false);
   const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
-  const [isOverrideMarginAcknowledged, setIsOverrideMarginAcknowledged] =
-    useState(false);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+  const [annotationModalVisible, setAnnotationModalVisible] = useState(false);
+  const [pendingAnnotationUri, setPendingAnnotationUri] = useState<
+    string | null
+  >(null);
+
+  const handleInterceptScreenshot = (uri: string | null) => {
+    if (uri) {
+      setPendingAnnotationUri(uri);
+      setAnnotationModalVisible(true);
+    } else {
+      setScreenshotUri(null);
+    }
+  };
 
   const loadDraftCart = async () => {
     if (!shop || !activeRep) return;
     try {
+      if (session.selectedItems.length > 0) {
+        setIsDraftLoaded(true);
+        return;
+      }
       const draftId = `${shop.id}_${activeRep.id}`;
       const drafts = await database
         .select()
@@ -93,9 +132,11 @@ export function InteractionLoggingScreen({
       if (drafts.length > 0) {
         const draft = drafts[0];
         const items = JSON.parse(draft.items_json);
-        setSelectedItems(items);
-        setSelectedCurrency(draft.currency);
-        setSelectedProjectId(draft.project_id);
+        updateSession(shop.id, {
+          selectedItems: items,
+          selectedCurrency: draft.currency,
+          selectedProjectId: draft.project_id,
+        });
         setIsDraftLoaded(true);
       } else {
         resetForm();
@@ -174,7 +215,9 @@ export function InteractionLoggingScreen({
     verifyUploadedScreenshot();
   }, [screenshotUri, selectedItems]);
 
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('MMK');
+  const selectedCurrency = session.selectedCurrency;
+  const setSelectedCurrency = (val: string) =>
+    updateSession(shopId, { selectedCurrency: val });
   const [exchangeRates, setExchangeRates] = useState<any[]>([]);
   const [priceBookItems, setPriceBookItems] = useState<any[]>([]);
   const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
@@ -227,6 +270,30 @@ export function InteractionLoggingScreen({
 
   const getItemPrice = (item: Item) =>
     getPriceHelper(item, priceBookItems, selectedCurrency, exchangeRates);
+
+  const getDiscountedUnitPrice = (item: Item, qty: number, unit: string) => {
+    const basePrice = getItemPrice(item);
+    const multiplier = getConversionMultiplier(item, unit);
+    let unitPrice = basePrice * multiplier;
+    if (item.volumeDiscountBrackets) {
+      try {
+        const brackets = JSON.parse(item.volumeDiscountBrackets);
+        if (Array.isArray(brackets) && brackets.length > 0) {
+          const sortedBrackets = [...brackets].sort(
+            (a, b) => b.quantity - a.quantity,
+          );
+          const matchingBracket = sortedBrackets.find((b) => qty >= b.quantity);
+          if (matchingBracket && matchingBracket.discount_percent) {
+            unitPrice =
+              unitPrice * (1 - matchingBracket.discount_percent / 100);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse volume discount brackets:', err);
+      }
+    }
+    return unitPrice;
+  };
 
   useEffect(() => {
     if (visible) {
@@ -304,7 +371,11 @@ export function InteractionLoggingScreen({
               (si) => si.item.id === perfectMatch.id,
             );
             if (!exists) {
-              const defaultPrice = getItemPrice(perfectMatch);
+              const defaultPrice = getDiscountedUnitPrice(
+                perfectMatch,
+                1,
+                'PCS',
+              );
               setSelectedItems([
                 ...selectedItems,
                 {
@@ -389,7 +460,7 @@ export function InteractionLoggingScreen({
     if (exists) {
       setSelectedItems(selectedItems.filter((i) => i.item.id !== item.id));
     } else {
-      const defaultPrice = getItemPrice(item);
+      const defaultPrice = getDiscountedUnitPrice(item, 1, 'PCS');
       setSelectedItems([
         ...selectedItems,
         {
@@ -414,10 +485,19 @@ export function InteractionLoggingScreen({
 
   const updateQuantity = (itemId: string, quantity: string) => {
     const qtyStr = quantity.replace(/[^0-9]/g, '');
+    const newQty = parseInt(qtyStr, 10) || 0;
     setSelectedItems(
-      selectedItems.map((i) =>
-        i.item.id === itemId ? { ...i, quantity: qtyStr } : i,
-      ),
+      selectedItems.map((i) => {
+        if (i.item.id === itemId) {
+          const discountedPrice = getDiscountedUnitPrice(
+            i.item,
+            newQty,
+            i.selectedUnit,
+          );
+          return { ...i, quantity: qtyStr, unitPrice: discountedPrice };
+        }
+        return i;
+      }),
     );
   };
 
@@ -425,10 +505,9 @@ export function InteractionLoggingScreen({
     setSelectedItems(
       selectedItems.map((i) => {
         if (i.item.id === itemId) {
-          const basePrice = getItemPrice(i.item);
-          const multiplier = getConversionMultiplier(i.item, unit);
-          const newPrice = basePrice * multiplier;
-          return { ...i, selectedUnit: unit, unitPrice: newPrice };
+          const qty = parseInt(i.quantity.toString() || '0', 10) || 0;
+          const discountedPrice = getDiscountedUnitPrice(i.item, qty, unit);
+          return { ...i, selectedUnit: unit, unitPrice: discountedPrice };
         }
         return i;
       }),
@@ -443,7 +522,52 @@ export function InteractionLoggingScreen({
       ),
     );
   };
+  const onAuditSwipe = (itemId: string, condition: 'GOOD' | 'DEPLETED') => {
+    const item = availableItems.find((i) => i.id === itemId);
+    if (!item) return;
 
+    const exists = selectedItems.find((si) => si.item.id === itemId);
+    if (exists) {
+      setSelectedItems(
+        selectedItems.map((si) =>
+          si.item.id === itemId
+            ? {
+                ...si,
+                stockCondition: condition,
+                quantity:
+                  condition === 'DEPLETED'
+                    ? 0
+                    : si.quantity === 0
+                      ? 1
+                      : si.quantity,
+                unitPrice:
+                  condition === 'DEPLETED'
+                    ? 0
+                    : getDiscountedUnitPrice(
+                        item,
+                        parseInt(si.quantity.toString()) || 1,
+                        si.selectedUnit,
+                      ),
+              }
+            : si,
+        ),
+      );
+    } else {
+      const initialPrice =
+        condition === 'DEPLETED' ? 0 : getDiscountedUnitPrice(item, 1, 'PCS');
+      setSelectedItems([
+        ...selectedItems,
+        {
+          item,
+          quantity: condition === 'DEPLETED' ? 0 : 1,
+          selectedUnit: 'PCS',
+          unitPrice: initialPrice,
+          stockCondition: condition,
+          pendingAllocationCount: 0,
+        },
+      ]);
+    }
+  };
   const handleSave = async () => {
     if (!shop) return;
 
@@ -483,7 +607,10 @@ export function InteractionLoggingScreen({
         (selected as any).pendingAllocationCount?.toString() || '0',
         10,
       );
-      if (isNaN(qty) || (qty < 1 && pendingAlloc < 1)) {
+      if (
+        isNaN(qty) ||
+        (qty < 1 && pendingAlloc < 1 && selected.stockCondition !== 'DEPLETED')
+      ) {
         Alert.alert(
           t('validationError'),
           `SKU ${selected.item.sku}: Please enter a valid quantity of 1 or more.`,
@@ -544,6 +671,7 @@ export function InteractionLoggingScreen({
       }
 
       Alert.alert(t('success'), t('interactionSaved'));
+      clearSession(shop.id);
       onClose();
     } catch (e) {
       console.error(e);
@@ -662,7 +790,7 @@ export function InteractionLoggingScreen({
                 setType={setType}
                 shop={shop}
                 screenshotUri={screenshotUri}
-                setScreenshotUri={setScreenshotUri}
+                setScreenshotUri={handleInterceptScreenshot}
               />
 
               <GemmaCopilot
@@ -741,6 +869,7 @@ export function InteractionLoggingScreen({
                 getItemPrice={getItemPrice}
                 selectedCurrency={selectedCurrency}
                 stocksMap={stocksMap}
+                onAuditSwipe={onAuditSwipe}
               />
 
               <SelectedItemsList
@@ -775,6 +904,19 @@ export function InteractionLoggingScreen({
           </Box>
         </KeyboardAvoidingView>
       </Box>
+      <ImageAnnotationModal
+        visible={annotationModalVisible}
+        imageUri={pendingAnnotationUri}
+        onClose={() => {
+          setAnnotationModalVisible(false);
+          setPendingAnnotationUri(null);
+        }}
+        onAnnotated={(croppedUri) => {
+          setScreenshotUri(croppedUri);
+          setAnnotationModalVisible(false);
+          setPendingAnnotationUri(null);
+        }}
+      />
     </Modal>
   );
 }

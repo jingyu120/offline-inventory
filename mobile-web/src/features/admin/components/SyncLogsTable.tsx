@@ -1,14 +1,21 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { Box, Text, Table, ColumnDef } from '@burma-inventory/ui-components';
 
 interface SyncLogsTableProps {
   syncLogs: any[];
   isDesktop: boolean;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }
 
 export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
   syncLogs,
   isDesktop,
+  onLoadMore,
+  hasMore,
+  loadingMore,
 }) => {
   const columns: ColumnDef<any>[] = isDesktop
     ? [
@@ -187,11 +194,24 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
       ];
 
   return (
-    <Table
-      data={syncLogs}
-      columns={columns}
-      keyExtractor={(item) => item.id}
-      minWidth={isDesktop ? 600 : '100%'}
-    />
+    <Box>
+      <Table
+        data={syncLogs}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        minWidth={isDesktop ? 600 : '100%'}
+      />
+      {hasMore && (
+        <Box mt="m" alignItems="center">
+          <TouchableOpacity onPress={onLoadMore} disabled={loadingMore}>
+            <Box px="m" py="s" bg="primaryButton" borderRadius="s">
+              <Text variant="body" color="pureWhite">
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </Text>
+            </Box>
+          </TouchableOpacity>
+        </Box>
+      )}
+    </Box>
   );
 };

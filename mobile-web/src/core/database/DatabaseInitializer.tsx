@@ -4,6 +4,7 @@ import { Box, Text } from '@burma-inventory/ui-components';
 import { useErrorBoundary } from 'react-error-boundary';
 import { database } from './database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
+import { runGarbageCollection } from './garbageCollector';
 
 export const DatabaseInitializer: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -17,6 +18,7 @@ export const DatabaseInitializer: React.FC<{ children: React.ReactNode }> = ({
         // Query database to trigger lazy loading and schema setup (Web)
         // or verify native connection (Native)
         await database.select().from(sqliteSchema.shops).limit(1);
+        await runGarbageCollection();
         setInitialized(true);
       } catch (err) {
         console.error('Database initialization failed:', err);

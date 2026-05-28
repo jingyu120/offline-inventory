@@ -3,6 +3,7 @@ import { sqliteSchema } from '@burma-inventory/shared-types';
 import * as FileSystem from 'expo-file-system/legacy';
 import { SYNC_API_URL } from '../../config/appConfig';
 import { eq, or } from 'drizzle-orm';
+import NetInfo from '@react-native-community/netinfo';
 
 let isProcessing = false;
 
@@ -16,6 +17,21 @@ export class ImageUploadQueue {
     );
 
     let localFilePath = tempUri;
+
+    try {
+      const ImageManipulator = await import('expo-image-manipulator');
+      const manipResult = await ImageManipulator.manipulateAsync(
+        tempUri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      tempUri = manipResult.uri;
+    } catch (err) {
+      console.warn(
+        '[ImageUploadQueue] Failed to compress image before enqueuing:',
+        err,
+      );
+    }
 
     try {
       const fsAny = FileSystem as any;
@@ -62,7 +78,95 @@ export class ImageUploadQueue {
     }
   }
 
+  static async enqueueCompetitorInsightImage(
+    competitorInsightId: string,
+    tempUri: string,
+  ): Promise<void> {
+    console.log(
+      `[ImageUploadQueue] Enqueuing screenshot for competitor insight ${competitorInsightId}, tempUri: ${tempUri}`,
+    );
+
+    let localFilePath = tempUri;
+
+    try {
+      const ImageManipulator = await import('expo-image-manipulator');
+      const manipResult = await ImageManipulator.manipulateAsync(
+        tempUri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      tempUri = manipResult.uri;
+    } catch (err) {
+      console.warn(
+        '[ImageUploadQueue] Failed to compress image before enqueuing:',
+        err,
+      );
+    }
+
+    try {
+      const fsAny = FileSystem as any;
+      const dir = fsAny.documentDirectory + 'competitor_uploads/';
+      const dirInfo = await FileSystem.getInfoAsync(dir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+      }
+      const filename = `${competitorInsightId}-${Date.now()}.jpg`;
+      localFilePath = dir + filename;
+      await FileSystem.copyAsync({ from: tempUri, to: localFilePath });
+      console.log(
+        `[ImageUploadQueue] Copied competitor file persistently to: ${localFilePath}`,
+      );
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to save persistent local file copy:',
+        err,
+      );
+    }
+
+    const queueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+      await database.insert(sqliteSchema.image_upload_queue).values({
+        id: queueId,
+        local_file_path: localFilePath,
+        competitor_insight_id: competitorInsightId,
+        status: 'pending',
+        created_at: now,
+        updated_at: now,
+      });
+      console.log(`[ImageUploadQueue] Enqueued competitor task ${queueId}`);
+
+      this.processQueue().catch((err) => {
+        console.error('[ImageUploadQueue] background process error:', err);
+      });
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to write competitor queue entry to local db:',
+        err,
+      );
+    }
+  }
+
   static async processQueue(): Promise<void> {
+    try {
+      const state = await NetInfo.fetch();
+      const is2G =
+        state.type === 'cellular' && state.details?.cellularGeneration === '2g';
+      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+      if (is2G || isMockDegraded) {
+        console.log(
+          '[ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Pausing image uploads.',
+        );
+        return;
+      }
+    } catch (netErr) {
+      console.warn(
+        '[ImageUploadQueue] Failed to check network state, continuing...',
+        netErr,
+      );
+    }
+
     if (isProcessing) {
       console.log(
         '[ImageUploadQueue] Queue is already processing. Skipping run.',
@@ -90,7 +194,7 @@ export class ImageUploadQueue {
 
       for (const task of tasks) {
         console.log(
-          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id})`,
+          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id || 'null'}, competitor ID: ${task.competitor_insight_id || 'null'})`,
         );
 
         const now = Math.floor(Date.now() / 1000);
@@ -102,6 +206,13 @@ export class ImageUploadQueue {
         try {
           let serverUrl = '';
 
+          const uploadParams: Record<string, any> = {};
+          if (task.competitor_insight_id) {
+            uploadParams.competitorInsightId = task.competitor_insight_id;
+          } else {
+            uploadParams.interactionLogId = task.interaction_log_id || '';
+          }
+
           const uploadResult = await FileSystem.uploadAsync(
             `${SYNC_API_URL}/upload`,
             task.local_file_path,
@@ -109,9 +220,7 @@ export class ImageUploadQueue {
               fieldName: 'file',
               httpMethod: 'POST',
               uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-              parameters: {
-                interactionLogId: task.interaction_log_id,
-              },
+              parameters: uploadParams,
             },
           );
 
@@ -129,16 +238,31 @@ export class ImageUploadQueue {
               `[ImageUploadQueue] Upload succeeded. Server URL: ${serverUrl}`,
             );
 
-            await database
-              .update(sqliteSchema.interaction_logs)
-              .set({
-                viber_screenshot_url: serverUrl,
-                synced_at_server: null,
-                updated_at: Math.floor(Date.now() / 1000),
-              })
-              .where(
-                eq(sqliteSchema.interaction_logs.id, task.interaction_log_id),
-              );
+            if (task.competitor_insight_id) {
+              await database
+                .update(sqliteSchema.competitor_insights)
+                .set({
+                  photo_url: serverUrl,
+                  updated_at: Math.floor(Date.now() / 1000),
+                })
+                .where(
+                  eq(
+                    sqliteSchema.competitor_insights.id,
+                    task.competitor_insight_id,
+                  ),
+                );
+            } else if (task.interaction_log_id) {
+              await database
+                .update(sqliteSchema.interaction_logs)
+                .set({
+                  viber_screenshot_url: serverUrl,
+                  synced_at_server: null,
+                  updated_at: Math.floor(Date.now() / 1000),
+                })
+                .where(
+                  eq(sqliteSchema.interaction_logs.id, task.interaction_log_id),
+                );
+            }
 
             try {
               const info = await FileSystem.getInfoAsync(task.local_file_path);

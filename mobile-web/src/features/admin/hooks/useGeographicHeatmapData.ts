@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import axios from 'axios';
+import { trpcClient } from '../../../core/trpc/trpcClient';
 import {
   AI_ANALYZE_SENTIMENT_URL,
   SYNC_API_URL,
@@ -269,8 +270,8 @@ export const useGeographicHeatmapData = () => {
       setShopContacts(contacts);
 
       const notes = shop.logs.map((l) => l.notes).filter(Boolean);
-      const response = await axios.post(AI_ANALYZE_SENTIMENT_URL, { notes });
-      setSentimentResult(response.data);
+      const response = await trpcClient.analyzeSentiment.mutate({ notes });
+      setSentimentResult(response);
     } catch (e) {
       console.error(
         'Failed to analyze sentiment, falling back to database cached trend:',

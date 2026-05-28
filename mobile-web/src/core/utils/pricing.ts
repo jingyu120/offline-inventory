@@ -10,6 +10,11 @@ export const getItemPrice = (
   let basePrice = item.unitPrice; // standard MMK price
   let baseCurrency = 'MMK';
 
+  if (item.baseWholesalePrice && item.baseCurrency) {
+    basePrice = item.baseWholesalePrice;
+    baseCurrency = item.baseCurrency;
+  }
+
   if (pbItem) {
     basePrice = pbItem.price;
     baseCurrency = pbItem.currency;
@@ -27,6 +32,16 @@ export const getItemPrice = (
     );
     if (rateToMmk) {
       priceInMmk = basePrice * rateToMmk.rate;
+    } else {
+      const rateToKyatObj = exchangeRates.find(
+        (r) => r.currency === baseCurrency || r.from_currency === baseCurrency,
+      );
+      if (rateToKyatObj) {
+        const rateVal = rateToKyatObj.rate_to_kyat || rateToKyatObj.rate || 0;
+        if (rateVal > 0) {
+          priceInMmk = basePrice * rateVal;
+        }
+      }
     }
   }
 
@@ -40,11 +55,22 @@ export const getItemPrice = (
   );
   if (rateFromMmk && rateFromMmk.rate > 0) {
     return priceInMmk / rateFromMmk.rate;
+  } else {
+    const rateToKyatObj = exchangeRates.find(
+      (r) =>
+        r.currency === selectedCurrency || r.from_currency === selectedCurrency,
+    );
+    if (rateToKyatObj) {
+      const rateVal = rateToKyatObj.rate_to_kyat || rateToKyatObj.rate || 0;
+      if (rateVal > 0) {
+        return priceInMmk / rateVal;
+      }
+    }
   }
 
   // Default rate falls back if rates are not loaded yet
-  if (selectedCurrency === 'USD') return priceInMmk / 2100;
-  if (selectedCurrency === 'THB') return priceInMmk / 58.5;
+  if (selectedCurrency === 'USD') return priceInMmk / 4200;
+  if (selectedCurrency === 'THB') return priceInMmk / 115;
 
   return priceInMmk;
 };

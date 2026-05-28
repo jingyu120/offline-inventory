@@ -366,6 +366,80 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                 </Box>
               </Box>
 
+              {/* Volume Discount Info / Brackets */}
+              {si.item.volumeDiscountBrackets && (
+                <Box
+                  mt="s"
+                  mb="s"
+                  p="s"
+                  borderRadius="s"
+                  bg="secondaryBackground"
+                  borderWidth={1}
+                  borderColor="borderColor"
+                >
+                  <Text
+                    variant="caption"
+                    color="secondaryText"
+                    fontWeight="bold"
+                    mb="xs"
+                  >
+                    💰 {t('volumeDiscountBrackets')}:
+                  </Text>
+                  {(() => {
+                    try {
+                      const brackets = JSON.parse(
+                        si.item.volumeDiscountBrackets,
+                      );
+                      if (Array.isArray(brackets) && brackets.length > 0) {
+                        const activeQty =
+                          parseInt(si.quantity.toString() || '0', 10) || 0;
+                        return (
+                          <Box flexDirection="row" flexWrap="wrap">
+                            {brackets.map((b: any, index: number) => {
+                              const isMet = activeQty >= b.quantity;
+                              return (
+                                <Box
+                                  key={index}
+                                  mr="xs"
+                                  mb="xs"
+                                  px="s"
+                                  py="xs"
+                                  borderRadius="s"
+                                  bg={isMet ? 'success' : 'cardBackground'}
+                                  borderWidth={1}
+                                  borderColor={
+                                    isMet ? 'success' : 'borderColor'
+                                  }
+                                >
+                                  <Text
+                                    variant="badge"
+                                    color={
+                                      isMet ? 'pureWhite' : 'secondaryText'
+                                    }
+                                    fontWeight="bold"
+                                  >
+                                    {b.quantity}+ {si.selectedUnit || 'PCS'}:{' '}
+                                    {b.discount_percent}% off
+                                    {isMet ? ' (Applied)' : ''}
+                                  </Text>
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        );
+                      }
+                    } catch (e) {
+                      return (
+                        <Text variant="caption" color="danger">
+                          Invalid brackets format
+                        </Text>
+                      );
+                    }
+                    return null;
+                  })()}
+                </Box>
+              )}
+
               {/* Row 3: Negotiated Price Input — vertical label stack */}
               <Box
                 borderTopWidth={1}

@@ -27,7 +27,18 @@ async function applyPullChanges(changes: any): Promise<void> {
     // Apply Deletes
     if (typedChangeset.deleted && typedChangeset.deleted.length > 0) {
       for (const id of typedChangeset.deleted) {
-        await database.delete(tableSchema).where(eq(tableSchema.id, id));
+        if (
+          tableName === 'items' ||
+          tableName === 'shops' ||
+          tableName === 'projects'
+        ) {
+          await database
+            .update(tableSchema)
+            .set({ deleted_at: Date.now() })
+            .where(eq(tableSchema.id, id));
+        } else {
+          await database.delete(tableSchema).where(eq(tableSchema.id, id));
+        }
       }
     }
 
@@ -39,11 +50,32 @@ async function applyPullChanges(changes: any): Promise<void> {
         const validatedRecord = recordSchema
           ? recordSchema.parse(record)
           : record;
-        // Delete first to prevent primary key conflicts, then insert
-        await database
-          .delete(tableSchema)
-          .where(eq(tableSchema.id, validatedRecord.id));
-        await database.insert(tableSchema).values(validatedRecord);
+
+        if (
+          tableName === 'items' ||
+          tableName === 'shops' ||
+          tableName === 'projects'
+        ) {
+          const existing = await database
+            .select()
+            .from(tableSchema)
+            .where(eq(tableSchema.id, validatedRecord.id))
+            .limit(1);
+          if (existing.length > 0) {
+            await database
+              .update(tableSchema)
+              .set(validatedRecord)
+              .where(eq(tableSchema.id, validatedRecord.id));
+          } else {
+            await database.insert(tableSchema).values(validatedRecord);
+          }
+        } else {
+          // Delete first to prevent primary key conflicts, then insert
+          await database
+            .delete(tableSchema)
+            .where(eq(tableSchema.id, validatedRecord.id));
+          await database.insert(tableSchema).values(validatedRecord);
+        }
       }
     }
 
@@ -87,7 +119,7 @@ export async function syncData(): Promise<void> {
   try {
     pullResponse = await axios.get(`${SYNC_API_URL}`, {
       params: {
-        last_pulled_at: lastSyncedAt,
+        last_synced_at: lastSyncedAt,
         device_id: devId,
         user_id: userId || undefined,
       },
@@ -106,81 +138,104 @@ export async function syncData(): Promise<void> {
   console.log('[SyncEngine] Pull applied successfully.');
 
   // 2. Push Changes
-  const unsyncedLogs = await database
-    .select()
-    .from(sqliteSchema.interaction_logs)
-    .where(isNull(sqliteSchema.interaction_logs.synced_at_server));
+  const syncableTables = [
+    'regions',
+    'shops',
+    'contacts',
+    'items',
+    'interaction_logs',
+    'interaction_items',
+    'daily_quotas',
+    'item_stocks',
+    'planned_routes',
+    'check_in_logs',
+    'prediction_logs',
+    'recommended_orders',
+    'price_books',
+    'price_book_items',
+    'exchange_rates',
+    'rep_scores',
+    'points_logs',
+    'brands',
+    'stock_locations',
+    'stock_balances',
+    'projects',
+    'telemetry_logs',
+    'rep_kpis',
+    'currency_exchange_rates',
+    'competitor_insights',
+  ];
 
-  let unsyncedItems: any[] = [];
-  if (unsyncedLogs.length > 0) {
-    const logIds = unsyncedLogs.map((l: any) => l.id);
-    const chunk = SYNC_CONFIG.dbChunkSize;
-    for (let i = 0; i < logIds.length; i += chunk) {
-      const chunkIds = logIds.slice(i, i + chunk);
-      const items = await database
+  const pushChanges: any = {};
+
+  for (const tableName of syncableTables) {
+    const tableSchema = (sqliteSchema as any)[tableName];
+    if (!tableSchema) continue;
+
+    const hasCreatedAt = 'created_at' in tableSchema;
+    const hasUpdatedAt = 'updated_at' in tableSchema;
+    const hasSyncedAtServer = 'synced_at_server' in tableSchema;
+
+    let createdRecords: any[] = [];
+    let updatedRecords: any[] = [];
+
+    if (hasSyncedAtServer) {
+      const unsynced = await database
         .select()
-        .from(sqliteSchema.interaction_items)
-        .where(
-          inArray(sqliteSchema.interaction_items.interaction_log_id, chunkIds),
-        );
-      unsyncedItems = unsyncedItems.concat(items);
+        .from(tableSchema)
+        .where(isNull(tableSchema.synced_at_server));
+
+      if (hasCreatedAt) {
+        for (const record of unsynced) {
+          if (record.created_at > lastSyncedAt) {
+            createdRecords.push(record);
+          } else {
+            updatedRecords.push(record);
+          }
+        }
+      } else {
+        createdRecords = unsynced;
+      }
+    } else {
+      if (hasCreatedAt) {
+        createdRecords = await database
+          .select()
+          .from(tableSchema)
+          .where(gt(tableSchema.created_at, lastSyncedAt));
+      }
+
+      if (hasUpdatedAt) {
+        if (hasCreatedAt) {
+          const candidates = await database
+            .select()
+            .from(tableSchema)
+            .where(gt(tableSchema.updated_at, lastSyncedAt));
+          updatedRecords = candidates.filter(
+            (r: any) => r.created_at <= lastSyncedAt,
+          );
+        } else {
+          createdRecords = await database
+            .select()
+            .from(tableSchema)
+            .where(gt(tableSchema.updated_at, lastSyncedAt));
+        }
+      }
+    }
+
+    if (createdRecords.length > 0 || updatedRecords.length > 0) {
+      pushChanges[tableName] = {
+        created: createdRecords,
+        updated: updatedRecords,
+        deleted: [],
+      };
     }
   }
 
-  const unsyncedCheckins = await database
-    .select()
-    .from(sqliteSchema.check_in_logs)
-    .where(gt(sqliteSchema.check_in_logs.created_at, lastSyncedAt));
-
-  const unsyncedQuotas = await database
-    .select()
-    .from(sqliteSchema.daily_quotas)
-    .where(gt(sqliteSchema.daily_quotas.created_at, lastSyncedAt));
-
-  const unsyncedTelemetry = await database
-    .select()
-    .from(sqliteSchema.telemetry_logs)
-    .where(isNull(sqliteSchema.telemetry_logs.synced_at_server));
-
-  const pushChanges: any = {};
-  if (unsyncedLogs.length > 0) {
-    pushChanges.interaction_logs = {
-      created: unsyncedLogs,
-      updated: [],
-      deleted: [],
-    };
-  }
-  if (unsyncedItems.length > 0) {
-    pushChanges.interaction_items = {
-      created: unsyncedItems,
-      updated: [],
-      deleted: [],
-    };
-  }
-  if (unsyncedCheckins.length > 0) {
-    pushChanges.check_in_logs = {
-      created: unsyncedCheckins,
-      updated: [],
-      deleted: [],
-    };
-  }
-  if (unsyncedQuotas.length > 0) {
-    pushChanges.daily_quotas = {
-      created: unsyncedQuotas,
-      updated: [],
-      deleted: [],
-    };
-  }
-  if (unsyncedTelemetry.length > 0) {
-    pushChanges.telemetry_logs = {
-      created: unsyncedTelemetry,
-      updated: [],
-      deleted: [],
-    };
-  }
-
   if (Object.keys(pushChanges).length > 0) {
-    console.log('[SyncEngine] Pushing changes to server...');
+    console.log(
+      '[SyncEngine] Pushing changes to server...',
+      JSON.stringify(Object.keys(pushChanges)),
+    );
     try {
       const idempotencyKey = generateUUIDv4();
       await axios.post(
@@ -198,29 +253,27 @@ export async function syncData(): Promise<void> {
       );
       console.log('[SyncEngine] Push successful.');
 
-      // Mark local logs as synced
-      if (unsyncedLogs.length > 0) {
-        const logIds = unsyncedLogs.map((l: any) => l.id);
-        const chunk = SYNC_CONFIG.dbChunkSize;
-        for (let i = 0; i < logIds.length; i += chunk) {
-          const chunkIds = logIds.slice(i, i + chunk);
-          await database
-            .update(sqliteSchema.interaction_logs)
-            .set({ synced_at_server: Date.now() })
-            .where(inArray(sqliteSchema.interaction_logs.id, chunkIds));
-        }
-      }
+      // Mark local records as synced generically
+      for (const [tableName, changeset] of Object.entries(pushChanges)) {
+        const tableSchema = (sqliteSchema as any)[tableName];
+        if (!tableSchema) continue;
 
-      // Mark local telemetry as synced
-      if (unsyncedTelemetry.length > 0) {
-        const telemetryIds = unsyncedTelemetry.map((t: any) => t.id);
-        const chunk = SYNC_CONFIG.dbChunkSize;
-        for (let i = 0; i < telemetryIds.length; i += chunk) {
-          const chunkIds = telemetryIds.slice(i, i + chunk);
-          await database
-            .update(sqliteSchema.telemetry_logs)
-            .set({ synced_at_server: Date.now() })
-            .where(inArray(sqliteSchema.telemetry_logs.id, chunkIds));
+        if ('synced_at_server' in tableSchema) {
+          const recordIds = [
+            ...(changeset as any).created.map((r: any) => r.id),
+            ...(changeset as any).updated.map((r: any) => r.id),
+          ];
+
+          if (recordIds.length > 0) {
+            const chunk = SYNC_CONFIG.dbChunkSize;
+            for (let i = 0; i < recordIds.length; i += chunk) {
+              const chunkIds = recordIds.slice(i, i + chunk);
+              await database
+                .update(tableSchema)
+                .set({ synced_at_server: Date.now() })
+                .where(inArray(tableSchema.id, chunkIds));
+            }
+          }
         }
       }
     } catch (error: any) {

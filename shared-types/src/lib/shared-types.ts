@@ -74,6 +74,9 @@ export interface ItemRecord {
   material_sub_type: string | null;
   hardware_finish: string | null;
   is_in_deficit: boolean;
+  base_wholesale_price?: number | null;
+  base_currency?: string | null;
+  volume_discount_brackets?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -262,6 +265,22 @@ export interface RepKpisRecord {
   updated_at: number;
 }
 
+export interface CurrencyExchangeRateRecord {
+  id: string;
+  currency: string;
+  rate_to_kyat: number;
+  pushed_at: number;
+}
+
+export interface CompetitorInsightRecord {
+  id: string;
+  product_name: string;
+  street_price: number;
+  photo_url: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
 // ─── Zod Validation Schemas ─────────────────────────────────────────
 
 export const RegionRecordSchema = z.object({
@@ -314,6 +333,9 @@ export const ItemRecordSchema = z.object({
   material_sub_type: z.string().nullable(),
   hardware_finish: z.string().nullable(),
   is_in_deficit: z.boolean().default(false),
+  base_wholesale_price: z.number().nullable().optional(),
+  base_currency: z.string().nullable().optional(),
+  volume_discount_brackets: z.string().nullable().optional(),
   created_at: z.number(),
   updated_at: z.number(),
 });
@@ -522,6 +544,22 @@ export const RepKpisRecordSchema = z.object({
   updated_at: z.number(),
 });
 
+export const CurrencyExchangeRateRecordSchema = z.object({
+  id: z.string(),
+  currency: z.string(),
+  rate_to_kyat: z.number(),
+  pushed_at: z.number(),
+});
+
+export const CompetitorInsightRecordSchema = z.object({
+  id: z.string(),
+  product_name: z.string(),
+  street_price: z.number(),
+  photo_url: z.string().nullable().optional(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
 export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   regions: RegionRecordSchema,
   shops: ShopRecordSchema,
@@ -546,6 +584,8 @@ export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   stock_balances: StockBalanceRecordSchema,
   projects: ProjectRecordSchema,
   telemetry_logs: TelemetryLogRecordSchema,
+  currency_exchange_rates: CurrencyExchangeRateRecordSchema,
+  competitor_insights: CompetitorInsightRecordSchema,
 };
 
 export const WatermelonChangeSetSchema = <T extends z.ZodTypeAny>(
@@ -585,6 +625,12 @@ export const PushChangesBodySchema = z.object({
       projects: WatermelonChangeSetSchema(ProjectRecordSchema),
       telemetry_logs: WatermelonChangeSetSchema(TelemetryLogRecordSchema),
       rep_kpis: WatermelonChangeSetSchema(RepKpisRecordSchema),
+      currency_exchange_rates: WatermelonChangeSetSchema(
+        CurrencyExchangeRateRecordSchema,
+      ),
+      competitor_insights: WatermelonChangeSetSchema(
+        CompetitorInsightRecordSchema,
+      ),
     })
     .partial(),
 });
@@ -627,7 +673,9 @@ export type SyncTableName =
   | 'stock_balances'
   | 'projects'
   | 'telemetry_logs'
-  | 'rep_kpis';
+  | 'rep_kpis'
+  | 'currency_exchange_rates'
+  | 'competitor_insights';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -705,6 +753,9 @@ export interface Item {
   materialSubType: string | null;
   hardwareFinish: string | null;
   isInDeficit: boolean;
+  baseWholesalePrice?: number | null;
+  baseCurrency?: string | null;
+  volumeDiscountBrackets?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -891,6 +942,22 @@ export interface RepKpis {
   salesTarget: number;
   visitsCount: number;
   visitsTarget: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CurrencyExchangeRate {
+  id: string;
+  currency: string;
+  rateToKyat: number;
+  pushedAt: number;
+}
+
+export interface CompetitorInsight {
+  id: string;
+  productName: string;
+  streetPrice: number;
+  photoUrl: string | null;
   createdAt: number;
   updatedAt: number;
 }

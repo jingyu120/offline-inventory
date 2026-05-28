@@ -10,10 +10,24 @@ if (Platform.OS !== 'web') {
   TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
     console.log('[BackgroundFetch] Running background sync task...');
     try {
-      // 1. Process pending image uploads
-      await ImageUploadQueue.processQueue();
-      // 2. Perform SQLite sync deltas push/pull
+      // 1. Perform SQLite sync deltas push/pull (lightweight JSON text payloads first)
       await syncData();
+
+      // 2. Process pending image uploads (only if connection is not degraded)
+      const NetInfo = (await import('@react-native-community/netinfo')).default;
+      const state = await NetInfo.fetch();
+      const is2G =
+        state.type === 'cellular' && state.details?.cellularGeneration === '2g';
+      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+
+      if (is2G || isMockDegraded) {
+        console.log(
+          '[BackgroundFetch] Network degraded. Skipping image uploads.',
+        );
+      } else {
+        await ImageUploadQueue.processQueue();
+      }
+
       console.log('[BackgroundFetch] Background sync completed successfully.');
       return BackgroundFetch.BackgroundFetchResult.NewData;
     } catch (error) {
