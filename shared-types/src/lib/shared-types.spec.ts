@@ -135,6 +135,7 @@ describe('shared-types', () => {
         stock_condition: 'GOOD',
         pending_allocation_count: 0,
         fulfillment_status: 'PENDING_FULFILLMENT',
+        compliance_status: 'APPROVED',
         created_at: 10000,
         updated_at: 10000,
       };

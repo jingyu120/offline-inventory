@@ -12,6 +12,7 @@ import {
   Card,
   Button,
   TextField,
+  DropdownSelector,
 } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from '@burma-inventory/ui-components';
@@ -19,10 +20,15 @@ import { database } from '../../../core/database/database';
 import {
   Item,
   ItemStock,
+  Shop,
   guardAsync,
   sqliteSchema,
 } from '@burma-inventory/shared-types';
-import { mapItem, mapItemStock } from '../../../core/data/repositories';
+import {
+  mapItem,
+  mapItemStock,
+  mapShop,
+} from '../../../core/data/repositories';
 import { eq } from 'drizzle-orm';
 import {
   Plus,
@@ -33,6 +39,30 @@ import {
   RefreshCw,
 } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
+import * as Location from 'expo-location';
+
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) => {
+  const R = 6371e3; // metres
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) *
+      Math.cos(phi2) *
+      Math.sin(deltaLambda / 2) *
+      Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // in metres
+};
 
 interface ExtendedItem extends Item {
   stockQty: number;
@@ -54,14 +84,73 @@ export function IntakeScreen() {
   const [initialStock, setInitialStock] = useState('100');
   const [isAdding, setIsAdding] = useState(false);
 
+  // Geofence states
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string>('');
+  const [isNearShop, setIsNearShop] = useState<boolean>(false);
+
+  const checkGeofence = async (shopId: string, currentShopsList?: Shop[]) => {
+    if (!shopId) {
+      setIsNearShop(false);
+      return;
+    }
+    try {
+      const listToSearch = currentShopsList || shops;
+      const shopObj = listToSearch.find((s) => s.id === shopId);
+      if (!shopObj) return;
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          t('error') || 'Error',
+          'Location permission is required to initialize the audit.',
+        );
+        setIsNearShop(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const shopLat = shopObj.latitude || 16.8661;
+      const shopLon = shopObj.longitude || 96.1951;
+      const dist = calculateDistance(
+        shopLat,
+        shopLon,
+        loc.coords.latitude,
+        loc.coords.longitude,
+      );
+
+      if (dist <= 100) {
+        setIsNearShop(true);
+      } else {
+        setIsNearShop(false);
+        Alert.alert(
+          'Geofenced Lock Active',
+          `You must be within 100 meters of the selected shop to initialize this inventory audit. Current distance: ${Math.round(dist)}m.`,
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      setIsNearShop(false);
+      Alert.alert(
+        t('error') || 'Error',
+        'Failed to retrieve current device coordinates.',
+      );
+    }
+  };
+
   const loadInventory = async () => {
     setLoading(true);
     try {
       const itemsList = await database.select().from(sqliteSchema.items);
       const stocksList = await database.select().from(sqliteSchema.item_stocks);
+      const shopsList = await database.select().from(sqliteSchema.shops);
 
       const mappedItems = itemsList.map(mapItem);
       const mappedStocks = stocksList.map(mapItemStock);
+      const mappedShops = shopsList.map(mapShop);
 
       const stocksMap = new Map<string, ItemStock>(
         mappedStocks.map((s: ItemStock) => [s.itemId, s]),
@@ -75,6 +164,7 @@ export function IntakeScreen() {
       });
 
       setItems(extended);
+      setShops(mappedShops);
     } catch (e) {
       console.error('Failed to load inventory:', e);
     } finally {
@@ -87,6 +177,13 @@ export function IntakeScreen() {
   }, []);
 
   const handleUpdateStock = async (item: ExtendedItem, delta: number) => {
+    if (!selectedShopId || !isNearShop) {
+      Alert.alert(
+        t('error') || 'Error',
+        'Stock adjustment locked: You must select a retail shop and be within 100 meters of it.',
+      );
+      return;
+    }
     const [, error] = await guardAsync(
       (async () => {
         const now = Date.now();
@@ -126,6 +223,13 @@ export function IntakeScreen() {
   };
 
   const handleAddItem = async () => {
+    if (!selectedShopId || !isNearShop) {
+      Alert.alert(
+        t('error') || 'Error',
+        'SKU registration locked: You must select a retail shop and be within 100 meters of it.',
+      );
+      return;
+    }
     if (!sku || !name || !unitPrice) {
       Alert.alert(t('validationError'), t('validationErrorFillFields'));
       return;
@@ -226,74 +330,147 @@ export function IntakeScreen() {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {/* New Item Form Card */}
+        {/* Shop Selector Dropdown */}
         <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-          <Text variant="title" mb="m">
-            ➕ {t('registerNewSku')}
-          </Text>
-
-          <Box
-            flexDirection="row"
-            flexWrap="wrap"
-            style={{ marginHorizontal: -8 }}
-          >
-            <Box width={isDesktop ? '50%' : '100%'} px="s">
-              <TextField
-                label={t('skuCode')}
-                value={sku}
-                onChangeText={setSku}
-                placeholder="e.g. SKU-PB-500"
-              />
+          <DropdownSelector
+            label="Select Shop for Inventory Audit"
+            selectedValue={selectedShopId}
+            onValueChange={(val) => {
+              setSelectedShopId(val);
+              checkGeofence(val);
+            }}
+            options={shops.map((s) => ({ label: s.name, value: s.id }))}
+            placeholder="Choose a retail shop..."
+          />
+          {selectedShopId ? (
+            !isNearShop ? (
+              <Box
+                mt="s"
+                p="s"
+                bg="dangerBg"
+                borderRadius="s"
+                borderColor="danger"
+                borderWidth={1}
+              >
+                <Text
+                  variant="bodySecondary"
+                  color="dangerText"
+                  fontWeight="bold"
+                >
+                  ⚠️ Geofenced Lock: You are too far from this shop to audit
+                  inventory. (100-meter verification failed)
+                </Text>
+              </Box>
+            ) : (
+              <Box
+                mt="s"
+                p="s"
+                bg="successBg"
+                borderRadius="s"
+                borderColor="success"
+                borderWidth={1}
+              >
+                <Text
+                  variant="bodySecondary"
+                  color="successText"
+                  fontWeight="bold"
+                >
+                  ✅ Location Verified: Inside 100-meter shop radius. Audit
+                  authorized.
+                </Text>
+              </Box>
+            )
+          ) : (
+            <Box
+              mt="s"
+              p="s"
+              bg="warningBg"
+              borderRadius="s"
+              borderColor="warning"
+              borderWidth={1}
+            >
+              <Text
+                variant="bodySecondary"
+                color="warningText"
+                fontWeight="bold"
+              >
+                ℹ️ Please select a retail shop to initialize the inventory
+                audit.
+              </Text>
             </Box>
-
-            <Box width={isDesktop ? '50%' : '100%'} px="s">
-              <TextField
-                label={t('productName')}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Myanmar Premium 500ml"
-              />
-            </Box>
-
-            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
-              <TextField
-                label={t('priceMmk')}
-                value={unitPrice}
-                onChangeText={setUnitPrice}
-                placeholder="e.g. 3000"
-                keyboardType="numeric"
-              />
-            </Box>
-
-            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
-              <TextField
-                label={t('category')}
-                value={category}
-                onChangeText={setCategory}
-                placeholder="e.g. Beverage"
-              />
-            </Box>
-
-            <Box width={isDesktop ? '33.3%' : '100%'} px="s">
-              <TextField
-                label={t('initialStockQty')}
-                value={initialStock}
-                onChangeText={setInitialStock}
-                placeholder="e.g. 100"
-                keyboardType="numeric"
-              />
-            </Box>
-          </Box>
-
-          <Box mt="m" alignItems="flex-end">
-            <Button
-              title={isAdding ? t('addingSku') : t('addSkuToCatalog')}
-              onPress={handleAddItem}
-              variant="primary"
-              disabled={isAdding}
-            />
-          </Box>
+          )}
         </Card>
+
+        {/* New Item Form Card */}
+        <Box style={{ opacity: isNearShop ? 1 : 0.5 }}>
+          <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+            <Text variant="title" mb="m">
+              ➕ {t('registerNewSku')}
+            </Text>
+
+            <Box
+              flexDirection="row"
+              flexWrap="wrap"
+              style={{ marginHorizontal: -8 }}
+            >
+              <Box width={isDesktop ? '50%' : '100%'} px="s">
+                <TextField
+                  label={t('skuCode')}
+                  value={sku}
+                  onChangeText={setSku}
+                  placeholder="e.g. SKU-PB-500"
+                />
+              </Box>
+
+              <Box width={isDesktop ? '50%' : '100%'} px="s">
+                <TextField
+                  label={t('productName')}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g. Myanmar Premium 500ml"
+                />
+              </Box>
+
+              <Box width={isDesktop ? '33.3%' : '100%'} px="s">
+                <TextField
+                  label={t('priceMmk')}
+                  value={unitPrice}
+                  onChangeText={setUnitPrice}
+                  placeholder="e.g. 3000"
+                  keyboardType="numeric"
+                />
+              </Box>
+
+              <Box width={isDesktop ? '33.3%' : '100%'} px="s">
+                <TextField
+                  label={t('category')}
+                  value={category}
+                  onChangeText={setCategory}
+                  placeholder="e.g. Beverage"
+                />
+              </Box>
+
+              <Box width={isDesktop ? '33.3%' : '100%'} px="s">
+                <TextField
+                  label={t('initialStockQty')}
+                  value={initialStock}
+                  onChangeText={setInitialStock}
+                  placeholder="e.g. 100"
+                  keyboardType="numeric"
+                />
+              </Box>
+            </Box>
+
+            <Box mt="m" alignItems="flex-end">
+              <Button
+                title={isAdding ? t('addingSku') : t('addSkuToCatalog')}
+                onPress={handleAddItem}
+                variant="primary"
+                disabled={isAdding || !isNearShop}
+              />
+            </Box>
+          </Card>
+        </Box>
 
         {/* Master Catalog Table Grid */}
         <Text variant="title" mb="s">
@@ -350,11 +527,18 @@ export function IntakeScreen() {
               </Box>
 
               {/* Stock Quantity Controls */}
-              <Box flexDirection="row" alignItems="center">
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                style={{ opacity: isNearShop ? 1 : 0.5 }}
+              >
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, -10)}
+                  disabled={!isNearShop}
                   style={{
-                    backgroundColor: theme.colors.secondaryButton,
+                    backgroundColor: isNearShop
+                      ? theme.colors.secondaryButton
+                      : '#CBD5E1',
                     width: 32,
                     height: 32,
                     borderRadius: 16,
@@ -381,8 +565,11 @@ export function IntakeScreen() {
 
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, 10)}
+                  disabled={!isNearShop}
                   style={{
-                    backgroundColor: theme.colors.secondaryButton,
+                    backgroundColor: isNearShop
+                      ? theme.colors.secondaryButton
+                      : '#CBD5E1',
                     width: 32,
                     height: 32,
                     borderRadius: 16,

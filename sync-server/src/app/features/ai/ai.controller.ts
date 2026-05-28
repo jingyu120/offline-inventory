@@ -1,29 +1,20 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AiService } from './ai.service';
-import { AiQueueService } from '../../core/queue/ai-queue.service';
 
 @Controller('ai')
 export class AiController {
-  constructor(
-    private readonly aiService: AiService,
-    private readonly aiQueueService: AiQueueService,
-  ) {}
+  constructor(private readonly aiService: AiService) {}
 
   @Post('parse-note')
-  async parseNote(@Body() body: { note: string }) {
-    return this.aiService.parseInteractionNote(body.note);
+  async parseNote(@Body() body: { note: string; quantization?: string }) {
+    return this.aiService.parseInteractionNote(body.note, body.quantization);
   }
 
   @Post('verify-screenshot')
-  async verifyScreenshot(@Body() body: { image: string }) {
-    return this.aiService.verifyViberScreenshot(body.image);
+  async verifyScreenshot(
+    @Body() body: { image: string; quantization?: string },
+  ) {
+    return this.aiService.verifyViberScreenshot(body.image, body.quantization);
   }
 
   @Post('analyze-sentiment')
@@ -32,17 +23,18 @@ export class AiController {
   }
 
   @Post('eod-digest')
-  @HttpCode(HttpStatus.ACCEPTED)
   async eodDigest(@Body() body?: { date?: string }) {
     // Default to today if date is not specified
     const dateStr = body?.date || new Date().toISOString().split('T')[0];
-    await this.aiQueueService.addEodJob(dateStr);
-    return { success: true, message: 'EOD digest compiling queued' };
+    // Run synchronously so the client receives the full digest result directly.
+    // (The queue-based approach returned only a 202 queued-ack, leaving the
+    // frontend with no way to retrieve the actual computed digest.)
+    return this.aiService.generateEodDigest(dateStr);
   }
 
   @Post('ocr-invoice')
-  async ocrInvoice(@Body() body: { image: string }) {
-    return this.aiService.ocrInvoice(body.image);
+  async ocrInvoice(@Body() body: { image: string; quantization?: string }) {
+    return this.aiService.ocrInvoice(body.image, body.quantization);
   }
 
   @Get('quota-optimizations')

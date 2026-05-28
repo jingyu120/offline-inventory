@@ -119,6 +119,7 @@ export const mapInteractionItem = (ii: any): InteractionItem => ({
   stockCondition: ii.stock_condition,
   pendingAllocationCount: ii.pending_allocation_count ?? 0,
   fulfillmentStatus: ii.fulfillment_status ?? 'PENDING_FULFILLMENT',
+  complianceStatus: ii.compliance_status ?? 'APPROVED',
   createdAt: ii.created_at,
   updatedAt: ii.updated_at,
 });

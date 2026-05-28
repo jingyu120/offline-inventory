@@ -50,6 +50,57 @@ const loadLeaflet = (callback: () => void) => {
   }
 };
 
+// Helper to calculate distance between coordinates
+const getDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
+  const R = 6371e3; // meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+// Nearest Neighbor Traveling Salesperson Problem (TSP) solver
+const solveTSP = (shops: any[]) => {
+  if (shops.length === 0) return [];
+  const unvisited = [...shops];
+  const path = [unvisited.shift()];
+
+  while (unvisited.length > 0) {
+    const current = path[path.length - 1];
+    let bestIndex = 0;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < unvisited.length; i++) {
+      const candidate = unvisited[i];
+      const dist = getDistance(
+        current.latitude!,
+        current.longitude!,
+        candidate.latitude!,
+        candidate.longitude!,
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestIndex = i;
+      }
+    }
+
+    path.push(unvisited.splice(bestIndex, 1)[0]);
+  }
+  return path;
+};
+
 export const GeographicHeatmapScreen: React.FC = () => {
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
@@ -59,6 +110,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const mapContainerRef = useRef<any>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
+  const routePolylineRef = useRef<any>(null);
 
   const {
     loading,
@@ -205,6 +257,12 @@ export const GeographicHeatmapScreen: React.FC = () => {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
+    // Clear old route polyline
+    if (routePolylineRef.current) {
+      routePolylineRef.current.remove();
+      routePolylineRef.current = null;
+    }
+
     // Create markers and add to map
     const newMarkers = filteredShops
       .filter((shop) => shop.latitude && shop.longitude)
@@ -313,6 +371,20 @@ export const GeographicHeatmapScreen: React.FC = () => {
     mapInstance.on('zoomend', handleMapChange);
     mapInstance.on('moveend', handleMapChange);
 
+    // Solve TSP & draw optimal visit path
+    const validShops = filteredShops.filter((s) => s.latitude && s.longitude);
+    if (validShops.length > 1) {
+      const tspPath = solveTSP(validShops);
+      const polylineCoords = tspPath.map((s) => [s.latitude!, s.longitude!]);
+      const polyline = L.polyline(polylineCoords, {
+        color: '#4F46E5',
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '8, 8',
+      }).addTo(mapInstance);
+      routePolylineRef.current = polyline;
+    }
+
     // Auto-bounds mapping coordinates
     const validCoords = filteredShops
       .filter((s) => s.latitude && s.longitude)
@@ -326,6 +398,10 @@ export const GeographicHeatmapScreen: React.FC = () => {
       mapInstance.off('zoomend', handleMapChange);
       mapInstance.off('moveend', handleMapChange);
       newMarkers.forEach((m) => m.remove());
+      if (routePolylineRef.current) {
+        routePolylineRef.current.remove();
+        routePolylineRef.current = null;
+      }
     };
   }, [filteredShops, leafletLoaded, mapInstance, t]);
 

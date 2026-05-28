@@ -109,6 +109,7 @@ export interface InteractionItemRecord {
   stock_condition: string;
   pending_allocation_count: number;
   fulfillment_status: string;
+  compliance_status: string;
   created_at: number;
   updated_at: number;
 }
@@ -249,6 +250,18 @@ export interface StockBalanceRecord {
   updated_at: number;
 }
 
+export interface RepKpisRecord {
+  id: string;
+  rep_id: string;
+  date: string;
+  sales_volume: number;
+  sales_target: number;
+  visits_count: number;
+  visits_target: number;
+  created_at: number;
+  updated_at: number;
+}
+
 // ─── Zod Validation Schemas ─────────────────────────────────────────
 
 export const RegionRecordSchema = z.object({
@@ -338,6 +351,7 @@ export const InteractionItemRecordSchema = z.object({
   stock_condition: z.string().default('GOOD'),
   pending_allocation_count: z.number().int().nonnegative(),
   fulfillment_status: z.string().default('PENDING_FULFILLMENT'),
+  compliance_status: z.string().default('APPROVED'),
   created_at: z.number(),
   updated_at: z.number(),
 });
@@ -496,6 +510,18 @@ export const TelemetryLogRecordSchema = z.object({
   updated_at: z.number(),
 });
 
+export const RepKpisRecordSchema = z.object({
+  id: z.string(),
+  rep_id: z.string(),
+  date: z.string(),
+  sales_volume: z.number().nonnegative(),
+  sales_target: z.number().nonnegative(),
+  visits_count: z.number().int().nonnegative(),
+  visits_target: z.number().int().nonnegative(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
 export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   regions: RegionRecordSchema,
   shops: ShopRecordSchema,
@@ -509,6 +535,7 @@ export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   check_in_logs: CheckInLogRecordSchema,
   prediction_logs: PredictionLogRecordSchema,
   recommended_orders: RecommendedOrderRecordSchema,
+  rep_kpis: RepKpisRecordSchema,
   price_books: PriceBookRecordSchema,
   price_book_items: PriceBookItemRecordSchema,
   exchange_rates: ExchangeRateRecordSchema,
@@ -557,6 +584,7 @@ export const PushChangesBodySchema = z.object({
       stock_balances: WatermelonChangeSetSchema(StockBalanceRecordSchema),
       projects: WatermelonChangeSetSchema(ProjectRecordSchema),
       telemetry_logs: WatermelonChangeSetSchema(TelemetryLogRecordSchema),
+      rep_kpis: WatermelonChangeSetSchema(RepKpisRecordSchema),
     })
     .partial(),
 });
@@ -598,7 +626,8 @@ export type SyncTableName =
   | 'stock_locations'
   | 'stock_balances'
   | 'projects'
-  | 'telemetry_logs';
+  | 'telemetry_logs'
+  | 'rep_kpis';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -711,6 +740,7 @@ export interface InteractionItem {
   stockCondition: string;
   pendingAllocationCount: number;
   fulfillmentStatus: string;
+  complianceStatus: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -849,6 +879,18 @@ export interface TelemetryLog {
   message: string;
   timestamp: number;
   syncedAtServer?: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RepKpis {
+  id: string;
+  repId: string;
+  date: string;
+  salesVolume: number;
+  salesTarget: number;
+  visitsCount: number;
+  visitsTarget: number;
   createdAt: number;
   updatedAt: number;
 }

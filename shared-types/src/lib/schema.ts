@@ -162,6 +162,7 @@ export const interaction_items = pgTable(
     fulfillment_status: text('fulfillment_status')
       .notNull()
       .default('PENDING_FULFILLMENT'),
+    compliance_status: text('compliance_status').notNull().default('APPROVED'),
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
     deleted_at: bigint('deleted_at', { mode: 'number' }),
@@ -433,6 +434,25 @@ export const telemetry_logs = pgTable('telemetry_logs', {
   created_at: bigint('created_at', { mode: 'number' }).notNull(),
   updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
 });
+
+export const rep_kpis = pgTable(
+  'rep_kpis',
+  {
+    id: text('id').primaryKey(),
+    rep_id: text('rep_id').notNull(),
+    date: text('date').notNull(),
+    sales_volume: doublePrecision('sales_volume').notNull().default(0),
+    sales_target: doublePrecision('sales_target').notNull().default(0),
+    visits_count: integer('visits_count').notNull().default(0),
+    visits_target: integer('visits_target').notNull().default(0),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+    deleted_at: bigint('deleted_at', { mode: 'number' }),
+  },
+  (table) => ({
+    repIdIdx: index('rep_kpis_rep_id_idx').on(table.rep_id),
+  }),
+);
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   orders: many(interaction_logs),

@@ -202,6 +202,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         stock_condition TEXT NOT NULL DEFAULT 'GOOD',
         pending_allocation_count INTEGER NOT NULL DEFAULT 0,
         fulfillment_status TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT',
+        compliance_status TEXT NOT NULL DEFAULT 'APPROVED',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -341,6 +342,17 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         message TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         synced_at_server INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS rep_kpis (
+        id TEXT PRIMARY KEY NOT NULL,
+        rep_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        sales_volume REAL NOT NULL DEFAULT 0,
+        sales_target REAL NOT NULL DEFAULT 0,
+        visits_count INTEGER NOT NULL DEFAULT 0,
+        visits_target INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );

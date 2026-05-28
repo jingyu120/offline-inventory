@@ -108,8 +108,17 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
     images?: string[],
     format?: 'json',
     modelName?: string,
+    quantization?: string,
   ): Promise<string | null> {
-    const targetModelName = modelName || this.config.ollamaModel;
+    let targetModelName = modelName || this.config.ollamaModel;
+    if (quantization) {
+      if (targetModelName.includes(':')) {
+        const parts = targetModelName.split(':');
+        targetModelName = `${parts[0]}:${quantization}`;
+      } else {
+        targetModelName = `${targetModelName}:${quantization}`;
+      }
+    }
     const payload: any = {
       model: targetModelName,
       prompt,
@@ -144,7 +153,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
     return response.data.response;
   }
 
-  async parseInteractionNote(note: string) {
+  async parseInteractionNote(note: string, quantization?: string) {
     const prompt = `You are a sales assistant parsing notes for Burma Inventory. Parse the following note and return a JSON object with keys:
 1. 'commercialStatus': one of 'FOLLOWED_UP', 'INTERESTED', 'ORDER_PLACED', 'NOT_INTERESTED'.
 2. 'items': an array of objects with 'sku' (string) and 'quantity' (integer).
@@ -154,7 +163,13 @@ Note: "${note}"
 
 Return ONLY raw JSON. No markdown formatting, no explanation.`;
 
-    const res = await this.dispatchModel(prompt, undefined, 'json');
+    const res = await this.dispatchModel(
+      prompt,
+      undefined,
+      'json',
+      undefined,
+      quantization,
+    );
     if (res) {
       try {
         const cleanedText = res.replace(/```json|```/g, '').trim();
@@ -197,14 +212,20 @@ Return ONLY raw JSON. No markdown formatting, no explanation.`;
     };
   }
 
-  async verifyViberScreenshot(base64Image: string) {
+  async verifyViberScreenshot(base64Image: string, quantization?: string) {
     const prompt = `Analyze this Viber chat screenshot. Extract any customer order confirmations or text, and verify if it represents a valid order. Return a JSON object with:
 1. 'verified': boolean
 2. 'extractedText': string summarizing the confirmation.
 
 Return ONLY raw JSON.`;
 
-    const res = await this.dispatchModel(prompt, [base64Image], 'json');
+    const res = await this.dispatchModel(
+      prompt,
+      [base64Image],
+      'json',
+      undefined,
+      quantization,
+    );
     if (res) {
       try {
         const cleanedText = res.replace(/```json|```/g, '').trim();
@@ -226,7 +247,7 @@ Return ONLY raw JSON.`;
     };
   }
 
-  async ocrInvoice(base64Image: string) {
+  async ocrInvoice(base64Image: string, quantization?: string) {
     const dbItems = await this.drizzle.db.select().from(schema.pgSchema.items);
     const prompt = `OCR the invoice/shelf photo. Extract all products and their quantities. Return a JSON object with:
 1. 'items': array of objects with 'name' (string) and 'quantity' (integer).
@@ -234,7 +255,13 @@ Return ONLY raw JSON.`;
 
 Return ONLY raw JSON.`;
 
-    const res = await this.dispatchModel(prompt, [base64Image], 'json');
+    const res = await this.dispatchModel(
+      prompt,
+      [base64Image],
+      'json',
+      undefined,
+      quantization,
+    );
     const parsedItems: any[] = [];
     let explanation = 'Failed to extract items from image using local AI.';
 
@@ -748,7 +775,11 @@ No markdown tags like \`\`\`json, no explanations.`;
     return digest;
   }
 
-  async processScreenshot(logId: string, filePath?: string) {
+  async processScreenshot(
+    logId: string,
+    filePath?: string,
+    quantization?: string,
+  ) {
     this.logger.log(
       `Starting processScreenshot for logId: ${logId}, file: ${filePath || 'from db'}`,
     );
@@ -835,6 +866,8 @@ Return ONLY raw JSON. Do not include any markdown fences or comments.`;
       prompt,
       [base64Image],
       'json',
+      undefined,
+      quantization,
     );
     if (responseText) {
       try {

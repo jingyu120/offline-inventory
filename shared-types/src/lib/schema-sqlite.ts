@@ -155,6 +155,7 @@ export const interaction_items = sqliteTable(
     fulfillment_status: text('fulfillment_status')
       .notNull()
       .default('PENDING_FULFILLMENT'),
+    compliance_status: text('compliance_status').notNull().default('APPROVED'),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
   },
@@ -405,3 +406,21 @@ export const telemetry_logs = sqliteTable('telemetry_logs', {
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
+
+export const rep_kpis = sqliteTable(
+  'rep_kpis',
+  {
+    id: text('id').primaryKey(),
+    rep_id: text('rep_id').notNull(),
+    date: text('date').notNull(),
+    sales_volume: real('sales_volume').notNull().default(0),
+    sales_target: real('sales_target').notNull().default(0),
+    visits_count: integer('visits_count').notNull().default(0),
+    visits_target: integer('visits_target').notNull().default(0),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    repIdIdx: index('rep_kpis_rep_id_idx').on(table.rep_id),
+  }),
+);

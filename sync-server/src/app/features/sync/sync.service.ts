@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as schema from '@burma-inventory/shared-types';
-import { eq, and, gt, lte, isNull, inArray, desc } from 'drizzle-orm';
+import { eq, and, gt, lte, isNull, inArray, desc, ne, gte } from 'drizzle-orm';
 import type {
   PullChangesResponse,
   PushChangesBody,
@@ -189,6 +189,13 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     hasTimestamps: false,
     toRecord: (l) => l,
     toDrizzle: (l) => l,
+  },
+  rep_kpis: {
+    delegate: 'rep_kpis',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (k) => k,
+    toDrizzle: (k) => k,
   },
 };
 
@@ -434,11 +441,88 @@ export class SyncService {
       throw error;
     }
 
+    await this.runAnomalyDetection(changes.interaction_items).catch((err) => {
+      this.logger.error(`Anomaly detection error: ${err.message}`);
+    });
+
     this.triggerAuditForPushedLogs(changes.interaction_logs).catch((err) => {
       this.logger.error(
         `Failed to trigger post-push screenshot audit: ${err.message}`,
       );
     });
+  }
+
+  private async runAnomalyDetection(
+    itemChangeset: WatermelonChangeSet<any> | undefined,
+  ) {
+    if (!itemChangeset) return;
+    const records = [
+      ...(itemChangeset.created || []),
+      ...(itemChangeset.updated || []),
+    ];
+
+    for (const record of records) {
+      if (record.fulfillment_status !== 'PENDING_FULFILLMENT') {
+        continue;
+      }
+
+      // Fetch the parent interaction log to get the shop_id
+      const logs = await this.drizzle.db
+        .select()
+        .from(schema.pgSchema.interaction_logs)
+        .where(
+          eq(schema.pgSchema.interaction_logs.id, record.interaction_log_id),
+        )
+        .limit(1);
+      const log = logs[0] || null;
+      if (!log || !log.shop_id) {
+        continue;
+      }
+
+      const shopId = log.shop_id;
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+      // Fetch historical interaction items in the last 30 days for this shop
+      // excluding current interaction log
+      const historicalItems = await this.drizzle.db
+        .select({
+          quantity: schema.pgSchema.interaction_items.quantity,
+          logId: schema.pgSchema.interaction_logs.id,
+        })
+        .from(schema.pgSchema.interaction_items)
+        .innerJoin(
+          schema.pgSchema.interaction_logs,
+          eq(
+            schema.pgSchema.interaction_items.interaction_log_id,
+            schema.pgSchema.interaction_logs.id,
+          ),
+        )
+        .where(
+          and(
+            eq(schema.pgSchema.interaction_logs.shop_id, shopId),
+            gte(schema.pgSchema.interaction_items.created_at, thirtyDaysAgo),
+            ne(schema.pgSchema.interaction_logs.id, log.id),
+          ),
+        );
+
+      const logIds = new Set(historicalItems.map((item) => item.logId));
+      const totalQuantity = historicalItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      );
+      const orderCount = logIds.size;
+      const average = orderCount > 0 ? totalQuantity / orderCount : 0;
+
+      if (orderCount > 0 && record.quantity > 5 * average) {
+        this.logger.log(
+          `Anomaly detected: Item ${record.id} quantity ${record.quantity} exceeds 30-day moving average of ${average} by > 500% for shop ${shopId}. Flagging as MANUAL_REVIEW_REQUIRED.`,
+        );
+        await this.drizzle.db
+          .update(schema.pgSchema.interaction_items)
+          .set({ compliance_status: 'MANUAL_REVIEW_REQUIRED' })
+          .where(eq(schema.pgSchema.interaction_items.id, record.id));
+      }
+    }
   }
 
   private async triggerAuditForPushedLogs(

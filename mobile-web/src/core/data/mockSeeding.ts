@@ -24,6 +24,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     sqliteSchema.stock_locations,
     sqliteSchema.stock_balances,
     sqliteSchema.projects,
+    sqliteSchema.rep_kpis,
   ];
 
   for (const table of tables) {
@@ -1056,6 +1057,32 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     {
       id: 'project-3',
       name: 'Grand Plaza Project',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // 17. Seed Rep KPIs
+  await db.insert(sqliteSchema.rep_kpis).values([
+    {
+      id: 'kpi-rep-1-today',
+      rep_id: 'rep-1',
+      date: new Date().toISOString().split('T')[0],
+      sales_volume: 750000,
+      sales_target: 1000000,
+      visits_count: 3,
+      visits_target: 5,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'kpi-rep-2-today',
+      rep_id: 'rep-2',
+      date: new Date().toISOString().split('T')[0],
+      sales_volume: 450000,
+      sales_target: 800000,
+      visits_count: 2,
+      visits_target: 4,
       created_at: now,
       updated_at: now,
     },

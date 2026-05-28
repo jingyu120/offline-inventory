@@ -178,14 +178,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
     }
   }, [activeRep, currentScreen]);
 
-  const { language, setLanguage } = useTranslation();
-  React.useEffect(() => {
-    if (currentScreen !== 'heatmap' && currentScreen !== 'leadership') {
-      if (language !== 'my') {
-        setLanguage('my');
-      }
-    }
-  }, [currentScreen, language, setLanguage]);
+  const { language } = useTranslation();
 
   return (
     <SafeAreaView

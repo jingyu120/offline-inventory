@@ -44,7 +44,7 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
       const response = await fetch(AI_PARSE_NOTE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note: notes }),
+        body: JSON.stringify({ note: notes, quantization: '4bit' }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -100,7 +100,10 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
       const response = await fetch(AI_PARSE_NOTE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note: selectedTranscript }),
+        body: JSON.stringify({
+          note: selectedTranscript,
+          quantization: '4bit',
+        }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -168,7 +171,7 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
       const response = await fetch(AI_OCR_INVOICE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
+        body: JSON.stringify({ image: base64, quantization: '8bit' }),
       });
       if (response.ok) {
         const data = await response.json();

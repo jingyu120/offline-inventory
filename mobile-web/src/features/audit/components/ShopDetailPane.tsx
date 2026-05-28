@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Pressable, Platform } from 'react-native';
+import { ScrollView, Pressable, Platform, Alert } from 'react-native';
 import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Shop, Contact, sqliteSchema } from '@burma-inventory/shared-types';
@@ -8,6 +8,7 @@ import { useTranslation } from '../../../core/i18n/i18n';
 import { database } from '../../../core/database/database';
 import { eq } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
+import * as Location from 'expo-location';
 import {
   MapPin,
   Star,
@@ -17,6 +18,29 @@ import {
   TrendingDown,
   DollarSign,
 } from 'lucide-react-native';
+
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) => {
+  const R = 6371e3; // metres
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) *
+      Math.cos(phi2) *
+      Math.sin(deltaLambda / 2) *
+      Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // in metres
+};
 
 import { GPSCheckInCard } from './GPSCheckInCard';
 import { PredictionAnalyticsCard } from './PredictionAnalyticsCard';
@@ -46,6 +70,44 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   const { t, language } = useTranslation();
   const { activeRep } = useAuth();
 
+  const handleStartAudit = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          t('error') || 'Error',
+          'Location permission is required to start an audit.',
+        );
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const shopLat = shop.latitude || 16.8661;
+      const shopLon = shop.longitude || 96.1951;
+      const dist = calculateDistance(
+        shopLat,
+        shopLon,
+        loc.coords.latitude,
+        loc.coords.longitude,
+      );
+      if (dist > 100) {
+        Alert.alert(
+          'Geofenced Lock Active',
+          `You must be within 100 meters of the shop to start an audit. Current distance: ${Math.round(dist)}m.`,
+        );
+        return;
+      }
+      onLogInteraction?.(shop);
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert(
+        t('error') || 'Error',
+        'Failed to retrieve current device coordinates.',
+      );
+    }
+  };
+
   const [hasPlannedRoute, setHasPlannedRoute] = React.useState(false);
   const [todayCheckIn, setTodayCheckIn] = React.useState<any>(null);
   const [predictionLog, setPredictionLog] = React.useState<any>(null);
@@ -53,6 +115,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   const [recommendedItem, setRecommendedItem] = React.useState<any>(null);
   const [repScore, setRepScore] = React.useState<any>(null);
   const [pointsLogs, setPointsLogs] = React.useState<any[]>([]);
+  const [repKpis, setRepKpis] = React.useState<any>(null);
   const [activeMobileTab, setActiveMobileTab] = React.useState<
     'checkin' | 'history' | 'ai_insights' | 'scorecard'
   >('checkin');
@@ -175,6 +238,25 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         .filter((l: any) => l.rep_id === activeRep.id)
         .sort((a: any, b: any) => b.created_at - a.created_at);
       setPointsLogs(filteredLogs.slice(0, 5).map(mapPointsLog));
+
+      // 7. Rep KPIs
+      const kpis = await database.select().from(sqliteSchema.rep_kpis);
+      const kpi = kpis.find(
+        (k: any) => k.rep_id === activeRep.id && k.date === todayStr,
+      );
+      setRepKpis(
+        kpi
+          ? {
+              id: kpi.id,
+              repId: kpi.rep_id,
+              date: kpi.date,
+              salesVolume: kpi.sales_volume,
+              salesTarget: kpi.sales_target,
+              visitsCount: kpi.visits_count,
+              visitsTarget: kpi.visits_target,
+            }
+          : null,
+      );
     } catch (e) {
       console.error('Failed to load shop details:', e);
     }
@@ -348,7 +430,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         <Box style={!isDesktop ? { alignSelf: 'stretch' } : undefined}>
           <Button
             title={t('logInteraction')}
-            onPress={() => onLogInteraction?.(shop)}
+            onPress={handleStartAudit}
             variant="primary"
           />
         </Box>
@@ -440,7 +522,11 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 
         {/* Gamification Scorecard (shown on Desktop, or Mobile Scorecard Tab) */}
         {(isDesktop || activeMobileTab === 'scorecard') && (
-          <RepScorecardCard repScore={repScore} pointsLogs={pointsLogs} />
+          <RepScorecardCard
+            repScore={repScore}
+            pointsLogs={pointsLogs}
+            repKpis={repKpis}
+          />
         )}
 
         {/* Recent Interactions Timeline (shown on Desktop, or Mobile History Tab) */}
