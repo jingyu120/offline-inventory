@@ -204,39 +204,41 @@ export const NavBar: React.FC<NavBarProps> = ({
         </Box>
 
         {/* Language Toggle Button */}
-        <Pressable
-          onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
-          style={({ pressed, hovered }: any) => ({
-            paddingVertical: isDesktop ? 6 : undefined,
-            paddingHorizontal: isDesktop ? 12 : undefined,
-            width: isDesktop ? undefined : 32,
-            height: isDesktop ? undefined : 32,
-            borderRadius: 16,
-            backgroundColor: hovered
-              ? activeTheme.colors.secondaryBackground
-              : activeTheme.colors.borderColor,
-            marginRight: isDesktop ? 12 : 10,
-            justifyContent: 'center',
-            alignItems: 'center',
-            transform: [{ scale: pressed ? 0.98 : 1 }],
-            cursor: 'pointer',
-            ...(Platform.OS === 'web'
-              ? ({
-                  transitionProperty: 'transform, background-color',
-                  transitionDuration: '150ms',
-                  transitionTimingFunction: 'ease-in-out',
-                } as any)
-              : {}),
-          })}
-        >
-          <Text
-            fontSize={isDesktop ? 12 : 14}
-            color="primaryText"
-            fontWeight="bold"
+        {(currentScreen === 'heatmap' || currentScreen === 'leadership') && (
+          <Pressable
+            onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
+            style={({ pressed, hovered }: any) => ({
+              paddingVertical: isDesktop ? 6 : undefined,
+              paddingHorizontal: isDesktop ? 12 : undefined,
+              width: isDesktop ? undefined : 32,
+              height: isDesktop ? undefined : 32,
+              borderRadius: 16,
+              backgroundColor: hovered
+                ? activeTheme.colors.secondaryBackground
+                : activeTheme.colors.borderColor,
+              marginRight: isDesktop ? 12 : 10,
+              justifyContent: 'center',
+              alignItems: 'center',
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+              cursor: 'pointer',
+              ...(Platform.OS === 'web'
+                ? ({
+                    transitionProperty: 'transform, background-color',
+                    transitionDuration: '150ms',
+                    transitionTimingFunction: 'ease-in-out',
+                  } as any)
+                : {}),
+            })}
           >
-            {language === 'en' ? '🇲🇲' : '🇬🇧'}
-          </Text>
-        </Pressable>
+            <Text
+              fontSize={isDesktop ? 12 : 14}
+              color="primaryText"
+              fontWeight="bold"
+            >
+              {language === 'en' ? '🇲🇲' : '🇬🇧'}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Theme Toggle Button */}
         <Pressable

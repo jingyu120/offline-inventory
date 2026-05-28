@@ -5,6 +5,7 @@ const EnvSchema = z.object({
   GEMMA_API_URL: z.string().default('http://localhost:11434'),
   SYNC_SERVER_PORT: z.coerce.number().int().default(3000),
   SYNC_SERVER_PREFIX: z.string().default('api'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),

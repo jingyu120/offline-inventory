@@ -3,6 +3,8 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { DrizzleService } from '../../core/drizzle';
 import { AppConfig } from '../../core/config/app-config';
@@ -12,6 +14,7 @@ import axios from 'axios';
 import { guardAsync } from '@burma-inventory/shared-types';
 import * as schema from '@burma-inventory/shared-types';
 import { eq, and, gte, lte, isNull, desc } from 'drizzle-orm';
+import { AiQueueService } from '../../core/queue/ai-queue.service';
 
 @Injectable()
 export class AiService implements OnModuleInit, OnModuleDestroy {
@@ -22,6 +25,8 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly drizzle: DrizzleService,
     private readonly config: AppConfig,
+    @Inject(forwardRef(() => AiQueueService))
+    private readonly aiQueueService: AiQueueService,
   ) {}
 
   onModuleInit() {
@@ -89,9 +94,9 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
 
       if (log) {
         this.logger.log(
-          `Directory watcher matched new file ${filename} to log ${log.id}. Starting audit...`,
+          `Directory watcher matched new file ${filename} to log ${log.id}. Queueing audit...`,
         );
-        await this.processScreenshot(log.id, filePath);
+        await this.aiQueueService.addScreenshotJob(log.id, filePath);
       }
     } finally {
       this.processingFiles.delete(filename);

@@ -6,6 +6,8 @@ import {
   Text,
   Theme,
   ThemedTextInput,
+  TextField,
+  DropdownSelector,
 } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
@@ -30,6 +32,9 @@ interface SelectedItemsListProps {
   setIsOverrideMarginAcknowledged?: (val: boolean) => void;
   lastInteractionLog?: any;
   onDuplicateLastOrder?: () => void;
+  projects?: any[];
+  selectedProjectId?: string | null;
+  setSelectedProjectId?: (id: string | null) => void;
 }
 
 /** Web-only CSS transition mixin for smooth press/hover feedback */
@@ -85,6 +90,9 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
   setIsOverrideMarginAcknowledged,
   lastInteractionLog,
   onDuplicateLastOrder,
+  projects,
+  selectedProjectId,
+  setSelectedProjectId,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
@@ -154,6 +162,21 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
   return (
     <Box mb="m">
       {onDuplicateLastOrder && <DuplicateOrderCTA />}
+
+      {projects && projects.length > 0 && setSelectedProjectId && (
+        <Box mb="m">
+          <DropdownSelector
+            label={t('projectAllocationBulkContract') || 'Project Allocation'}
+            placeholder="Select project contract..."
+            selectedValue={selectedProjectId || ''}
+            onValueChange={(val) => setSelectedProjectId(val ? val : null)}
+            options={[
+              { label: 'None (Regular Sale)', value: '' },
+              ...projects.map((p) => ({ label: p.name, value: p.id })),
+            ]}
+          />
+        </Box>
+      )}
 
       <Text variant="body" fontWeight="bold" mb="s">
         {t('selectedQuantities')}
@@ -356,36 +379,16 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                   justifyContent="space-between"
                 >
                   <Box flex={1} mr="s">
-                    <Text variant="caption" color="secondaryText" mb="xs">
-                      {t('negotiatedPrice')} ({selectedCurrency})
-                    </Text>
-                    <ThemedTextInput
-                      bg="cardBackground"
-                      p="s"
-                      borderRadius="s"
-                      borderWidth={priceFocused || isBelowFloor ? 2 : 1}
-                      borderColor={
-                        isBelowFloor
-                          ? 'danger'
-                          : priceFocused
-                            ? 'success'
-                            : 'borderColor'
-                      }
-                      keyboardType="numeric"
+                    <TextField
+                      name="base_price_kyats"
+                      label={`${t('negotiatedPrice')} (${selectedCurrency})`}
                       value={si.unitPrice.toString()}
                       onChangeText={(val) => updateUnitPrice(si.item.id, val)}
-                      onFocus={() => setFocusedPriceId(si.item.id)}
-                      onBlur={() => setFocusedPriceId(null)}
+                      isBelowFloor={isBelowFloor}
+                      keyboardType="numeric"
                       style={{
-                        color: theme.colors.primaryText,
                         fontWeight: 'bold',
-                        fontFamily: 'monospace',
                         fontSize: 14,
-                        ...(Platform.OS === 'web'
-                          ? ({
-                              outlineStyle: 'none',
-                            } as any)
-                          : {}),
                       }}
                     />
                     {isBelowFloor && (

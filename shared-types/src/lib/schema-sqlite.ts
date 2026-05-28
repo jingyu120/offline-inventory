@@ -394,3 +394,14 @@ export const draft_carts = sqliteTable('draft_carts', {
   items_json: text('items_json').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
+
+export const telemetry_logs = sqliteTable('telemetry_logs', {
+  id: text('id').primaryKey(),
+  level: text('level').notNull(),
+  event_type: text('event_type').notNull(),
+  message: text('message').notNull(),
+  timestamp: integer('timestamp').notNull(),
+  synced_at_server: integer('synced_at_server'),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});

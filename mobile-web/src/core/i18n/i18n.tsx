@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { translations } from './translations';
+import { translations } from '../../utils/translations';
 
 export type Language = 'en' | 'my';
 
@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<Language>('my');
 
   // Load language preference from local storage if available in web
   useEffect(() => {
@@ -24,9 +24,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       const saved = localStorage.getItem('app_lang');
       if (saved === 'en' || saved === 'my') {
         setLanguageState(saved as Language);
+      } else {
+        setLanguageState('my');
       }
     } catch (_) {
-      // Ignore for native platforms
+      setLanguageState('my');
     }
   }, []);
 

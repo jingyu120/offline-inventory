@@ -30,6 +30,7 @@ import { Theme } from '@burma-inventory/ui-components';
 import { checkDiscrepancy } from '../../../core/utils/ocr';
 import { getItemPrice as getPriceHelper } from '../../../core/utils/pricing';
 import { COMMERCIAL_STATUSES, CURRENCIES } from '../../../config/appConfig';
+import { TelemetryLogger } from '../../../core/utils/telemetry';
 
 // Import subcomponents
 import { ViberIntegration } from '../../viber/components/ViberIntegration';
@@ -149,6 +150,19 @@ export function InteractionLoggingScreen({
           const ocrText = data.extractedText || '';
           const isMismatched = checkDiscrepancy(ocrText, selectedItems);
           setHasDiscrepancy(isMismatched);
+          if (isMismatched) {
+            TelemetryLogger.logEvent(
+              'vision_mismatch',
+              `Vision model mismatch: Extracted OCR text "${ocrText}" does not align with selected items: ${JSON.stringify(
+                selectedItems.map((si) => ({
+                  name: si.item.name,
+                  sku: si.item.sku,
+                  qty: si.quantity,
+                  unit: si.selectedUnit,
+                })),
+              )}`,
+            ).catch(console.error);
+          }
         }
       } catch (err) {
         console.error('Failed to verify screenshot OCR:', err);
@@ -453,7 +467,7 @@ export function InteractionLoggingScreen({
     if (hasBelowFloor && !isOverrideMarginAcknowledged) {
       Alert.alert(
         t('validationError') || 'Validation Error',
-        'Please check the Acknowledge Override Margin safety box before saving.',
+        'Please check the Confirm Overridden Margin safety box before saving.',
       );
       return;
     }
@@ -718,30 +732,6 @@ export function InteractionLoggingScreen({
                 })}
               </Box>
 
-              <Text variant="title" mb="s">
-                {t('projectAllocationBulkContract')}
-              </Text>
-              <Box flexDirection="row" flexWrap="wrap" mb="m">
-                <Box mr="s" mb="s">
-                  <Button
-                    title="None"
-                    variant={selectedProjectId === null ? 'primary' : 'outline'}
-                    onPress={() => setSelectedProjectId(null)}
-                  />
-                </Box>
-                {projects.map((proj) => (
-                  <Box key={proj.id} mr="s" mb="s">
-                    <Button
-                      title={proj.name}
-                      variant={
-                        selectedProjectId === proj.id ? 'primary' : 'outline'
-                      }
-                      onPress={() => setSelectedProjectId(proj.id)}
-                    />
-                  </Box>
-                ))}
-              </Box>
-
               <AvailableItemsSelector
                 skuSearch={skuSearch}
                 setSkuSearch={setSkuSearch}
@@ -767,6 +757,9 @@ export function InteractionLoggingScreen({
                 }
                 lastInteractionLog={lastInteractionLog}
                 onDuplicateLastOrder={handleDuplicateLastOrder}
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                setSelectedProjectId={setSelectedProjectId}
               />
 
               <Box height={40} />

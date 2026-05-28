@@ -23,6 +23,7 @@ import { useWindowDimensions, Platform, Alert } from 'react-native';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
 import { ImageUploadQueue } from '../features/sync/ImageUploadQueue';
+import { registerBackgroundSyncAsync } from '../features/sync/backgroundTasks';
 import { AuthProvider, useAuth } from '../core/auth/auth';
 import { NavBar, ROLE_SCREENS } from '../core/components/NavBar';
 import { BottomTabBar } from '../core/components/BottomTabBar';
@@ -30,6 +31,7 @@ import { SyncStatusBar } from '../features/sync/components/SyncStatusBar';
 import { ErrorBoundary } from 'react-error-boundary';
 import { ErrorBoundaryFallback } from '../core/components/ErrorBoundaryFallback';
 import { DatabaseInitializer } from '../core/database/DatabaseInitializer';
+import { TelemetryLogger } from '../core/utils/telemetry';
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
@@ -45,9 +47,45 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const [pendingChanges, setPendingChanges] = useState(0);
 
   React.useEffect(() => {
+    // 0. Setup global error telemetry logging
+    let webErrorHandler: any;
+    let webPromiseHandler: any;
+
+    if (Platform.OS !== 'web') {
+      const globalHandler = ErrorUtils.getGlobalHandler();
+      ErrorUtils.setGlobalHandler((error: any, isFatal: any) => {
+        TelemetryLogger.logEvent(
+          'thread_panic',
+          `Fatal: ${isFatal} | Error: ${error?.message || String(error)} | Stack: ${error?.stack || ''}`,
+        ).catch((err) => console.error('[Telemetry] Failed to log:', err));
+        globalHandler(error, isFatal);
+      });
+    } else {
+      webErrorHandler = (event: ErrorEvent) => {
+        TelemetryLogger.logEvent(
+          'thread_panic',
+          `Web Error: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`,
+        ).catch((err) => console.error('[Telemetry] Failed to log:', err));
+      };
+      window.addEventListener('error', webErrorHandler);
+
+      webPromiseHandler = (event: PromiseRejectionEvent) => {
+        TelemetryLogger.logEvent(
+          'thread_panic',
+          `Unhandled Rejection: ${event.reason?.message || String(event.reason)}`,
+        ).catch((err) => console.error('[Telemetry] Failed to log:', err));
+      };
+      window.addEventListener('unhandledrejection', webPromiseHandler);
+    }
+
     // 1. Process pending image uploads from background queue on startup
     ImageUploadQueue.processQueue().catch((err) => {
       console.error('[App] Background upload queue error:', err);
+    });
+
+    // Register background sync task
+    registerBackgroundSyncAsync().catch((err) => {
+      console.error('[App] Background sync registration error:', err);
     });
 
     // 2. Perform Hardware Profile & Location Checks
@@ -83,6 +121,15 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
     };
 
     runProfileChecks();
+
+    return () => {
+      if (Platform.OS === 'web') {
+        if (webErrorHandler)
+          window.removeEventListener('error', webErrorHandler);
+        if (webPromiseHandler)
+          window.removeEventListener('unhandledrejection', webPromiseHandler);
+      }
+    };
   }, [isDesktop]);
 
   const refreshPendingCount = React.useCallback(async () => {
@@ -130,6 +177,15 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
       setCurrentScreen(allowed[0]);
     }
   }, [activeRep, currentScreen]);
+
+  const { language, setLanguage } = useTranslation();
+  React.useEffect(() => {
+    if (currentScreen !== 'heatmap' && currentScreen !== 'leadership') {
+      if (language !== 'my') {
+        setLanguage('my');
+      }
+    }
+  }, [currentScreen, language, setLanguage]);
 
   return (
     <SafeAreaView

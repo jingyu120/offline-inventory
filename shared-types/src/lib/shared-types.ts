@@ -485,6 +485,17 @@ export const ProjectRecordSchema = z.object({
   updated_at: z.number(),
 });
 
+export const TelemetryLogRecordSchema = z.object({
+  id: z.string(),
+  level: z.string(),
+  event_type: z.string(),
+  message: z.string(),
+  timestamp: z.number(),
+  synced_at_server: z.number().nullable().optional(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
 export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   regions: RegionRecordSchema,
   shops: ShopRecordSchema,
@@ -507,6 +518,7 @@ export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   stock_locations: StockLocationRecordSchema,
   stock_balances: StockBalanceRecordSchema,
   projects: ProjectRecordSchema,
+  telemetry_logs: TelemetryLogRecordSchema,
 };
 
 export const WatermelonChangeSetSchema = <T extends z.ZodTypeAny>(
@@ -544,6 +556,7 @@ export const PushChangesBodySchema = z.object({
       stock_locations: WatermelonChangeSetSchema(StockLocationRecordSchema),
       stock_balances: WatermelonChangeSetSchema(StockBalanceRecordSchema),
       projects: WatermelonChangeSetSchema(ProjectRecordSchema),
+      telemetry_logs: WatermelonChangeSetSchema(TelemetryLogRecordSchema),
     })
     .partial(),
 });
@@ -583,7 +596,9 @@ export type SyncTableName =
   | 'points_logs'
   | 'brands'
   | 'stock_locations'
-  | 'stock_balances';
+  | 'stock_balances'
+  | 'projects'
+  | 'telemetry_logs';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -825,4 +840,15 @@ export interface PointsLog {
   pointsAdded: number;
   reason: string;
   createdAt: number;
+}
+
+export interface TelemetryLog {
+  id: string;
+  level: string;
+  eventType: string;
+  message: string;
+  timestamp: number;
+  syncedAtServer?: number | null;
+  createdAt: number;
+  updatedAt: number;
 }

@@ -55,3 +55,14 @@ Autonomous structural modifications to schemas (`shared-types/src/lib/schema.ts`
 
 - **Dynamic Margin Safeguard:** If an editable pricing box receives a negotiated rate dropping >15% below the shop's wholesale category price book, transition the `<Box>` border to the semantic `danger` color token and lock submission behind a mandatory "Confirm Overridden Margin" safety checkbox.
 - **Thread Guard Utilities:** All background data parsing streams, AI model connections, and massive SQLite transactional query executions must be wrapped tightly within the `guardAsync` utility to prevent main-thread UI lockups and silent crashes.
+
+---
+
+## 🔒 6. Asynchronous Queueing, Idempotency & Mobile Sync Guardrails
+
+To prevent data corruption over highly unstable networks and protect the mobile main thread, the AI must enforce the following strict patterns:
+
+- **Idempotent Transaction Isolation:** All outward data synchronization writes from the mobile device to the backend must embed a unique, non-volatile `x-idempotency-key` (UUIDv4) attached to the network header payload. The AI must never generate this key dynamically inline; it must be committed to the local SQLite draft record prior to dispatch to survive app process crashes or forced OS terminations.
+- **Deterministic Column-Level Merging (LWW):** Row-level data overwrites are strictly banned during network synchronization reconciliation layers. The sync engine must dynamically evaluate updates via Column-Level "Last-Write-Wins" (LWW). Every editable column attribute must carry an isolated metadata modification timestamp to ensure independent field updates merge atomically without triggering blocking sync conflict modals.
+- **Async Task Offloading Constraint:** The NestJS API gateway must never compute heavy analytical parsing or execute local Ollama vision routines within the synchronous request-response execution pipeline. All image uploads, Viber screenshots, and text extractions must immediately return an HTTP `202 Accepted` status along with a tracking hash, offloading execution entirely to an abstract, reliable, background task engine (BullMQ).
+- **Volatile Thread Prevention:** Standard native background interval polling timers (`setInterval`, `setTimeout`) are completely forbidden for executing remote data fetches or synchronizing queues inside view components. All mobile background executions must strictly delegate to structural, native OS hooks managed via the globally registered task execution runner interface.

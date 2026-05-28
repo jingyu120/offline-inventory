@@ -292,7 +292,7 @@ export const translations = {
     noItemsInBasketError:
       'No items in the order basket. Please parse some text first.',
     checkOverrideMarginError:
-      'Please check the Acknowledge Override Margin safety box before submitting.',
+      'Please check the Confirm Overridden Margin safety box before submitting.',
     orderDuplication: 'Order Duplication',
     duplicateLastOrder: 'Duplicate Last Order',
     noPriorTransactions: 'No Prior Transactions Found',
@@ -301,8 +301,8 @@ export const translations = {
     condition: 'Condition',
     negotiatedPrice: 'Negotiated Price',
     belowWholesaleFloorWarning: 'Below wholesale floor (–15%)',
-    acknowledgeOverrideMargin:
-      'Acknowledge Override Margin (Below Wholesale Floor)',
+    acknowledgeOverrideMargin: 'Confirm Overridden Margin',
+
     permissionRequired: 'Permission required',
     cameraRollPermissionDesc:
       'Need camera roll permissions to upload screenshot.',

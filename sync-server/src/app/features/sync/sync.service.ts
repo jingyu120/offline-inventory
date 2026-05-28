@@ -183,6 +183,13 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     toRecord: (p) => p,
     toDrizzle: (p) => p,
   },
+  telemetry_logs: {
+    delegate: 'telemetry_logs',
+    softDelete: false,
+    hasTimestamps: false,
+    toRecord: (l) => l,
+    toDrizzle: (l) => l,
+  },
 };
 
 @Injectable()
@@ -698,5 +705,37 @@ export class SyncService {
     }
 
     return { importedCount, warnings };
+  }
+
+  async checkIdempotency(key: string): Promise<any | null> {
+    const records = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.idempotency_keys)
+      .where(eq(schema.pgSchema.idempotency_keys.key, key))
+      .limit(1);
+
+    if (records.length > 0) {
+      try {
+        return JSON.parse(records[0].response_body);
+      } catch {
+        return { success: true };
+      }
+    }
+    return null;
+  }
+
+  async saveIdempotency(key: string, response: any): Promise<void> {
+    try {
+      await this.drizzle.db
+        .insert(schema.pgSchema.idempotency_keys)
+        .values({
+          key,
+          response_body: JSON.stringify(response),
+          created_at: Date.now(),
+        })
+        .onConflictDoNothing();
+    } catch (err) {
+      Logger.error(`Failed to save idempotency key ${key}:`, err);
+    }
   }
 }

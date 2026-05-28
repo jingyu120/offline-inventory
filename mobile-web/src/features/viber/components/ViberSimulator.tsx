@@ -52,6 +52,10 @@ export function ViberSimulator() {
   const [isOverrideMarginAcknowledged, setIsOverrideMarginAcknowledged] =
     useState(false);
   const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
 
   // Shop selection dropdown states
   const [shopSearch, setShopSearch] = useState('');
@@ -81,6 +85,9 @@ export function ViberSimulator() {
 
       const rates = await database.select().from(sqliteSchema.exchange_rates);
       setExchangeRates(rates);
+
+      const projs = await database.select().from(sqliteSchema.projects);
+      setProjects(projs);
     } catch (e) {
       console.error('Failed to load data for order drafter:', e);
     }
@@ -528,6 +535,7 @@ export function ViberSimulator() {
         `Back-Office Intake Canvas raw text:\n${rawText}`,
         null,
         validatedItems,
+        selectedProjectId,
       );
 
       Alert.alert(t('success'), t('orderDraftedSuccess'));
@@ -901,6 +909,9 @@ export function ViberSimulator() {
                 }
                 lastInteractionLog={lastInteractionLog}
                 onDuplicateLastOrder={handleDuplicateLastOrder}
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                setSelectedProjectId={setSelectedProjectId}
               />
 
               <Box

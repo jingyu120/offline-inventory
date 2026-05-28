@@ -9,11 +9,13 @@ import {
   Param,
   Res,
   HttpStatus,
+  Headers,
+  HttpCode,
 } from '@nestjs/common';
 import { SyncService } from './sync.service';
 import { PushChangesPayloadSchema } from '@burma-inventory/shared-types';
 import type { PushChangesBody } from '@burma-inventory/shared-types';
-import { AiService } from '../ai/ai.service';
+import { AiQueueService } from '../../core/queue/ai-queue.service';
 import { ZodValidationPipe } from '../../core/pipes/zod-validation.pipe';
 import { AppConfig } from '../../core/config/app-config';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -44,7 +46,7 @@ const storage = multer.diskStorage({
 export class SyncController {
   constructor(
     private readonly syncService: SyncService,
-    private readonly aiService: AiService,
+    private readonly aiQueueService: AiQueueService,
     private readonly config: AppConfig,
   ) {}
 
@@ -60,18 +62,34 @@ export class SyncController {
 
   @Post()
   async pushChanges(
+    @Headers('x-idempotency-key') idempotencyKey: string | undefined,
     @Body(new ZodValidationPipe(PushChangesPayloadSchema))
     body: PushChangesBody & { device_id?: string; user_id?: string },
   ) {
     if (!body.changes) {
       return { success: false, error: 'No changes provided' };
     }
+
+    if (idempotencyKey) {
+      const cached = await this.syncService.checkIdempotency(idempotencyKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const response = { success: true };
+
     await this.syncService.pushChanges(
       body.changes,
       body.device_id,
       body.user_id,
     );
-    return { success: true };
+
+    if (idempotencyKey) {
+      await this.syncService.saveIdempotency(idempotencyKey, response);
+    }
+
+    return response;
   }
 
   @Post('import-odoo')
@@ -90,6 +108,7 @@ export class SyncController {
   }
 
   @Post('upload')
+  @HttpCode(HttpStatus.ACCEPTED)
   @UseInterceptors(FileInterceptor('file', { storage }))
   async uploadFile(
     @UploadedFile() file: any,
@@ -107,13 +126,9 @@ export class SyncController {
       file.filename,
     );
 
-    // Trigger local asynchronous multimodal screenshot auditing
+    // Trigger local asynchronous multimodal screenshot auditing via BullMQ
     const fullPath = join(process.cwd(), this.config.uploadsDir, file.filename);
-    this.aiService
-      .processScreenshot(interactionLogId, fullPath)
-      .catch((err) => {
-        console.error('[SyncController] processScreenshot error:', err);
-      });
+    await this.aiQueueService.addScreenshotJob(interactionLogId, fullPath);
 
     return { success: true, viberScreenshotUrl: url };
   }

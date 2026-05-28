@@ -4,6 +4,8 @@ import { sqliteSchema, RECORD_SCHEMAS } from '@burma-inventory/shared-types';
 import axios from 'axios';
 import { SYNC_API_URL } from '../../config/appConfig';
 import { eq, inArray, isNull, gt, sql } from 'drizzle-orm';
+import { TelemetryLogger } from '../../core/utils/telemetry';
+
 import {
   getLastSyncedAt,
   saveLastSyncedAt,
@@ -90,8 +92,12 @@ export async function syncData(): Promise<void> {
         user_id: userId || undefined,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[SyncEngine] Pull failed:', error);
+    await TelemetryLogger.logEvent(
+      'sync_drop',
+      `Sync Pull failed: ${error?.message || String(error)}`,
+    );
     return;
   }
 
@@ -131,6 +137,11 @@ export async function syncData(): Promise<void> {
     .from(sqliteSchema.daily_quotas)
     .where(gt(sqliteSchema.daily_quotas.created_at, lastSyncedAt));
 
+  const unsyncedTelemetry = await database
+    .select()
+    .from(sqliteSchema.telemetry_logs)
+    .where(isNull(sqliteSchema.telemetry_logs.synced_at_server));
+
   const pushChanges: any = {};
   if (unsyncedLogs.length > 0) {
     pushChanges.interaction_logs = {
@@ -160,15 +171,31 @@ export async function syncData(): Promise<void> {
       deleted: [],
     };
   }
+  if (unsyncedTelemetry.length > 0) {
+    pushChanges.telemetry_logs = {
+      created: unsyncedTelemetry,
+      updated: [],
+      deleted: [],
+    };
+  }
 
   if (Object.keys(pushChanges).length > 0) {
     console.log('[SyncEngine] Pushing changes to server...');
     try {
-      await axios.post(`${SYNC_API_URL}`, {
-        changes: pushChanges,
-        device_id: devId,
-        user_id: userId || undefined,
-      });
+      const idempotencyKey = generateUUIDv4();
+      await axios.post(
+        `${SYNC_API_URL}`,
+        {
+          changes: pushChanges,
+          device_id: devId,
+          user_id: userId || undefined,
+        },
+        {
+          headers: {
+            'x-idempotency-key': idempotencyKey,
+          },
+        },
+      );
       console.log('[SyncEngine] Push successful.');
 
       // Mark local logs as synced
@@ -183,8 +210,25 @@ export async function syncData(): Promise<void> {
             .where(inArray(sqliteSchema.interaction_logs.id, chunkIds));
         }
       }
-    } catch (error) {
+
+      // Mark local telemetry as synced
+      if (unsyncedTelemetry.length > 0) {
+        const telemetryIds = unsyncedTelemetry.map((t: any) => t.id);
+        const chunk = SYNC_CONFIG.dbChunkSize;
+        for (let i = 0; i < telemetryIds.length; i += chunk) {
+          const chunkIds = telemetryIds.slice(i, i + chunk);
+          await database
+            .update(sqliteSchema.telemetry_logs)
+            .set({ synced_at_server: Date.now() })
+            .where(inArray(sqliteSchema.telemetry_logs.id, chunkIds));
+        }
+      }
+    } catch (error: any) {
       console.error('[SyncEngine] Push failed:', error);
+      await TelemetryLogger.logEvent(
+        'sync_drop',
+        `Sync Push failed: ${error?.message || String(error)}`,
+      );
       return;
     }
   } else {
@@ -198,4 +242,12 @@ export async function syncData(): Promise<void> {
   await runDatabaseCompaction();
 
   console.log('[SyncEngine] Sync cycle complete.');
+}
+
+function generateUUIDv4(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }

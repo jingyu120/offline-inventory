@@ -8,6 +8,7 @@ export interface TextFieldProps extends TextInputProps {
   label?: string;
   error?: string;
   name?: string;
+  isBelowFloor?: boolean;
 }
 
 export function TextField({
@@ -17,6 +18,7 @@ export function TextField({
   style,
   onFocus,
   onBlur,
+  isBelowFloor,
   ...rest
 }: TextFieldProps) {
   const theme = useTheme<Theme>();
@@ -58,9 +60,12 @@ export function TextField({
             borderWidth: 1,
             borderColor: error
               ? theme.colors.errorText
-              : isFocused
-                ? theme.colors.primaryButton
-                : theme.colors.borderColor,
+              : isBelowFloor
+                ? theme.colors.danger
+                : isFocused
+                  ? theme.colors.primaryButton
+                  : theme.colors.borderColor,
+
             color: theme.colors.primaryText,
             outlineWidth: 0, // Avoid default thick outline on web browser focus
             fontFamily: isNumeric ? 'monospace' : undefined,

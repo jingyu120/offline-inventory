@@ -334,6 +334,16 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         items_json TEXT NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS telemetry_logs (
+        id TEXT PRIMARY KEY NOT NULL,
+        level TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        synced_at_server INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Migration helper: Add columns if they do not exist in existing database schemas

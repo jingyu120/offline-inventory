@@ -1,9 +1,20 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { AiService } from './ai.service';
+import { AiQueueService } from '../../core/queue/ai-queue.service';
 
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly aiQueueService: AiQueueService,
+  ) {}
 
   @Post('parse-note')
   async parseNote(@Body() body: { note: string }) {
@@ -21,10 +32,12 @@ export class AiController {
   }
 
   @Post('eod-digest')
-  async eodDigest(@Body() body: { date?: string }) {
+  @HttpCode(HttpStatus.ACCEPTED)
+  async eodDigest(@Body() body?: { date?: string }) {
     // Default to today if date is not specified
-    const dateStr = body.date || new Date().toISOString().split('T')[0];
-    return this.aiService.generateEodDigest(dateStr);
+    const dateStr = body?.date || new Date().toISOString().split('T')[0];
+    await this.aiQueueService.addEodJob(dateStr);
+    return { success: true, message: 'EOD digest compiling queued' };
   }
 
   @Post('ocr-invoice')

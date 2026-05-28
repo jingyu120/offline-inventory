@@ -7,6 +7,7 @@ import {
   bigint,
   index,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 export const regions = pgTable(
   'regions',
@@ -415,3 +416,34 @@ export const sync_audit_logs = pgTable('sync_audit_logs', {
   error_message: text('error_message'),
   created_at: bigint('created_at', { mode: 'number' }).notNull(),
 });
+
+export const idempotency_keys = pgTable('idempotency_keys', {
+  key: text('key').primaryKey(),
+  response_body: text('response_body').notNull(),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+});
+
+export const telemetry_logs = pgTable('telemetry_logs', {
+  id: text('id').primaryKey(),
+  level: text('level').notNull(),
+  event_type: text('event_type').notNull(),
+  message: text('message').notNull(),
+  timestamp: bigint('timestamp', { mode: 'number' }).notNull(),
+  synced_at_server: bigint('synced_at_server', { mode: 'number' }),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+  updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+});
+
+export const projectsRelations = relations(projects, ({ many }) => ({
+  orders: many(interaction_logs),
+}));
+
+export const interactionLogsRelations = relations(
+  interaction_logs,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [interaction_logs.project_id],
+      references: [projects.id],
+    }),
+  }),
+);
