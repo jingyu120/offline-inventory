@@ -135,6 +135,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
     preCacheOfflineMap,
     regions,
     items,
+    showRouteLine,
+    setShowRouteLine,
+    availableReps,
   } = useGeographicHeatmapData();
 
   const sheetMaxHeight = isDesktop ? 500 : Math.min(height * 0.6, 440);
@@ -371,9 +374,10 @@ export const GeographicHeatmapScreen: React.FC = () => {
     mapInstance.on('zoomend', handleMapChange);
     mapInstance.on('moveend', handleMapChange);
 
-    // Solve TSP & draw optimal visit path
+    // Solve TSP & draw optimal visit path — only when a specific region is
+    // selected AND the user has toggled the route line on
     const validShops = filteredShops.filter((s) => s.latitude && s.longitude);
-    if (validShops.length > 1) {
+    if (showRouteLine && selectedRegion && validShops.length > 1) {
       const tspPath = solveTSP(validShops);
       const polylineCoords = tspPath.map((s) => [s.latitude!, s.longitude!]);
       const polyline = L.polyline(polylineCoords, {
@@ -403,7 +407,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
         routePolylineRef.current = null;
       }
     };
-  }, [filteredShops, leafletLoaded, mapInstance, t]);
+  }, [filteredShops, leafletLoaded, mapInstance, t, showRouteLine, selectedRegion]);
 
   if (loading) {
     return (
@@ -449,6 +453,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
           cacheProgress={cacheProgress}
           cacheTotal={cacheTotal}
           preCacheOfflineMap={preCacheOfflineMap}
+          showRouteLine={showRouteLine}
+          setShowRouteLine={setShowRouteLine}
+          availableReps={availableReps}
         />
 
         {/* Map + Side Panel Split View */}
@@ -590,6 +597,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
             cacheProgress={cacheProgress}
             cacheTotal={cacheTotal}
             preCacheOfflineMap={preCacheOfflineMap}
+            showRouteLine={showRouteLine}
+            setShowRouteLine={setShowRouteLine}
+            availableReps={availableReps}
           />
         </Box>
       )}

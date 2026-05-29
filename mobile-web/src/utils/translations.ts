@@ -382,6 +382,9 @@ export const translations = {
     township: 'Township',
     ward: 'Ward / Village Tract',
     updateTerritory: 'Update Territory',
+    showRouteLine: 'Route Line',
+    selectRegionFirst: 'Select a region first',
+    optimalVisitOrder: 'Optimal visit order',
   },
   my: {
     title: 'မြန်မာ ကုန်ပစ္စည်း စာရင်း',
@@ -787,5 +790,8 @@ export const translations = {
     township: 'မြို့နယ်',
     ward: 'ရပ်ကွက်/ကျေးရွာအုပ်စု',
     updateTerritory: 'နယ်မြေ ပြင်ဆင်ရန်',
+    showRouteLine: 'လမ်းကြောင်းမျဉ်း',
+    selectRegionFirst: 'ဦးစွာ ဒေသ ရွေးချယ်ပါ',
+    optimalVisitOrder: 'အကောင်းဆုံး သွားရောက်မှုအစီအစဉ်',
   },
 };

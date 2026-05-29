@@ -54,6 +54,9 @@ export const useGeographicHeatmapData = () => {
   const [selectedSku, setSelectedSku] = useState('');
   const [neglectedOnly, setNeglectedOnly] = useState(false);
 
+  // Route line visibility — only meaningful when a specific region is selected
+  const [showRouteLine, setShowRouteLine] = useState(false);
+
   // Selected Shop Panel States
   const [selectedShop, setSelectedShop] = useState<ProcessedShop | null>(null);
   const [shopContacts, setShopContacts] = useState<Contact[]>([]);
@@ -298,6 +301,12 @@ export const useGeographicHeatmapData = () => {
     neglectedOnly,
   ]);
 
+  // Derive available reps from actual shop data so the dropdown reflects reality
+  const availableReps = useMemo(() => {
+    const repIds = new Set(shops.map((s) => s.assignedRepId).filter(Boolean));
+    return Array.from(repIds) as string[];
+  }, [shops]);
+
   return {
     loading,
     shops,
@@ -324,6 +333,9 @@ export const useGeographicHeatmapData = () => {
     cacheProgress,
     cacheTotal,
     preCacheOfflineMap,
+    showRouteLine,
+    setShowRouteLine,
+    availableReps,
   };
 };
 export type UseGeographicHeatmapDataReturn = ReturnType<
