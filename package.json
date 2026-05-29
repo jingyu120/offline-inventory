@@ -13,9 +13,9 @@
     "sync-server"
   ],
   "scripts": {
-    "init": "./scripts/init.sh",
-    "setup": "npm install --no-audit",
-    "clean-setup": "./scripts/clean-setup.sh",
+    "init": "./scripts/setup.sh",
+    "setup": "./scripts/setup.sh",
+    "clean-setup": "./scripts/setup.sh --reset",
     "db:wipe": "./scripts/db.sh wipe",
     "db:push": "./scripts/db.sh push",
     "db:generate": "./scripts/db.sh generate",

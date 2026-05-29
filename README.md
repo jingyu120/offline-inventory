@@ -37,18 +37,18 @@ Refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.
 
 ### First-Time Setup (after `git clone`)
 
-Run the one-shot init script. It is **non-destructive** — it skips steps that are already complete (e.g. existing `node_modules` or a running DB):
+Run the one-shot setup script. It is **non-destructive** by default — it skips steps that are already complete (e.g. existing `node_modules` or a running DB) and automatically detects whether you use **Docker** or **Podman**:
 
 ```bash
-npm run init
+npm run setup
 ```
 
 This single command will:
 
-1. Verify Node.js ≥ 22 and Docker are available
-2. `npm install` root + `mobile-web` dependencies
-3. Start the Docker PostgreSQL container (if not already running)
-4. Wait for the DB to be ready and push the Drizzle schema
+1. Verify Node.js ≥ 22 and a container engine (Docker or Podman) are available
+2. `npm install` root + workspace dependencies cleanly
+3. Start the PostgreSQL and Redis containers (if not already running)
+4. Wait for the DB to be ready and push the Drizzle schema and seed master dataset
 5. Run the initial `sync-server` build so `dist/` exists
 
 Then simply start developing:
@@ -67,7 +67,7 @@ npm run dev
 | `npm run db:push`     | Push Drizzle schema to the running DB                       |
 | `npm run db:reset`    | Wipe + re-push schema (preserves Docker volume)             |
 | `npm run check`       | Typecheck + lint + test + format-check                      |
-| `npm run clean-setup` | **Destructive** full reset — wipes DB volume & node_modules |
+| `npm run clean-setup` | **Destructive** full reset — wipes container volumes, databases, & node_modules |
 
 ### Code Validation
 
