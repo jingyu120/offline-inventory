@@ -29,6 +29,8 @@ export const shops = sqliteTable(
     latitude: real('latitude'),
     longitude: real('longitude'),
     region_id: text('region_id').notNull(),
+    township_id: text('township_id'),
+    ward_id: text('ward_id'),
     assigned_rep_id: text('assigned_rep_id'),
     lifetime_value: real('lifetime_value').notNull().default(0),
     sentiment_trend: text('sentiment_trend').notNull().default('STABLE'),
@@ -447,3 +449,50 @@ export const competitor_insights = sqliteTable('competitor_insights', {
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
+
+export const pending_inventory_updates = sqliteTable(
+  'pending_inventory_updates',
+  {
+    id: text('id').primaryKey(),
+    type: text('type').notNull(), // 'STOCK_ADJUSTMENT' or 'NEW_SKU'
+    item_id: text('item_id'), // null for new SKU
+    location_id: text('location_id').notNull(),
+    quantity_delta: integer('quantity_delta'), // delta for adjustment, or initial stock for new SKU
+    sku: text('sku'),
+    name: text('name'),
+    unit_price: real('unit_price'),
+    category: text('category'),
+    submitted_by: text('submitted_by').notNull(),
+    status: text('status').notNull().default('PENDING'), // 'PENDING', 'APPROVED', 'REJECTED'
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+);
+
+export const townships = sqliteTable(
+  'townships',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    region_id: text('region_id').notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    regionIdIdx: index('townships_region_id_idx').on(table.region_id),
+  }),
+);
+
+export const wards = sqliteTable(
+  'wards',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    township_id: text('township_id').notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    townshipIdIdx: index('wards_township_id_idx').on(table.township_id),
+  }),
+);

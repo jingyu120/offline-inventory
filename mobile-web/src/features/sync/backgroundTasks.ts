@@ -4,11 +4,19 @@ import { Platform } from 'react-native';
 import { ImageUploadQueue } from './ImageUploadQueue';
 import { syncData } from './sync';
 
+import { ThermalGuard } from '../../core/utils/thermalGuard';
+
 const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
 if (Platform.OS !== 'web') {
   TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
     console.log('[BackgroundFetch] Running background sync task...');
+    if (ThermalGuard.getThermalState() === 'CRITICAL') {
+      console.log(
+        '[BackgroundFetch] Thermal state is CRITICAL. Aborting background sync.',
+      );
+      return BackgroundFetch.BackgroundFetchResult.Failed;
+    }
     try {
       // 1. Perform SQLite sync deltas push/pull (lightweight JSON text payloads first)
       await syncData();

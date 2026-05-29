@@ -18,6 +18,7 @@ const SINGLETON_PACKAGES = [
   'react-dom',
   'react-native',
   'react-native-web',
+  'drizzle-orm',
 ];
 
 // Native-only packages that must NEVER be bundled on web. They import the

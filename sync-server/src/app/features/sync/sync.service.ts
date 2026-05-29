@@ -211,6 +211,27 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     toRecord: (c) => c,
     toDrizzle: (c) => c,
   },
+  pending_inventory_updates: {
+    delegate: 'pending_inventory_updates',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (u) => u,
+    toDrizzle: (u) => u,
+  },
+  townships: {
+    delegate: 'townships',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (t) => t,
+    toDrizzle: (t) => t,
+  },
+  wards: {
+    delegate: 'wards',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (w) => w,
+    toDrizzle: (w) => w,
+  },
 };
 
 @Injectable()
@@ -667,7 +688,9 @@ export class SyncService {
   }
 
   async getSyncLogs(lastSeenId?: string, limit = 20) {
-    let query = this.drizzle.db.select().from(schema.pgSchema.sync_audit_logs);
+    let query = this.drizzle.readDb
+      .select()
+      .from(schema.pgSchema.sync_audit_logs);
 
     if (lastSeenId) {
       query = query.where(
@@ -685,7 +708,7 @@ export class SyncService {
 
     let users: any[] = [];
     if (userIds.length > 0) {
-      users = await this.drizzle.db
+      users = await this.drizzle.readDb
         .select({
           id: schema.pgSchema.users.id,
           username: schema.pgSchema.users.username,
@@ -895,7 +918,7 @@ export class SyncService {
   }
 
   async getMismatchLogs() {
-    const logs = await this.drizzle.db
+    const logs = await this.drizzle.readDb
       .select()
       .from(schema.pgSchema.interaction_logs)
       .where(
@@ -905,12 +928,12 @@ export class SyncService {
 
     const result = [];
     for (const log of logs) {
-      const shop = await this.drizzle.db
+      const shop = await this.drizzle.readDb
         .select()
         .from(schema.pgSchema.shops)
         .where(eq(schema.pgSchema.shops.id, log.shop_id))
         .limit(1);
-      const itemsList = await this.drizzle.db
+      const itemsList = await this.drizzle.readDb
         .select()
         .from(schema.pgSchema.interaction_items)
         .where(

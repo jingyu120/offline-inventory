@@ -33,6 +33,8 @@ export const defaultSession: CartSession = {
   hasDiscrepancy: false,
 };
 
+import { StateRecovery, AppRecoveryState } from '../utils/stateRecovery';
+
 interface CartState {
   sessions: Record<string, CartSession>; // keyed by shopId
   getOrCreateSession: (shopId: string) => CartSession;
@@ -43,10 +45,18 @@ interface CartState {
       | ((prev: CartSession) => Partial<CartSession>),
   ) => void;
   clearSession: (shopId: string) => void;
+  recoveryState: AppRecoveryState | null;
+  setRecoveryState: (updates: Partial<AppRecoveryState>) => void;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   sessions: {},
+  recoveryState: StateRecovery.loadState() || {
+    currentScreen: 'ledger',
+    selectedShopId: null,
+    activeRowIndex: null,
+    loggingModalVisible: false,
+  },
 
   getOrCreateSession: (shopId) => {
     const session = get().sessions[shopId];
@@ -75,6 +85,17 @@ export const useCartStore = create<CartState>((set, get) => ({
       const newSessions = { ...state.sessions };
       delete newSessions[shopId];
       return { sessions: newSessions };
+    });
+  },
+
+  setRecoveryState: (updates) => {
+    set((state) => {
+      const newState = {
+        ...(state.recoveryState || {}),
+        ...updates,
+      } as AppRecoveryState;
+      StateRecovery.saveState(newState);
+      return { recoveryState: newState };
     });
   },
 }));

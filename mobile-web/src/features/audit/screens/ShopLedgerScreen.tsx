@@ -20,11 +20,13 @@ import { ShopSidebarList } from '../components/ShopSidebarList';
 import { ShopDetailPane } from '../components/ShopDetailPane';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { InteractionLoggingScreen } from './InteractionLoggingScreen';
+import { RegisterShopModal } from '../components/RegisterShopModal';
 import { Shop, sqliteSchema } from '@burma-inventory/shared-types';
 import { DesignPatternGallery } from '../../../core/components/DesignPatternGallery';
 import { database } from '../../../core/database/database';
 import { eq } from 'drizzle-orm';
 import { mapShop } from '../../../core/data/repositories';
+import { useCartStore } from '../../../core/store/cartStore';
 
 export function ShopLedgerScreen() {
   const { width } = useWindowDimensions();
@@ -43,10 +45,71 @@ export function ShopLedgerScreen() {
     shopLogsWithItems,
     selectShop,
     handleSeedData,
+    loadShops,
   } = useShopsData();
 
   const [loggingModalVisible, setLoggingModalVisible] = useState(false);
   const [loggingShop, setLoggingShop] = useState<Shop | null>(null);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+
+  const handleRegisterSuccess = async (shopId: string) => {
+    await loadShops();
+    const shopDetails = await database
+      .select()
+      .from(sqliteSchema.shops)
+      .where(eq(sqliteSchema.shops.id, shopId));
+    if (shopDetails.length > 0) {
+      const mappedShop = mapShop(shopDetails[0]);
+      await selectShop(mappedShop);
+    }
+  };
+
+  const setRecoveryState = useCartStore((state) => state.setRecoveryState);
+
+  // Hydrate transient state recovery on boot
+  useEffect(() => {
+    let active = true;
+    const restoreRecoveryState = async () => {
+      const recoveryState = useCartStore.getState().recoveryState;
+      if (recoveryState?.selectedShopId) {
+        console.log(
+          '[Recovery] Restoring last selected shop:',
+          recoveryState.selectedShopId,
+        );
+        try {
+          const shopDetails = await database
+            .select()
+            .from(sqliteSchema.shops)
+            .where(eq(sqliteSchema.shops.id, recoveryState.selectedShopId));
+          if (shopDetails.length > 0 && active) {
+            const mappedShop = mapShop(shopDetails[0]);
+            await selectShop(mappedShop);
+            if (recoveryState.loggingModalVisible) {
+              console.log('[Recovery] Restoring logging modal state.');
+              setLoggingShop(mappedShop);
+              setLoggingModalVisible(true);
+            }
+          }
+        } catch (e) {
+          console.error('[Recovery] Failed to restore recovery state:', e);
+        }
+      }
+    };
+    if (!loading && shops.length > 0) {
+      restoreRecoveryState();
+    }
+    return () => {
+      active = false;
+    };
+  }, [loading, shops.length]);
+
+  // Sync selectedShop and loggingModalVisible back to recoveryState
+  useEffect(() => {
+    setRecoveryState({
+      selectedShopId: selectedShop?.id || null,
+      loggingModalVisible: loggingModalVisible,
+    });
+  }, [selectedShop, loggingModalVisible, setRecoveryState]);
 
   const [stats, setStats] = useState({
     shopsCount: shops.length,
@@ -151,6 +214,7 @@ export function ShopLedgerScreen() {
             handleSeedData={handleSeedData}
             isDesktop={isDesktop}
             onLogInteraction={handleLogInteraction}
+            onRegisterPress={() => setRegisterModalVisible(true)}
           />
         </Box>
 
@@ -400,6 +464,7 @@ export function ShopLedgerScreen() {
           handleSeedData={handleSeedData}
           isDesktop={isDesktop}
           onLogInteraction={handleLogInteraction}
+          onRegisterPress={() => setRegisterModalVisible(true)}
         />
       )}
 
@@ -412,6 +477,12 @@ export function ShopLedgerScreen() {
           }
         }}
         shop={loggingShop}
+      />
+
+      <RegisterShopModal
+        visible={registerModalVisible}
+        onClose={() => setRegisterModalVisible(false)}
+        onRegister={handleRegisterSuccess}
       />
     </Box>
   );

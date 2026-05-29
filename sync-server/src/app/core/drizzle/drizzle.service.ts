@@ -13,7 +13,9 @@ import * as bcrypt from 'bcryptjs';
 export class DrizzleService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DrizzleService.name);
   public db!: NodePgDatabase<typeof schema.pgSchema>;
+  public readDb!: NodePgDatabase<typeof schema.pgSchema>;
   private pool!: Pool;
+  private readPool!: Pool;
 
   constructor() {
     const url = process.env['DATABASE_URL'];
@@ -21,16 +23,20 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
 
     this.pool = new Pool({ connectionString: url });
     this.db = drizzle(this.pool, { schema: schema.pgSchema });
+
+    const replicaUrl = process.env['DATABASE_REPLICA_URL'] || url;
+    this.readPool = new Pool({ connectionString: replicaUrl });
+    this.readDb = drizzle(this.readPool, { schema: schema.pgSchema });
   }
 
   async onModuleInit() {
-    this.logger.log('Connected to PostgreSQL via Drizzle');
+    this.logger.log('Connected to PostgreSQL via Drizzle (Read-Write split)');
     await this.seed();
   }
 
   async onModuleDestroy() {
-    await this.pool.end();
-    this.logger.log('Disconnected from PostgreSQL');
+    await Promise.all([this.pool.end(), this.readPool.end()]);
+    this.logger.log('Disconnected from PostgreSQL (Both pools ended)');
   }
 
   private async seed() {
@@ -53,6 +59,89 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
             id: 'region-mandalay',
             name: 'Mandalay Region',
             division: 'Mandalay Division',
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      // 1.5. Seed Townships & Wards
+      await this.db
+        .insert(schema.pgSchema.townships)
+        .values([
+          {
+            id: 'township-kamayut',
+            name: 'Kamayut Township',
+            region_id: 'region-yangon',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'township-lanmadaw',
+            name: 'Lanmadaw Township',
+            region_id: 'region-yangon',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'township-chanayethazan',
+            name: 'Chanayethazan Township',
+            region_id: 'region-mandalay',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'township-maharaundmyay',
+            name: 'Mahar Aung Myay Township',
+            region_id: 'region-mandalay',
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      await this.db
+        .insert(schema.pgSchema.wards)
+        .values([
+          {
+            id: 'ward-hledan',
+            name: 'Hledan Ward',
+            township_id: 'township-kamayut',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'ward-sinmalaik',
+            name: 'Sinmalaik Ward',
+            township_id: 'township-kamayut',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'ward-ward1',
+            name: 'Ward 1',
+            township_id: 'township-lanmadaw',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'ward-ward2',
+            name: 'Ward 2',
+            township_id: 'township-lanmadaw',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'ward-pyigyimyatshin',
+            name: 'Pyi Gyi Myat Shin Ward',
+            township_id: 'township-chanayethazan',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'ward-haymamarlar',
+            name: 'Hayma Marlar Ward',
+            township_id: 'township-maharaundmyay',
             created_at: now,
             updated_at: now,
           },
@@ -364,6 +453,8 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           latitude: 16.7794,
           longitude: 96.1518,
           region_id: 'region-yangon',
+          township_id: 'township-lanmadaw',
+          ward_id: 'ward-ward1',
           price_book_id: 'pb-yangon',
           ltv: 1250000.0,
           trend: 'IMPROVING',
@@ -375,6 +466,8 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           latitude: 21.9754,
           longitude: 96.0838,
           region_id: 'region-mandalay',
+          township_id: 'township-chanayethazan',
+          ward_id: 'ward-pyigyimyatshin',
           price_book_id: 'pb-mandalay',
           ltv: 980000.0,
           trend: 'STABLE',
@@ -386,6 +479,8 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           latitude: 16.7932,
           longitude: 96.1664,
           region_id: 'region-yangon',
+          township_id: 'township-lanmadaw',
+          ward_id: 'ward-ward2',
           price_book_id: 'pb-yangon',
           ltv: 450000.0,
           trend: 'DECLINING',
@@ -397,6 +492,8 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           latitude: 21.9685,
           longitude: 96.0852,
           region_id: 'region-mandalay',
+          township_id: 'township-maharaundmyay',
+          ward_id: 'ward-haymamarlar',
           price_book_id: 'pb-mandalay',
           ltv: 150000.0,
           trend: 'IMPROVING',
@@ -413,6 +510,8 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
             latitude: s.latitude,
             longitude: s.longitude,
             region_id: s.region_id,
+            township_id: s.township_id,
+            ward_id: s.ward_id,
             price_book_id: s.price_book_id,
             lifetime_value: s.ltv,
             sentiment_trend: s.trend,

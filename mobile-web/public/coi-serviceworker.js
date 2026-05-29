@@ -36,6 +36,9 @@ if (typeof window === 'undefined') {
     try {
       const url = new URL(r.url);
       const isSameOrigin = url.origin === self.location.origin;
+      if (!isSameOrigin) {
+        return;
+      }
       const isNavigation =
         r.mode === 'navigate' ||
         r.destination === 'document' ||

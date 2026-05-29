@@ -51,29 +51,17 @@ async function applyPullChanges(changes: any): Promise<void> {
           ? recordSchema.parse(record)
           : record;
 
-        if (
-          tableName === 'items' ||
-          tableName === 'shops' ||
-          tableName === 'projects'
-        ) {
-          const existing = await database
-            .select()
-            .from(tableSchema)
-            .where(eq(tableSchema.id, validatedRecord.id))
-            .limit(1);
-          if (existing.length > 0) {
-            await database
-              .update(tableSchema)
-              .set(validatedRecord)
-              .where(eq(tableSchema.id, validatedRecord.id));
-          } else {
-            await database.insert(tableSchema).values(validatedRecord);
-          }
-        } else {
-          // Delete first to prevent primary key conflicts, then insert
+        const existing = await database
+          .select()
+          .from(tableSchema)
+          .where(eq(tableSchema.id, validatedRecord.id))
+          .limit(1);
+        if (existing.length > 0) {
           await database
-            .delete(tableSchema)
+            .update(tableSchema)
+            .set(validatedRecord)
             .where(eq(tableSchema.id, validatedRecord.id));
+        } else {
           await database.insert(tableSchema).values(validatedRecord);
         }
       }
@@ -103,7 +91,9 @@ async function runDatabaseCompaction(): Promise<void> {
   }
 }
 
-export async function syncData(): Promise<void> {
+let activeSyncPromise: Promise<void> | null = null;
+
+async function executeSyncCycle(): Promise<void> {
   console.log('[SyncEngine] Starting sync cycle...');
 
   const devId = await getDeviceId();
@@ -140,6 +130,8 @@ export async function syncData(): Promise<void> {
   // 2. Push Changes
   const syncableTables = [
     'regions',
+    'townships',
+    'wards',
     'shops',
     'contacts',
     'items',
@@ -164,6 +156,7 @@ export async function syncData(): Promise<void> {
     'rep_kpis',
     'currency_exchange_rates',
     'competitor_insights',
+    'pending_inventory_updates',
   ];
 
   const pushChanges: any = {};
@@ -295,6 +288,23 @@ export async function syncData(): Promise<void> {
   await runDatabaseCompaction();
 
   console.log('[SyncEngine] Sync cycle complete.');
+}
+
+export async function syncData(): Promise<void> {
+  if (activeSyncPromise) {
+    console.log(
+      '[SyncEngine] Sync is already in progress, attaching to existing cycle.',
+    );
+    return activeSyncPromise;
+  }
+
+  activeSyncPromise = executeSyncCycle();
+
+  try {
+    await activeSyncPromise;
+  } finally {
+    activeSyncPromise = null;
+  }
 }
 
 function generateUUIDv4(): string {

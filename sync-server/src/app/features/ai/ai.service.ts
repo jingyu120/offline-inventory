@@ -80,7 +80,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const url = `${this.config.uploadsUrlPrefix}${filename}`;
-      const logs = await this.drizzle.db
+      const logs = await this.drizzle.readDb
         .select()
         .from(schema.pgSchema.interaction_logs)
         .where(
@@ -248,7 +248,7 @@ Return ONLY raw JSON.`;
   }
 
   async ocrInvoice(base64Image: string, quantization?: string) {
-    const dbItems = await this.drizzle.db
+    const dbItems = await this.drizzle.readDb
       .select()
       .from(schema.pgSchema.items)
       .where(isNull(schema.pgSchema.items.deleted_at));
@@ -430,7 +430,7 @@ Return ONLY raw JSON.`;
       new Date(`${date}T23:59:59.999`).getTime() - MYANMAR_OFFSET_MS,
     );
 
-    const rows = await this.drizzle.db
+    const rows = await this.drizzle.readDb
       .select({
         id: schema.pgSchema.interaction_logs.id,
         notes: schema.pgSchema.interaction_logs.notes,
@@ -613,7 +613,7 @@ No markdown tags like \`\`\`json, no explanations.`;
       new Date(`${dateStr}T23:59:59.999`).getTime() - MYANMAR_OFFSET_MS,
     );
 
-    const rows = await this.drizzle.db
+    const rows = await this.drizzle.readDb
       .select({
         id: schema.pgSchema.interaction_logs.id,
         notes: schema.pgSchema.interaction_logs.notes,
@@ -646,11 +646,11 @@ No markdown tags like \`\`\`json, no explanations.`;
         ),
       );
 
-    const reps = await this.drizzle.db.select().from(schema.pgSchema.users);
+    const reps = await this.drizzle.readDb.select().from(schema.pgSchema.users);
 
     const repsWithQuotas = await Promise.all(
       reps.map(async (rep) => {
-        const quotas = await this.drizzle.db
+        const quotas = await this.drizzle.readDb
           .select()
           .from(schema.pgSchema.daily_quotas)
           .where(
@@ -789,7 +789,7 @@ No markdown tags like \`\`\`json, no explanations.`;
       `Starting processScreenshot for logId: ${logId}, file: ${filePath || 'from db'}`,
     );
 
-    const logs = await this.drizzle.db
+    const logs = await this.drizzle.readDb
       .select()
       .from(schema.pgSchema.interaction_logs)
       .where(eq(schema.pgSchema.interaction_logs.id, logId))
@@ -801,7 +801,7 @@ No markdown tags like \`\`\`json, no explanations.`;
       return;
     }
 
-    const shops = await this.drizzle.db
+    const shops = await this.drizzle.readDb
       .select()
       .from(schema.pgSchema.shops)
       .where(
@@ -813,14 +813,14 @@ No markdown tags like \`\`\`json, no explanations.`;
       .limit(1);
     const shop = shops[0] || null;
 
-    const interactionItems = await this.drizzle.db
+    const interactionItems = await this.drizzle.readDb
       .select()
       .from(schema.pgSchema.interaction_items)
       .where(eq(schema.pgSchema.interaction_items.interaction_log_id, logId));
 
     const itemsWithDetails = await Promise.all(
       interactionItems.map(async (ii) => {
-        const items = await this.drizzle.db
+        const items = await this.drizzle.readDb
           .select()
           .from(schema.pgSchema.items)
           .where(

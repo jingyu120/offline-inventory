@@ -8,6 +8,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     sqliteSchema.contacts,
     sqliteSchema.items,
     sqliteSchema.shops,
+    sqliteSchema.wards,
+    sqliteSchema.townships,
     sqliteSchema.regions,
     sqliteSchema.daily_quotas,
     sqliteSchema.item_stocks,
@@ -27,6 +29,7 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     sqliteSchema.rep_kpis,
     sqliteSchema.currency_exchange_rates,
     sqliteSchema.competitor_insights,
+    sqliteSchema.pending_inventory_updates,
   ];
 
   for (const table of tables) {
@@ -85,6 +88,22 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
     },
   ]);
 
+  // Seed Stock Locations (Warehouses)
+  await db.insert(sqliteSchema.stock_locations).values([
+    {
+      id: 'loc-yangon-wh',
+      name: 'Yangon Main Warehouse',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'loc-mandalay-wh',
+      name: 'Mandalay Distribution Center',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
   // 2. Seed Regions
   await db.insert(sqliteSchema.regions).values([
     {
@@ -98,6 +117,83 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       id: 'region-mandalay',
       name: 'Mandalay Region',
       division: 'Mandalay Division',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // 2b. Seed Townships & Wards
+  await db.insert(sqliteSchema.townships).values([
+    {
+      id: 'township-kamayut',
+      name: 'Kamayut Township',
+      region_id: 'region-yangon',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'township-lanmadaw',
+      name: 'Lanmadaw Township',
+      region_id: 'region-yangon',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'township-chanayethazan',
+      name: 'Chanayethazan Township',
+      region_id: 'region-mandalay',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'township-maharaundmyay',
+      name: 'Mahar Aung Myay Township',
+      region_id: 'region-mandalay',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.wards).values([
+    {
+      id: 'ward-hledan',
+      name: 'Hledan Ward',
+      township_id: 'township-kamayut',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'ward-sinmalaik',
+      name: 'Sinmalaik Ward',
+      township_id: 'township-kamayut',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'ward-ward1',
+      name: 'Ward 1',
+      township_id: 'township-lanmadaw',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'ward-ward2',
+      name: 'Ward 2',
+      township_id: 'township-lanmadaw',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'ward-pyigyimyatshin',
+      name: 'Pyi Gyi Myat Shin Ward',
+      township_id: 'township-chanayethazan',
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 'ward-haymamarlar',
+      name: 'Hayma Marlar Ward',
+      township_id: 'township-maharaundmyay',
       created_at: now,
       updated_at: now,
     },
@@ -388,6 +484,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       latitude: 16.7794,
       longitude: 96.1518,
       region_id: 'region-yangon',
+      township_id: 'township-lanmadaw',
+      ward_id: 'ward-ward1',
       price_book_id: 'pb-yangon',
       lifetime_value: 1250000,
       sentiment_trend: 'IMPROVING',
@@ -402,6 +500,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       latitude: 21.9754,
       longitude: 96.0838,
       region_id: 'region-mandalay',
+      township_id: 'township-chanayethazan',
+      ward_id: 'ward-pyigyimyatshin',
       price_book_id: 'pb-mandalay',
       lifetime_value: 980000,
       sentiment_trend: 'STABLE',
@@ -416,6 +516,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       latitude: 16.7932,
       longitude: 96.1664,
       region_id: 'region-yangon',
+      township_id: 'township-lanmadaw',
+      ward_id: 'ward-ward2',
       price_book_id: 'pb-yangon',
       lifetime_value: 450000,
       sentiment_trend: 'DECLINING',
@@ -430,6 +532,8 @@ export const seedLocalDatabase = async (db: any): Promise<void> => {
       latitude: 21.9685,
       longitude: 96.0852,
       region_id: 'region-mandalay',
+      township_id: 'township-maharaundmyay',
+      ward_id: 'ward-haymamarlar',
       price_book_id: 'pb-mandalay',
       lifetime_value: 150000,
       sentiment_trend: 'IMPROVING',

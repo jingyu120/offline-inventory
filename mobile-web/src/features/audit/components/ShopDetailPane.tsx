@@ -9,6 +9,7 @@ import { database } from '../../../core/database/database';
 import { eq } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
+import { UpdateTerritoryModal } from './UpdateTerritoryModal';
 import {
   MapPin,
   Star,
@@ -64,13 +65,64 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   shopLogsWithItems,
   isDesktop,
   setSelectedShop,
+  selectShop,
   onLogInteraction,
 }) => {
   const theme = useTheme<Theme>();
   const { t, language } = useTranslation();
   const { activeRep } = useAuth();
 
+  const [isUpdateTerritoryOpen, setIsUpdateTerritoryOpen] =
+    React.useState(false);
+  const [territoryNames, setTerritoryNames] = React.useState({
+    regionName: '',
+    townshipName: '',
+    wardName: '',
+  });
+
+  const loadTerritoryNames = React.useCallback(async () => {
+    try {
+      let regionName = '';
+      let townshipName = '';
+      let wardName = '';
+
+      if (shop.regionId) {
+        const regs = await database
+          .select()
+          .from(sqliteSchema.regions)
+          .where(eq(sqliteSchema.regions.id, shop.regionId));
+        if (regs.length > 0) regionName = regs[0].name;
+      }
+      if (shop.townshipId) {
+        const ts = await database
+          .select()
+          .from(sqliteSchema.townships)
+          .where(eq(sqliteSchema.townships.id, shop.townshipId));
+        if (ts.length > 0) townshipName = ts[0].name;
+      }
+      if (shop.wardId) {
+        const ws = await database
+          .select()
+          .from(sqliteSchema.wards)
+          .where(eq(sqliteSchema.wards.id, shop.wardId));
+        if (ws.length > 0) wardName = ws[0].name;
+      }
+
+      setTerritoryNames({ regionName, townshipName, wardName });
+    } catch (e) {
+      console.error('Failed to load territory names for shop detail view:', e);
+    }
+  }, [shop.regionId, shop.townshipId, shop.wardId]);
+
+  React.useEffect(() => {
+    loadTerritoryNames();
+  }, [loadTerritoryNames]);
+
   const handleStartAudit = async () => {
+    if (Platform.OS === 'web') {
+      onLogInteraction?.(shop);
+      return;
+    }
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -459,9 +511,44 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                   </Box>
                   <Box flex={1}>
                     <Text variant="bodySecondary">{t('address')}</Text>
-                    <Text variant="body" fontWeight="bold" numberOfLines={2}>
+                    <Text variant="body" fontWeight="bold" numberOfLines={3}>
                       {shop.address || t('noAddress')}
                     </Text>
+                    {territoryNames.townshipName ? (
+                      <Text
+                        variant="caption"
+                        color="secondaryText"
+                        mt="xs"
+                        style={{ fontStyle: 'italic' }}
+                      >
+                        {territoryNames.townshipName} •{' '}
+                        {territoryNames.wardName}
+                      </Text>
+                    ) : null}
+                    <Box mt="xs" alignItems="flex-start">
+                      <Pressable
+                        onPress={() => setIsUpdateTerritoryOpen(true)}
+                        style={({ pressed }: any) => ({
+                          opacity: pressed ? 0.6 : 1,
+                          paddingVertical: 4,
+                          paddingHorizontal: 8,
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          borderColor: theme.colors.borderColor,
+                          backgroundColor: theme.colors.secondaryBackground,
+                        })}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            color: theme.colors.primaryText,
+                          }}
+                        >
+                          ✏️ {t('updateTerritory')}
+                        </Text>
+                      </Pressable>
+                    </Box>
                   </Box>
                 </Card>
               </Box>
@@ -534,6 +621,15 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           <InteractionsTimeline shopLogsWithItems={shopLogsWithItems} />
         )}
       </ScrollView>
+      <UpdateTerritoryModal
+        visible={isUpdateTerritoryOpen}
+        onClose={() => setIsUpdateTerritoryOpen(false)}
+        shop={shop}
+        onUpdateSuccess={async () => {
+          await loadTerritoryNames();
+          await selectShop(shop);
+        }}
+      />
     </Box>
   );
 };

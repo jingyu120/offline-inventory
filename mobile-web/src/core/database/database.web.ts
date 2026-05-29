@@ -76,7 +76,7 @@ function createProxyDb(sqljsDb: any) {
         const rows: any[] = [];
         while (stmt.step()) {
           const rowVal = stmt.get();
-          console.log('[Proxy SQL.js Query]', sql, '-> Row:', rowVal);
+          // console.log('[Proxy SQL.js Query]', sql, '-> Row:', rowVal);
           rows.push(rowVal);
         }
         stmt.free();
@@ -121,6 +121,20 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS townships (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        region_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS wards (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        township_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS shops (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
@@ -128,6 +142,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         latitude REAL,
         longitude REAL,
         region_id TEXT NOT NULL,
+        township_id TEXT,
+        ward_id TEXT,
         assigned_rep_id TEXT,
         lifetime_value REAL NOT NULL DEFAULT 0,
         sentiment_trend TEXT NOT NULL DEFAULT 'STABLE',
@@ -377,6 +393,40 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS pending_inventory_updates (
+        id TEXT PRIMARY KEY NOT NULL,
+        type TEXT NOT NULL,
+        item_id TEXT,
+        location_id TEXT NOT NULL,
+        quantity_delta INTEGER,
+        sku TEXT,
+        name TEXT,
+        unit_price REAL,
+        category TEXT,
+        submitted_by TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
+    // Run table creation as migration as well in case DB is already initialized
+    sqljsDb.run(`
+      CREATE TABLE IF NOT EXISTS pending_inventory_updates (
+        id TEXT PRIMARY KEY NOT NULL,
+        type TEXT NOT NULL,
+        item_id TEXT,
+        location_id TEXT NOT NULL,
+        quantity_delta INTEGER,
+        sku TEXT,
+        name TEXT,
+        unit_price REAL,
+        category TEXT,
+        submitted_by TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Migration helper: Add columns if they do not exist in existing database schemas
@@ -439,6 +489,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
     );
     alterTable('image_upload_queue', 'competitor_insight_id', 'TEXT');
     alterTable('shops', 'deleted_at', 'INTEGER');
+    alterTable('shops', 'township_id', 'TEXT');
+    alterTable('shops', 'ward_id', 'TEXT');
     alterTable('items', 'deleted_at', 'INTEGER');
     alterTable('projects', 'deleted_at', 'INTEGER');
 
@@ -453,8 +505,27 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
     }
     stmt.free();
 
-    if (isEmpty) {
-      console.log('Local SQLite database is empty. Auto-seeding mock data...');
+    // Check if stock_locations table is empty
+    let isStockLocationsEmpty = true;
+    try {
+      const stmtLoc = sqljsDb.prepare(
+        'SELECT COUNT(*) as count FROM stock_locations;',
+      );
+      if (stmtLoc.step()) {
+        const resLoc = stmtLoc.getAsObject();
+        if (Number(resLoc.count) > 0) {
+          isStockLocationsEmpty = false;
+        }
+      }
+      stmtLoc.free();
+    } catch (e) {
+      console.warn('Failed to check if stock_locations is empty:', e);
+    }
+
+    if (isEmpty || isStockLocationsEmpty) {
+      console.log(
+        'Local SQLite database is empty or missing stock locations. Auto-seeding mock data...',
+      );
       const tempDb = createProxyDb(sqljsDb);
       const { seedLocalDatabase } = await import('../data/mockSeeding');
       await seedLocalDatabase(tempDb);

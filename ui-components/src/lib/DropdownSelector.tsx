@@ -14,6 +14,7 @@ interface DropdownSelectorProps {
   onValueChange: (value: string) => void;
   options: DropdownOption[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
@@ -22,6 +23,7 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
   onValueChange,
   options,
   placeholder = 'Select an option...',
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,13 +37,24 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
   return (
     <Box mb="s" width="100%">
       {label && (
-        <Text variant="bodySecondary" fontWeight="bold" mb="xs">
+        <Text
+          variant="bodySecondary"
+          fontWeight="bold"
+          mb="xs"
+          style={disabled ? { opacity: 0.6 } : undefined}
+        >
           {label}
         </Text>
       )}
 
       {/* Selector Trigger Button */}
-      <TouchableOpacity onPress={() => setIsOpen(true)} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={() => {
+          if (!disabled) setIsOpen(true);
+        }}
+        activeOpacity={disabled ? 1 : 0.7}
+        disabled={disabled}
+      >
         <Box
           flexDirection="row"
           alignItems="center"
@@ -49,10 +62,11 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
           borderWidth={1}
           borderColor="borderColor"
           borderRadius="m"
-          bg="cardBackground"
+          bg={disabled ? 'secondaryBackground' : 'cardBackground'}
           px="m"
           py="s"
           minHeight={40}
+          style={disabled ? { opacity: 0.6 } : undefined}
         >
           <Text
             variant="body"

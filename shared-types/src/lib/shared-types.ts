@@ -39,6 +39,8 @@ export interface ShopRecord {
   latitude: number | null;
   longitude: number | null;
   region_id: string;
+  township_id?: string | null;
+  ward_id?: string | null;
   assigned_rep_id: string | null;
   lifetime_value: number;
   sentiment_trend: string;
@@ -281,6 +283,22 @@ export interface CompetitorInsightRecord {
   updated_at: number;
 }
 
+export interface PendingInventoryUpdateRecord {
+  id: string;
+  type: string;
+  item_id: string | null;
+  location_id: string;
+  quantity_delta: number | null;
+  sku: string | null;
+  name: string | null;
+  unit_price: number | null;
+  category: string | null;
+  submitted_by: string;
+  status: string;
+  created_at: number;
+  updated_at: number;
+}
+
 // ─── Zod Validation Schemas ─────────────────────────────────────────
 
 export const RegionRecordSchema = z.object({
@@ -298,6 +316,8 @@ export const ShopRecordSchema = z.object({
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
   region_id: z.string(),
+  township_id: z.string().nullable().optional(),
+  ward_id: z.string().nullable().optional(),
   assigned_rep_id: z.string().nullable(),
   lifetime_value: z.number().nonnegative().default(0),
   sentiment_trend: z.string().default('STABLE'),
@@ -560,8 +580,42 @@ export const CompetitorInsightRecordSchema = z.object({
   updated_at: z.number(),
 });
 
+export const PendingInventoryUpdateRecordSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  item_id: z.string().nullable(),
+  location_id: z.string(),
+  quantity_delta: z.number().nullable(),
+  sku: z.string().nullable(),
+  name: z.string().nullable(),
+  unit_price: z.number().nullable(),
+  category: z.string().nullable(),
+  submitted_by: z.string(),
+  status: z.string().default('PENDING'),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
+export const TownshipRecordSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  region_id: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
+export const WardRecordSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  township_id: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
 export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   regions: RegionRecordSchema,
+  townships: TownshipRecordSchema,
+  wards: WardRecordSchema,
   shops: ShopRecordSchema,
   contacts: ContactRecordSchema,
   items: ItemRecordSchema,
@@ -586,6 +640,7 @@ export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   telemetry_logs: TelemetryLogRecordSchema,
   currency_exchange_rates: CurrencyExchangeRateRecordSchema,
   competitor_insights: CompetitorInsightRecordSchema,
+  pending_inventory_updates: PendingInventoryUpdateRecordSchema,
 };
 
 export const WatermelonChangeSetSchema = <T extends z.ZodTypeAny>(
@@ -601,6 +656,8 @@ export const PushChangesBodySchema = z.object({
   changes: z
     .object({
       regions: WatermelonChangeSetSchema(RegionRecordSchema),
+      townships: WatermelonChangeSetSchema(TownshipRecordSchema),
+      wards: WatermelonChangeSetSchema(WardRecordSchema),
       shops: WatermelonChangeSetSchema(ShopRecordSchema),
       contacts: WatermelonChangeSetSchema(ContactRecordSchema),
       items: WatermelonChangeSetSchema(ItemRecordSchema),
@@ -630,6 +687,9 @@ export const PushChangesBodySchema = z.object({
       ),
       competitor_insights: WatermelonChangeSetSchema(
         CompetitorInsightRecordSchema,
+      ),
+      pending_inventory_updates: WatermelonChangeSetSchema(
+        PendingInventoryUpdateRecordSchema,
       ),
     })
     .partial(),
@@ -675,7 +735,8 @@ export type SyncTableName =
   | 'telemetry_logs'
   | 'rep_kpis'
   | 'currency_exchange_rates'
-  | 'competitor_insights';
+  | 'competitor_insights'
+  | 'pending_inventory_updates';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -718,6 +779,8 @@ export interface Shop {
   latitude: number | null;
   longitude: number | null;
   regionId: string;
+  townshipId?: string | null;
+  wardId?: string | null;
   assignedRepId: string | null;
   lifetimeValue: number;
   sentimentTrend: string;
@@ -958,6 +1021,54 @@ export interface CompetitorInsight {
   productName: string;
   streetPrice: number;
   photoUrl: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PendingInventoryUpdate {
+  id: string;
+  type: string;
+  itemId: string | null;
+  locationId: string;
+  quantityDelta: number | null;
+  sku: string | null;
+  name: string | null;
+  unitPrice: number | null;
+  category: string | null;
+  submittedBy: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface TownshipRecord {
+  id: string;
+  name: string;
+  region_id: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WardRecord {
+  id: string;
+  name: string;
+  township_id: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Township {
+  id: string;
+  name: string;
+  regionId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Ward {
+  id: string;
+  name: string;
+  townshipId: string;
   createdAt: number;
   updatedAt: number;
 }

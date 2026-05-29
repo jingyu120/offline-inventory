@@ -21,8 +21,17 @@ import { SyncConflictModal } from '../features/sync/components/SyncConflictModal
 import { ToastProvider } from '../core/components/ToastProvider';
 import { LanguageProvider, useTranslation } from '../core/i18n/i18n';
 import { syncData } from '../features/sync/sync';
+import { useCartStore } from '../core/store/cartStore';
+import { StateRecovery } from '../core/utils/stateRecovery';
 import { powerSyncDb, database } from '../core/database/database';
-import { useWindowDimensions, Platform, Alert } from 'react-native';
+import {
+  useWindowDimensions,
+  Platform,
+  Alert,
+  AppState,
+  AppStateStatus,
+} from 'react-native';
+import { ThermalGuard, ThermalState } from '../core/utils/thermalGuard';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
 import { ImageUploadQueue } from '../features/sync/ImageUploadQueue';
@@ -53,14 +62,56 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const { activeRep } = useAuth();
+
+  const recoveryState = useCartStore((state) => state.recoveryState);
+  const setRecoveryState = useCartStore((state) => state.setRecoveryState);
+
   const [currentScreen, setCurrentScreen] = useState<
     'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot'
-  >('ledger');
+  >(recoveryState?.currentScreen || 'ledger');
 
+  const [thermalState, setThermalState] = useState<ThermalState>(
+    ThermalGuard.getThermalState(),
+  );
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [pendingChanges, setPendingChanges] = useState(0);
+
+  // Sync current screen to recovery state
+  React.useEffect(() => {
+    setRecoveryState({ currentScreen });
+  }, [currentScreen, setRecoveryState]);
+
+  // AppState change listener to save recovery state synchronously
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'background' || nextAppState === 'inactive') {
+          const currentState = useCartStore.getState().recoveryState;
+          if (currentState) {
+            StateRecovery.saveState(currentState);
+            console.log(
+              '[App] Saved recovery state on AppState change:',
+              nextAppState,
+              currentState,
+            );
+          }
+        }
+      },
+    );
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Thermal Guard subscription
+  React.useEffect(() => {
+    return ThermalGuard.subscribe((state) => {
+      setThermalState(state);
+    });
+  }, []);
 
   React.useEffect(() => {
     // 0. Setup global error telemetry logging
@@ -211,6 +262,27 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
 
     return () => unsubscribe();
   }, [handleSync, refreshPendingCount]);
+
+  React.useEffect(() => {
+    if (thermalState === 'CRITICAL') {
+      console.log(
+        '[App] Thermal state is CRITICAL. Foreground periodic sync paused.',
+      );
+      return;
+    }
+    const intervalTime = thermalState === 'SERIOUS' ? 60000 : 15000;
+    console.log(
+      `[App] Starting foreground periodic sync every ${intervalTime / 1000}s (Thermal: ${thermalState})`,
+    );
+
+    const timer = setInterval(() => {
+      handleSync().catch((err) =>
+        console.error('[App] Periodic sync failed:', err),
+      );
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [thermalState, handleSync]);
 
   React.useEffect(() => {
     const allowed = ROLE_SCREENS[activeRep.role];

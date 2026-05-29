@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL must be set'),
+  DATABASE_REPLICA_URL: z.string().optional(),
   GEMMA_API_URL: z.string().default('http://localhost:11434'),
   SYNC_SERVER_PORT: z.coerce.number().int().default(3000),
   SYNC_SERVER_PREFIX: z.string().default('api'),

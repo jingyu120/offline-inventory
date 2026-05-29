@@ -12,6 +12,7 @@ import {
 } from '../../../config/appConfig';
 import { useTranslation } from '../../../core/i18n/i18n';
 import * as FileSystem from 'expo-file-system';
+import { ThermalGuard } from '../../../core/utils/thermalGuard';
 
 interface GemmaCopilotProps {
   notes: string;
@@ -35,6 +36,10 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
   const [isOcrScanning, setIsOcrScanning] = useState(false);
 
   const handleParseWithGemma = async () => {
+    if (ThermalGuard.getThermalState() === 'CRITICAL') {
+      Alert.alert(t('thermalCriticalTitle'), t('thermalCriticalDesc'));
+      return;
+    }
     if (!notes.trim()) {
       Alert.alert(t('error'), t('enterNotesToParse'));
       return;
@@ -87,6 +92,10 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
   };
 
   const handleSimulatedVoiceNote = async () => {
+    if (ThermalGuard.getThermalState() === 'CRITICAL') {
+      Alert.alert(t('thermalCriticalTitle'), t('thermalCriticalDesc'));
+      return;
+    }
     const transcripts = [
       'We visited Junction City Mart. Client ordered 5 Premium Beer 640ml. However, they complain about monsoonal delivery delays and are looking at competitor options.',
       'Spoke with the manager at Hledan Wholesale. They complain about late deliveries and expensive price tags, but finally ordered 5 Premium Beer 640ml.',
@@ -146,6 +155,10 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
   };
 
   const handleScanInvoiceOCR = async () => {
+    if (ThermalGuard.getThermalState() === 'CRITICAL') {
+      Alert.alert(t('thermalCriticalTitle'), t('thermalCriticalDesc'));
+      return;
+    }
     const ImagePicker = await import('expo-image-picker');
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {

@@ -26,6 +26,7 @@ interface ShopSidebarListProps {
   handleSeedData: () => void;
   isDesktop?: boolean;
   onLogInteraction?: (shop: Shop) => void;
+  onRegisterPress?: () => void;
 }
 
 const getSentimentColor = (trend: string | undefined): string => {
@@ -46,6 +47,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
   handleSeedData,
   isDesktop = true,
   onLogInteraction,
+  onRegisterPress,
 }) => {
   const theme = useTheme<Theme>();
   const { t } = useTranslation();
@@ -183,11 +185,21 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
         <Text variant="header" fontSize={isDesktop ? 22 : 26} fontWeight="bold">
           {t('shops')}
         </Text>
-        <Button
-          title={t('seedData')}
-          onPress={handleSeedData}
-          variant="secondary"
-        />
+        <Box flexDirection="row">
+          {onRegisterPress && (
+            <Button
+              title="+"
+              onPress={onRegisterPress}
+              variant="primary"
+              style={{ marginRight: 6 }}
+            />
+          )}
+          <Button
+            title={t('seedData')}
+            onPress={handleSeedData}
+            variant="secondary"
+          />
+        </Box>
       </Box>
 
       {/* Search Bar */}

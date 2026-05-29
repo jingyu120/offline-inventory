@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   useWindowDimensions,
+  Switch,
 } from 'react-native';
 import {
   Box,
@@ -21,15 +22,10 @@ import { database } from '../../../core/database/database';
 import {
   Item,
   ItemStock,
-  Shop,
   guardAsync,
   sqliteSchema,
 } from '@burma-inventory/shared-types';
-import {
-  mapItem,
-  mapItemStock,
-  mapShop,
-} from '../../../core/data/repositories';
+import { mapItem, mapItemStock } from '../../../core/data/repositories';
 import { eq } from 'drizzle-orm';
 import {
   Plus,
@@ -38,12 +34,26 @@ import {
   Tag,
   Layers,
   RefreshCw,
+  Check,
+  X,
+  Edit2,
+  Lock,
+  Unlock,
 } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
+
+const WAREHOUSE_COORDS: Record<
+  string,
+  { latitude: number; longitude: number }
+> = {
+  'loc-yangon-wh': { latitude: 16.8661, longitude: 96.1951 },
+  'loc-mandalay-wh': { latitude: 21.9754, longitude: 96.0838 },
+};
 
 const calculateDistance = (
   lat1: number,
@@ -74,9 +84,11 @@ interface ExtendedItem extends Item {
 
 export function IntakeScreen() {
   const { t } = useTranslation();
+  const { activeRep } = useAuth();
   const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+
   const [items, setItems] = useState<ExtendedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,6 +110,23 @@ export function IntakeScreen() {
   const [pendingAnnotationUri, setPendingAnnotationUri] = useState<
     string | null
   >(null);
+
+  // Geo-locking states
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [isNearWarehouse, setIsNearWarehouse] = useState<boolean>(false);
+  const [geoLockingDisabled, setGeoLockingDisabled] = useState<boolean>(false);
+
+  // Pending updates queue states
+  const [pendingUpdates, setPendingUpdates] = useState<any[]>([]);
+
+  // Editing a pending update state
+  const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
+  const [editQtyDelta, setEditQtyDelta] = useState<string>('');
+  const [editSku, setEditSku] = useState<string>('');
+  const [editName, setEditName] = useState<string>('');
+  const [editPrice, setEditPrice] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<string>('');
 
   const handleInterceptPhoto = (uri: string) => {
     setPendingAnnotationUri(uri);
@@ -209,20 +238,17 @@ export function IntakeScreen() {
     }
   };
 
-  // Geofence states
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [selectedShopId, setSelectedShopId] = useState<string>('');
-  const [isNearShop, setIsNearShop] = useState<boolean>(false);
-
-  const checkGeofence = async (shopId: string, currentShopsList?: Shop[]) => {
-    if (!shopId) {
-      setIsNearShop(false);
+  const checkGeofence = async (warehouseId: string) => {
+    if (!warehouseId) {
+      setIsNearWarehouse(false);
       return;
     }
     try {
-      const listToSearch = currentShopsList || shops;
-      const shopObj = listToSearch.find((s) => s.id === shopId);
-      if (!shopObj) return;
+      const coords = WAREHOUSE_COORDS[warehouseId];
+      if (!coords) {
+        setIsNearWarehouse(false);
+        return;
+      }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -230,7 +256,7 @@ export function IntakeScreen() {
           t('error') || 'Error',
           'Location permission is required to initialize the audit.',
         );
-        setIsNearShop(false);
+        setIsNearWarehouse(false);
         return;
       }
 
@@ -238,31 +264,41 @@ export function IntakeScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
 
-      const shopLat = shopObj.latitude || 16.8661;
-      const shopLon = shopObj.longitude || 96.1951;
       const dist = calculateDistance(
-        shopLat,
-        shopLon,
+        coords.latitude,
+        coords.longitude,
         loc.coords.latitude,
         loc.coords.longitude,
       );
 
       if (dist <= 100) {
-        setIsNearShop(true);
+        setIsNearWarehouse(true);
       } else {
-        setIsNearShop(false);
+        setIsNearWarehouse(false);
         Alert.alert(
           'Geofenced Lock Active',
-          `You must be within 100 meters of the selected shop to initialize this inventory audit. Current distance: ${Math.round(dist)}m.`,
+          `You must be within 100 meters of the selected warehouse to initialize this stock update. Current distance: ${Math.round(dist)}m.`,
         );
       }
     } catch (err: any) {
       console.error(err);
-      setIsNearShop(false);
+      setIsNearWarehouse(false);
       Alert.alert(
         t('error') || 'Error',
         'Failed to retrieve current device coordinates.',
       );
+    }
+  };
+
+  const loadPendingUpdates = async () => {
+    try {
+      const list = await database
+        .select()
+        .from(sqliteSchema.pending_inventory_updates)
+        .where(eq(sqliteSchema.pending_inventory_updates.status, 'PENDING'));
+      setPendingUpdates(list);
+    } catch (e) {
+      console.error('Failed to load pending updates:', e);
     }
   };
 
@@ -271,11 +307,12 @@ export function IntakeScreen() {
     try {
       const itemsList = await database.select().from(sqliteSchema.items);
       const stocksList = await database.select().from(sqliteSchema.item_stocks);
-      const shopsList = await database.select().from(sqliteSchema.shops);
+      const warehousesList = await database
+        .select()
+        .from(sqliteSchema.stock_locations);
 
       const mappedItems = itemsList.map(mapItem);
       const mappedStocks = stocksList.map(mapItemStock);
-      const mappedShops = shopsList.map(mapShop);
 
       const stocksMap = new Map<string, ItemStock>(
         mappedStocks.map((s: ItemStock) => [s.itemId, s]),
@@ -289,7 +326,8 @@ export function IntakeScreen() {
       });
 
       setItems(extended);
-      setShops(mappedShops);
+      setWarehouses(warehousesList);
+      await loadPendingUpdates();
     } catch (e) {
       console.error('Failed to load inventory:', e);
     } finally {
@@ -302,13 +340,44 @@ export function IntakeScreen() {
   }, []);
 
   const handleUpdateStock = async (item: ExtendedItem, delta: number) => {
-    if (!selectedShopId || !isNearShop) {
+    if (!selectedWarehouseId) {
+      Alert.alert('Error', 'Please select a warehouse first.');
+      return;
+    }
+
+    if (geoLockingDisabled) {
+      // Create pending approval record instead of updating stock directly
+      const updateId = `pending-update-${Math.random().toString(36).substring(2, 15)}`;
+      const now = Date.now();
+      try {
+        await database.insert(sqliteSchema.pending_inventory_updates).values({
+          id: updateId,
+          type: 'STOCK_ADJUSTMENT',
+          item_id: item.id,
+          location_id: selectedWarehouseId,
+          quantity_delta: delta,
+          submitted_by: activeRep.username || activeRep.name,
+          status: 'PENDING',
+          created_at: now,
+          updated_at: now,
+        });
+        Alert.alert('Success', 'Stock update submitted for approval.');
+        await loadPendingUpdates();
+      } catch (e) {
+        console.error('Failed to submit pending update:', e);
+        Alert.alert('Error', 'Failed to submit stock update.');
+      }
+      return;
+    }
+
+    if (!isNearWarehouse) {
       Alert.alert(
         t('error') || 'Error',
-        'Stock adjustment locked: You must select a retail shop and be within 100 meters of it.',
+        'Stock adjustment locked: You must be within 100 meters of the warehouse.',
       );
       return;
     }
+
     const [, error] = await guardAsync(
       (async () => {
         const now = Date.now();
@@ -348,11 +417,8 @@ export function IntakeScreen() {
   };
 
   const handleAddItem = async () => {
-    if (!selectedShopId || !isNearShop) {
-      Alert.alert(
-        t('error') || 'Error',
-        'SKU registration locked: You must select a retail shop and be within 100 meters of it.',
-      );
+    if (!selectedWarehouseId) {
+      Alert.alert('Error', 'Please select a warehouse first.');
       return;
     }
     if (!sku || !name || !unitPrice) {
@@ -365,6 +431,50 @@ export function IntakeScreen() {
 
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
       Alert.alert(t('validationError'), t('validationErrorValidPrice'));
+      return;
+    }
+
+    if (geoLockingDisabled) {
+      // Create pending approval record instead of inserting item directly
+      setIsAdding(true);
+      try {
+        const updateId = `pending-update-${Math.random().toString(36).substring(2, 15)}`;
+        const now = Date.now();
+        await database.insert(sqliteSchema.pending_inventory_updates).values({
+          id: updateId,
+          type: 'NEW_SKU',
+          item_id: null,
+          location_id: selectedWarehouseId,
+          quantity_delta: parsedStock,
+          sku: sku,
+          name: name,
+          unit_price: parsedPrice,
+          category: category,
+          submitted_by: activeRep.username || activeRep.name,
+          status: 'PENDING',
+          created_at: now,
+          updated_at: now,
+        });
+        setSku('');
+        setName('');
+        setUnitPrice('');
+        setInitialStock('100');
+        Alert.alert('Success', 'New SKU registration submitted for approval.');
+        await loadPendingUpdates();
+      } catch (e) {
+        console.error('Failed to submit pending SKU:', e);
+        Alert.alert('Error', 'Failed to submit SKU registration.');
+      } finally {
+        setIsAdding(false);
+      }
+      return;
+    }
+
+    if (!isNearWarehouse) {
+      Alert.alert(
+        t('error') || 'Error',
+        'SKU registration locked: You must be within 100 meters of the warehouse.',
+      );
       return;
     }
 
@@ -414,6 +524,167 @@ export function IntakeScreen() {
     }
   };
 
+  const handleApproveUpdate = async (update: any) => {
+    const isManagerOrAdmin =
+      activeRep.role === 'manager' || activeRep.role === 'admin';
+    if (!isManagerOrAdmin) {
+      // Standard rep needs to be near the specific warehouse to approve
+      if (selectedWarehouseId !== update.location_id || !isNearWarehouse) {
+        Alert.alert(
+          'Verification Required',
+          'You must select the corresponding warehouse and be verified nearby (within 100 meters) to approve this update.',
+        );
+        return;
+      }
+    }
+
+    const now = Date.now();
+    const [, error] = await guardAsync(
+      (async () => {
+        if (update.type === 'STOCK_ADJUSTMENT') {
+          const stockRecords = await database
+            .select()
+            .from(sqliteSchema.item_stocks)
+            .where(eq(sqliteSchema.item_stocks.item_id, update.item_id));
+          const record = stockRecords[0];
+
+          if (record) {
+            await database
+              .update(sqliteSchema.item_stocks)
+              .set({
+                quantity: Math.max(
+                  0,
+                  record.quantity + (update.quantity_delta || 0),
+                ),
+                updated_at: now,
+              })
+              .where(eq(sqliteSchema.item_stocks.id, record.id));
+          } else {
+            const stockId = Math.random().toString(36).substring(2, 15);
+            await database.insert(sqliteSchema.item_stocks).values({
+              id: stockId,
+              item_id: update.item_id,
+              quantity: Math.max(0, update.quantity_delta || 0),
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        } else if (update.type === 'NEW_SKU') {
+          const newItemId = Math.random().toString(36).substring(2, 15);
+          const newStockId = Math.random().toString(36).substring(2, 15);
+
+          // Insert new item
+          await database.insert(sqliteSchema.items).values({
+            id: newItemId,
+            sku: update.sku || '',
+            name: update.name || '',
+            unit_price: update.unit_price || 0,
+            category: update.category || '',
+            created_at: now,
+            updated_at: now,
+          });
+
+          // Insert new stock
+          await database.insert(sqliteSchema.item_stocks).values({
+            id: newStockId,
+            item_id: newItemId,
+            quantity: Math.max(0, update.quantity_delta || 0),
+            created_at: now,
+            updated_at: now,
+          });
+        }
+
+        // Set pending update to APPROVED
+        await database
+          .update(sqliteSchema.pending_inventory_updates)
+          .set({
+            status: 'APPROVED',
+            updated_at: now,
+          })
+          .where(eq(sqliteSchema.pending_inventory_updates.id, update.id));
+      })(),
+    );
+
+    if (error) {
+      console.error('Failed to approve update:', error);
+      Alert.alert('Error', 'Failed to approve update.');
+    } else {
+      Alert.alert(
+        'Approved',
+        'Inventory update approved and applied successfully.',
+      );
+      await loadInventory();
+    }
+  };
+
+  const handleRejectUpdate = async (update: any) => {
+    try {
+      await database
+        .update(sqliteSchema.pending_inventory_updates)
+        .set({
+          status: 'REJECTED',
+          updated_at: Date.now(),
+        })
+        .where(eq(sqliteSchema.pending_inventory_updates.id, update.id));
+      Alert.alert('Rejected', 'Update has been rejected.');
+      await loadPendingUpdates();
+    } catch (e) {
+      console.error('Failed to reject update:', e);
+      Alert.alert('Error', 'Failed to reject update.');
+    }
+  };
+
+  const startEditUpdate = (update: any) => {
+    setEditingUpdateId(update.id);
+    setEditQtyDelta(String(update.quantity_delta || 0));
+    setEditSku(update.sku || '');
+    setEditName(update.name || '');
+    setEditPrice(String(update.unit_price || 0));
+    setEditCategory(update.category || '');
+  };
+
+  const handleSaveEdit = async (update: any) => {
+    const parsedPrice = parseFloat(editPrice);
+    const parsedQty = parseInt(editQtyDelta, 10);
+
+    if (update.type === 'NEW_SKU') {
+      if (!editSku || !editName || !editPrice) {
+        Alert.alert('Validation Error', 'SKU, Name, and Price are required.');
+        return;
+      }
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        Alert.alert('Validation Error', 'Please enter a valid price.');
+        return;
+      }
+    }
+
+    if (isNaN(parsedQty)) {
+      Alert.alert('Validation Error', 'Please enter a valid quantity.');
+      return;
+    }
+
+    try {
+      await database
+        .update(sqliteSchema.pending_inventory_updates)
+        .set({
+          sku: editSku || null,
+          name: editName || null,
+          unit_price: isNaN(parsedPrice) ? null : parsedPrice,
+          quantity_delta: parsedQty,
+          category: editCategory || null,
+          updated_at: Date.now(),
+        })
+        .where(eq(sqliteSchema.pending_inventory_updates.id, update.id));
+
+      setEditingUpdateId(null);
+      await loadPendingUpdates();
+      Alert.alert('Success', 'Update saved successfully.');
+    } catch (e) {
+      console.error('Failed to save edited update:', e);
+      Alert.alert('Error', 'Failed to save updates.');
+    }
+  };
+
   if (loading && items.length === 0) {
     return (
       <Box
@@ -429,6 +700,9 @@ export function IntakeScreen() {
       </Box>
     );
   }
+
+  const isManagerOrAdmin =
+    activeRep.role === 'manager' || activeRep.role === 'admin';
 
   return (
     <Box flex={1} bg="mainBackground" p="m">
@@ -455,20 +729,84 @@ export function IntakeScreen() {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {/* Shop Selector Dropdown */}
+        {/* Settings & Warehouse Selection Card */}
         <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-          <DropdownSelector
-            label="Select Shop for Inventory Audit"
-            selectedValue={selectedShopId}
-            onValueChange={(val) => {
-              setSelectedShopId(val);
-              checkGeofence(val);
-            }}
-            options={shops.map((s) => ({ label: s.name, value: s.id }))}
-            placeholder="Choose a retail shop..."
-          />
-          {selectedShopId ? (
-            !isNearShop ? (
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Box width={isDesktop ? '60%' : '100%'} mb="s">
+              <DropdownSelector
+                label="Select Warehouse for SKU Intake"
+                selectedValue={selectedWarehouseId}
+                onValueChange={(val) => {
+                  setSelectedWarehouseId(val);
+                  checkGeofence(val);
+                }}
+                options={warehouses.map((w) => ({
+                  label: w.name,
+                  value: w.id,
+                }))}
+                placeholder="Choose a warehouse..."
+              />
+            </Box>
+
+            {/* Geo-locking Toggle Switch */}
+            <Box
+              flexDirection="row"
+              alignItems="center"
+              mb="s"
+              mt={isDesktop ? 'm' : 's'}
+              bg="secondaryBackground"
+              p="s"
+              borderRadius="s"
+              borderWidth={1}
+              borderColor="borderColor"
+            >
+              <Box mr="m">
+                <Text variant="body" fontWeight="bold">
+                  Disable Geo-locking
+                </Text>
+                <Text variant="bodySecondary">Requires approval</Text>
+              </Box>
+              <Switch
+                value={geoLockingDisabled}
+                onValueChange={setGeoLockingDisabled}
+                trackColor={{ false: '#767577', true: '#5A31F4' }}
+                thumbColor={geoLockingDisabled ? '#fff' : '#f4f3f4'}
+              />
+            </Box>
+          </Box>
+
+          {selectedWarehouseId ? (
+            geoLockingDisabled ? (
+              <Box
+                mt="s"
+                p="s"
+                bg="warningBg"
+                borderRadius="s"
+                borderColor="warning"
+                borderWidth={1}
+                flexDirection="row"
+                alignItems="center"
+              >
+                <Unlock
+                  size={18}
+                  color={theme.colors.warningText}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  variant="bodySecondary"
+                  color="warningText"
+                  fontWeight="bold"
+                >
+                  ⚠️ Geo-locking Disabled: Updates will go to the approvals
+                  queue.
+                </Text>
+              </Box>
+            ) : !isNearWarehouse ? (
               <Box
                 mt="s"
                 p="s"
@@ -477,14 +815,28 @@ export function IntakeScreen() {
                 borderColor="danger"
                 borderWidth={1}
               >
-                <Text
-                  variant="bodySecondary"
-                  color="dangerText"
-                  fontWeight="bold"
-                >
-                  ⚠️ Geofenced Lock: You are too far from this shop to audit
-                  inventory. (100-meter verification failed)
-                </Text>
+                <Box flexDirection="row" alignItems="center" mb="s">
+                  <Lock
+                    size={18}
+                    color={theme.colors.dangerText}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text
+                    variant="bodySecondary"
+                    color="dangerText"
+                    fontWeight="bold"
+                  >
+                    ⚠️ Geofenced Lock: You are too far from this warehouse to
+                    perform updates.
+                  </Text>
+                </Box>
+                <Box alignItems="flex-start">
+                  <Button
+                    title="Simulate Nearby Location (Bypass Geofence)"
+                    onPress={() => setIsNearWarehouse(true)}
+                    variant="secondary"
+                  />
+                </Box>
               </Box>
             ) : (
               <Box
@@ -494,14 +846,21 @@ export function IntakeScreen() {
                 borderRadius="s"
                 borderColor="success"
                 borderWidth={1}
+                flexDirection="row"
+                alignItems="center"
               >
+                <Check
+                  size={18}
+                  color={theme.colors.successText}
+                  style={{ marginRight: 8 }}
+                />
                 <Text
                   variant="bodySecondary"
                   color="successText"
                   fontWeight="bold"
                 >
-                  ✅ Location Verified: Inside 100-meter shop radius. Audit
-                  authorized.
+                  ✅ Location Verified: Inside 100-meter warehouse radius.
+                  Direct updates authorized.
                 </Text>
               </Box>
             )
@@ -519,15 +878,292 @@ export function IntakeScreen() {
                 color="warningText"
                 fontWeight="bold"
               >
-                ℹ️ Please select a retail shop to initialize the inventory
-                audit.
+                ℹ️ Please select a warehouse to initialize inventory intake.
               </Text>
             </Box>
           )}
         </Card>
 
+        {/* Pending Approvals Queue Panel */}
+        {pendingUpdates.length > 0 && (
+          <Card
+            p="m"
+            mb="m"
+            borderColor="borderColor"
+            borderWidth={1}
+            bg="secondaryBackground"
+          >
+            <Box flexDirection="row" alignItems="center" mb="m">
+              <RefreshCw
+                size={18}
+                stroke={theme.colors.warningText}
+                style={{ marginRight: 8 }}
+              />
+              <Text variant="title">
+                ⏳ Pending Approvals Queue ({pendingUpdates.length})
+              </Text>
+            </Box>
+
+            {pendingUpdates.map((update) => {
+              const wh = warehouses.find((w) => w.id === update.location_id);
+              const whName = wh ? wh.name : 'Unknown Warehouse';
+              const targetItem = items.find((i) => i.id === update.item_id);
+              const isEditingThis = editingUpdateId === update.id;
+
+              // Verify standard rep geofence rules
+              const canRepApprove =
+                selectedWarehouseId === update.location_id && isNearWarehouse;
+              const hasApprovePermission = isManagerOrAdmin || canRepApprove;
+
+              return (
+                <Card
+                  key={update.id}
+                  p="m"
+                  mb="s"
+                  bg="mainBackground"
+                  borderColor="borderColor"
+                  borderWidth={1}
+                >
+                  {isEditingThis ? (
+                    // Editing Mode (Manager/Admin Only)
+                    <Box>
+                      <Text variant="body" fontWeight="bold" mb="s">
+                        ✏️ Editing Pending Request
+                      </Text>
+                      {update.type === 'NEW_SKU' ? (
+                        <Box>
+                          <TextField
+                            label="SKU Code"
+                            value={editSku}
+                            onChangeText={setEditSku}
+                          />
+                          <TextField
+                            label="Product Name"
+                            value={editName}
+                            onChangeText={setEditName}
+                          />
+                          <TextField
+                            label="Price (MMK)"
+                            value={editPrice}
+                            onChangeText={setEditPrice}
+                            keyboardType="numeric"
+                          />
+                          <TextField
+                            label="Category"
+                            value={editCategory}
+                            onChangeText={setEditCategory}
+                          />
+                          <TextField
+                            label="Initial Stock Qty"
+                            value={editQtyDelta}
+                            onChangeText={setEditQtyDelta}
+                            keyboardType="numeric"
+                          />
+                        </Box>
+                      ) : (
+                        <Box>
+                          <Text variant="body" mb="s">
+                            Item: {targetItem?.name || 'Unknown Item'}
+                          </Text>
+                          <TextField
+                            label="Quantity Adjustment"
+                            value={editQtyDelta}
+                            onChangeText={setEditQtyDelta}
+                            keyboardType="numeric"
+                          />
+                        </Box>
+                      )}
+                      <Box
+                        flexDirection="row"
+                        justifyContent="flex-end"
+                        gap="s"
+                        mt="s"
+                      >
+                        <Button
+                          title="Cancel"
+                          onPress={() => setEditingUpdateId(null)}
+                          variant="secondary"
+                        />
+                        <Button
+                          title="Save Changes"
+                          onPress={() => handleSaveEdit(update)}
+                          variant="primary"
+                        />
+                      </Box>
+                    </Box>
+                  ) : (
+                    // Regular Display Mode
+                    <Box>
+                      <Box
+                        flexDirection="row"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                        mb="xs"
+                      >
+                        <Box>
+                          <Text variant="body" fontWeight="bold">
+                            {update.type === 'NEW_SKU'
+                              ? `🆕 New SKU: ${update.name}`
+                              : `🔄 Stock Adjustment: ${targetItem?.name || 'Unknown Item'}`}
+                          </Text>
+                          <Text variant="bodySecondary" fontSize={11}>
+                            Submitted by {update.submitted_by} · Warehouse:{' '}
+                            {whName}
+                          </Text>
+                        </Box>
+                        <Box bg="warningBg" px="s" py="xs" borderRadius="s">
+                          <Text
+                            variant="bodySecondary"
+                            color="warningText"
+                            fontSize={10}
+                            fontWeight="bold"
+                          >
+                            PENDING
+                          </Text>
+                        </Box>
+                      </Box>
+
+                      <Box
+                        flexDirection="row"
+                        flexWrap="wrap"
+                        gap="m"
+                        mt="s"
+                        borderTopWidth={1}
+                        borderColor="borderColor"
+                        pt="s"
+                      >
+                        {update.type === 'NEW_SKU' ? (
+                          <>
+                            <Text variant="bodySecondary" fontSize={12}>
+                              SKU: <Text fontWeight="bold">{update.sku}</Text>
+                            </Text>
+                            <Text variant="bodySecondary" fontSize={12}>
+                              Price:{' '}
+                              <Text fontWeight="bold">
+                                K{update.unit_price?.toLocaleString()}
+                              </Text>
+                            </Text>
+                            <Text variant="bodySecondary" fontSize={12}>
+                              Qty:{' '}
+                              <Text fontWeight="bold">
+                                {update.quantity_delta}
+                              </Text>
+                            </Text>
+                          </>
+                        ) : (
+                          <Text variant="bodySecondary" fontSize={12}>
+                            Delta:{' '}
+                            <Text
+                              fontWeight="bold"
+                              color={
+                                update.quantity_delta >= 0
+                                  ? 'successText'
+                                  : 'dangerText'
+                              }
+                            >
+                              {update.quantity_delta >= 0
+                                ? `+${update.quantity_delta}`
+                                : update.quantity_delta}
+                            </Text>
+                          </Text>
+                        )}
+                      </Box>
+
+                      {/* Approval Actions */}
+                      <Box
+                        flexDirection="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        mt="m"
+                      >
+                        <Box>
+                          {!hasApprovePermission && (
+                            <Text
+                              variant="bodySecondary"
+                              color="dangerText"
+                              fontSize={11}
+                              fontWeight="bold"
+                            >
+                              🔒 Geofenced Lock (Go to {whName})
+                            </Text>
+                          )}
+                        </Box>
+                        <Box flexDirection="row" gap="s">
+                          {isManagerOrAdmin && (
+                            <TouchableOpacity
+                              onPress={() => startEditUpdate(update)}
+                              style={{
+                                backgroundColor: theme.colors.secondaryButton,
+                                padding: 8,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <Edit2
+                                size={16}
+                                stroke={theme.colors.secondaryButtonText}
+                              />
+                            </TouchableOpacity>
+                          )}
+                          {isManagerOrAdmin && (
+                            <TouchableOpacity
+                              onPress={() => handleRejectUpdate(update)}
+                              style={{
+                                backgroundColor: '#FEE2E2',
+                                padding: 8,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <X size={16} stroke="#EF4444" />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            onPress={() => handleApproveUpdate(update)}
+                            disabled={!hasApprovePermission}
+                            style={{
+                              backgroundColor: hasApprovePermission
+                                ? '#D1FAE5'
+                                : '#E2E8F0',
+                              paddingVertical: 8,
+                              paddingHorizontal: 12,
+                              borderRadius: 6,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Check
+                              size={16}
+                              stroke={
+                                hasApprovePermission ? '#10B981' : '#94A3B8'
+                              }
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text
+                              variant="body"
+                              fontSize={12}
+                              fontWeight="bold"
+                              style={{
+                                color: hasApprovePermission
+                                  ? '#059669'
+                                  : '#94A3B8',
+                              }}
+                            >
+                              Approve
+                            </Text>
+                          </TouchableOpacity>
+                        </Box>
+                      </Box>
+                    </Box>
+                  )}
+                </Card>
+              );
+            })}
+          </Card>
+        )}
+
         {/* New Item Form Card */}
-        <Box style={{ opacity: isNearShop ? 1 : 0.5 }}>
+        <Box
+          style={{ opacity: geoLockingDisabled || isNearWarehouse ? 1 : 0.5 }}
+        >
           <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
             <Text variant="title" mb="m">
               ➕ {t('registerNewSku')}
@@ -588,10 +1224,16 @@ export function IntakeScreen() {
 
             <Box mt="m" alignItems="flex-end">
               <Button
-                title={isAdding ? t('addingSku') : t('addSkuToCatalog')}
+                title={
+                  isAdding
+                    ? t('addingSku')
+                    : geoLockingDisabled
+                      ? 'Submit SKU for Approval'
+                      : t('addSkuToCatalog')
+                }
                 onPress={handleAddItem}
                 variant="primary"
-                disabled={isAdding || !isNearShop}
+                disabled={isAdding || (!geoLockingDisabled && !isNearWarehouse)}
               />
             </Box>
           </Card>
@@ -669,6 +1311,7 @@ export function IntakeScreen() {
         </Text>
         {items.map((item) => {
           const isLowStock = item.stockQty < 50;
+          const controlsActive = geoLockingDisabled || isNearWarehouse;
           return (
             <Card
               key={item.id}
@@ -721,13 +1364,13 @@ export function IntakeScreen() {
               <Box
                 flexDirection="row"
                 alignItems="center"
-                style={{ opacity: isNearShop ? 1 : 0.5 }}
+                style={{ opacity: controlsActive ? 1 : 0.5 }}
               >
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, -10)}
-                  disabled={!isNearShop}
+                  disabled={!controlsActive}
                   style={{
-                    backgroundColor: isNearShop
+                    backgroundColor: controlsActive
                       ? theme.colors.secondaryButton
                       : '#CBD5E1',
                     width: 32,
@@ -756,9 +1399,9 @@ export function IntakeScreen() {
 
                 <TouchableOpacity
                   onPress={() => handleUpdateStock(item, 10)}
-                  disabled={!isNearShop}
+                  disabled={!controlsActive}
                   style={{
-                    backgroundColor: isNearShop
+                    backgroundColor: controlsActive
                       ? theme.colors.secondaryButton
                       : '#CBD5E1',
                     width: 32,
@@ -797,4 +1440,5 @@ export function IntakeScreen() {
     </Box>
   );
 }
+
 export default IntakeScreen;

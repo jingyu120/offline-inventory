@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Platform, Pressable } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useAuth, REPS } from '../auth/auth';
@@ -6,6 +6,7 @@ import { useToast } from './ToastProvider';
 import { useTranslation } from '../i18n/i18n';
 import { ChevronDown, RefreshCw } from 'lucide-react-native';
 import { ROLE_SCREENS, SCREENS } from '../../config/appConfig';
+import { ThermalGuard, ThermalState } from '../utils/thermalGuard';
 export { ROLE_SCREENS };
 
 interface NavBarProps {
@@ -42,6 +43,16 @@ export const NavBar: React.FC<NavBarProps> = ({
   const { t, language, setLanguage } = useTranslation();
   const [isRepDropdownOpen, setIsRepDropdownOpen] = useState(false);
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
+  const [isThermalDropdownOpen, setIsThermalDropdownOpen] = useState(false);
+  const [thermalState, setThermalState] = useState<ThermalState>(
+    ThermalGuard.getThermalState(),
+  );
+
+  useEffect(() => {
+    return ThermalGuard.subscribe((state) => {
+      setThermalState(state);
+    });
+  }, []);
 
   const getScreenDetails = (
     screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
@@ -237,6 +248,114 @@ export const NavBar: React.FC<NavBarProps> = ({
             {language === 'en' ? '🇲🇲' : '🇬🇧'}
           </Text>
         </Pressable>
+
+        {/* Thermal Throttling Simulator Dropdown */}
+        <Box
+          position="relative"
+          zIndex={10025}
+          overflow="visible"
+          style={{ marginRight: isDesktop ? 12 : 10 }}
+        >
+          <Pressable
+            onPress={() => {
+              setIsThermalDropdownOpen(!isThermalDropdownOpen);
+              setIsRepDropdownOpen(false);
+              setIsNavDropdownOpen(false);
+            }}
+            style={({ pressed, hovered }: any) => {
+              let bg = activeTheme.colors.borderColor;
+              if (thermalState === 'NOMINAL')
+                bg = '#10B981'; // green
+              else if (thermalState === 'FAIR')
+                bg = '#F59E0B'; // yellow
+              else if (thermalState === 'SERIOUS')
+                bg = '#EF4444'; // orange
+              else if (thermalState === 'CRITICAL') bg = '#7F1D1D'; // red/maroon
+              return {
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                borderRadius: 16,
+                backgroundColor: bg,
+                flexDirection: 'row',
+                alignItems: 'center',
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+                cursor: 'pointer',
+                minHeight: isDesktop ? undefined : 32,
+              };
+            }}
+          >
+            <Text style={{ fontSize: 11, color: '#fff', fontWeight: 'bold' }}>
+              🌡️{' '}
+              {t(
+                `thermal${thermalState.charAt(0) + thermalState.slice(1).toLowerCase()}` as any,
+              ) || thermalState}
+            </Text>
+          </Pressable>
+          {isThermalDropdownOpen && (
+            <Box
+              position="absolute"
+              top={35}
+              right={0}
+              bg="cardBackground"
+              borderColor="borderColor"
+              borderWidth={1}
+              borderRadius="m"
+              p="xs"
+              zIndex={99999}
+              style={{
+                minWidth: 150,
+                ...Platform.select({
+                  web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.15)' },
+                  default: { elevation: 5 },
+                }),
+              }}
+            >
+              {(
+                ['NOMINAL', 'FAIR', 'SERIOUS', 'CRITICAL'] as ThermalState[]
+              ).map((state) => {
+                const isSelected = state === thermalState;
+                return (
+                  <Pressable
+                    key={state}
+                    onPress={() => {
+                      ThermalGuard.setThermalState(state);
+                      setIsThermalDropdownOpen(false);
+                      showToast(
+                        `${t('thermalState')}: ${state}`,
+                        state === 'SERIOUS' || state === 'CRITICAL'
+                          ? 'warning'
+                          : 'success',
+                      );
+                    }}
+                    style={({ pressed, hovered }: any) => ({
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: isSelected
+                        ? activeTheme.colors.brandBg
+                        : hovered
+                          ? activeTheme.colors.secondaryBackground
+                          : 'transparent',
+                      borderRadius: 4,
+                      marginBottom: 2,
+                      cursor: 'pointer',
+                    })}
+                  >
+                    <Text
+                      variant="body"
+                      fontWeight={isSelected ? 'bold' : 'normal'}
+                      fontSize={12}
+                      color={isSelected ? 'brand' : 'primaryText'}
+                    >
+                      {t(
+                        `thermal${state.charAt(0) + state.slice(1).toLowerCase()}` as any,
+                      ) || state}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
 
         {/* Theme Toggle Button */}
         <Pressable

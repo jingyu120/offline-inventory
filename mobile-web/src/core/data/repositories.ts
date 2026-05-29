@@ -49,6 +49,8 @@ export const mapShop = (s: any): Shop => ({
   latitude: s.latitude,
   longitude: s.longitude,
   regionId: s.region_id,
+  townshipId: s.township_id,
+  wardId: s.ward_id,
   assignedRepId: s.assigned_rep_id,
   lifetimeValue: s.lifetime_value,
   sentimentTrend: s.sentiment_trend,
