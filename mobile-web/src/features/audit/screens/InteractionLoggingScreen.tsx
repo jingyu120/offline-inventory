@@ -28,6 +28,7 @@ import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 import { scannerThrottle } from '../../../core/utils/ScannerThrottle';
 import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
+import { ActorService } from '../../../core/auth/ActorService';
 import { useCartStore, defaultSession } from '../../../core/store/cartStore';
 import { API_BASE_URL } from '../../../config/appConfig';
 import { AlertTriangle } from 'lucide-react-native';
@@ -106,6 +107,15 @@ export function InteractionLoggingScreen({
   const [ocrVerifying, setOcrVerifying] = useState(false);
   const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const [traceId, setTraceId] = useState('');
+
+  const generateUUIDv4 = (): string => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
 
   const [annotationModalVisible, setAnnotationModalVisible] = useState(false);
   const [pendingAnnotationUri, setPendingAnnotationUri] = useState<
@@ -125,6 +135,7 @@ export function InteractionLoggingScreen({
     if (!shop || !activeRep) return;
     try {
       if (session.selectedItems.length > 0) {
+        if (!traceId) setTraceId(generateUUIDv4());
         setIsDraftLoaded(true);
         return;
       }
@@ -142,14 +153,17 @@ export function InteractionLoggingScreen({
           selectedCurrency: draft.currency,
           selectedProjectId: draft.project_id,
         });
+        setTraceId((draft as any).trace_id || generateUUIDv4());
         setIsDraftLoaded(true);
       } else {
         resetForm();
+        setTraceId(generateUUIDv4());
         setIsDraftLoaded(true);
       }
     } catch (e) {
       console.error('Failed to load draft cart:', e);
       resetForm();
+      setTraceId(generateUUIDv4());
       setIsDraftLoaded(true);
     }
   };
@@ -330,8 +344,13 @@ export function InteractionLoggingScreen({
             currency: selectedCurrency,
             project_id: selectedProjectId,
             items_json: JSON.stringify(selectedItems),
+            trace_id: traceId || null,
+            actor_id: ActorService.getActorId(),
+            executed_by_id: ActorService.getActorId(),
+            salesperson_id: activeRep.id,
+            approved_by_id: null,
             updated_at: Math.floor(Date.now() / 1000),
-          });
+          } as any);
         }
       } catch (e) {
         console.error('[Draft Cart] Failed to auto-save draft cart:', e);
@@ -346,6 +365,7 @@ export function InteractionLoggingScreen({
     isDraftLoaded,
     shop,
     activeRep,
+    traceId,
   ]);
 
   useEffect(() => {
@@ -648,6 +668,8 @@ export function InteractionLoggingScreen({
         null,
         validatedItems,
         selectedProjectId,
+        traceId || undefined,
+        ActorService.getActorId(),
       );
 
       // After successfully creating interaction log, delete the draft cart
@@ -666,7 +688,12 @@ export function InteractionLoggingScreen({
 
       if (screenshotUri) {
         // Enqueue the image upload task locally and trigger queue processing.
-        await ImageUploadQueue.enqueueImage(logId, screenshotUri);
+        await ImageUploadQueue.enqueueImage(
+          logId,
+          screenshotUri,
+          traceId || undefined,
+          ActorService.getActorId(),
+        );
       }
 
       Alert.alert(t('success'), t('interactionSaved'));

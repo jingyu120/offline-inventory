@@ -10,6 +10,7 @@ import {
   Item,
   ItemStock,
   DailyQuota,
+  ExpectedInbound,
   guardAsync,
 } from '@burma-inventory/shared-types';
 
@@ -89,6 +90,7 @@ export const mapItem = (i: any): Item => ({
   baseWholesalePrice: i.base_wholesale_price,
   baseCurrency: i.base_currency,
   volumeDiscountBrackets: i.volume_discount_brackets,
+  inventoryStatus: i.inventory_status,
   createdAt: i.created_at,
   updatedAt: i.updated_at,
 });
@@ -107,6 +109,9 @@ export const mapInteractionLog = (l: any): InteractionLog => ({
   syncedAtServer: l.synced_at_server,
   isOfflineEntry: !!l.is_offline_entry,
   deviceId: l.device_id,
+  executedById: l.executed_by_id,
+  salespersonId: l.salesperson_id,
+  approvedById: l.approved_by_id,
   createdAt: l.created_at,
   updatedAt: l.updated_at,
 });
@@ -145,6 +150,7 @@ export const mapItemStock = (s: any): ItemStock => ({
   itemId: s.item_id,
   quantity: s.quantity,
   pendingAllocationCount: s.pending_allocation_count ?? 0,
+  inventoryStatus: s.inventory_status,
   createdAt: s.created_at,
   updatedAt: s.updated_at,
 });
@@ -325,6 +331,9 @@ export const getConversionMultiplier = (
   }
 };
 
+import { getDeviceId } from '../storage/platformStorage';
+import { writeAuditEvent } from '../utils/audit';
+
 export const createInteractionLog = async (
   shopId: string,
   repId: string,
@@ -334,15 +343,19 @@ export const createInteractionLog = async (
   screenshotUri: string | null,
   selectedItems: SelectedItemPayload[],
   projectId: string | null = null,
+  traceId?: string,
+  actorId?: string,
 ): Promise<string> => {
   let newLogId = '';
   const [, error] = await guardAsync(
-    (async () => {
+    database.transaction(async (tx) => {
       const now = Date.now();
       newLogId = generateId();
+      const deviceId = await getDeviceId();
+      const activeActor = actorId || repId || 'system';
 
       // Insert Interaction Log
-      await database.insert(sqliteSchema.interaction_logs).values({
+      const incomingLog = {
         id: newLogId,
         shop_id: shopId,
         rep_id: repId,
@@ -353,10 +366,14 @@ export const createInteractionLog = async (
         viber_screenshot_url: screenshotUri || null,
         created_at_local: now,
         is_offline_entry: true,
-        device_id: 'dev-1',
+        device_id: deviceId,
+        executed_by_id: activeActor,
+        salesperson_id: repId,
+        approved_by_id: null,
         created_at: now,
         updated_at: now,
-      });
+      };
+      await tx.insert(sqliteSchema.interaction_logs).values(incomingLog);
 
       // Insert Interaction Items (with conversions, bypassing stock subtraction)
       for (const selected of selectedItems) {
@@ -374,7 +391,7 @@ export const createInteractionLog = async (
             : selected.item.unitPrice * multiplier;
         const baseUnitPriceAtSale = negotiatedPrice / multiplier;
 
-        await database.insert(sqliteSchema.interaction_items).values({
+        await tx.insert(sqliteSchema.interaction_items).values({
           id: newiiId,
           interaction_log_id: newLogId,
           item_id: selected.item.id,
@@ -389,11 +406,26 @@ export const createInteractionLog = async (
           created_at: now,
           updated_at: now,
         });
-
-        // NOTE: Stock ledger subtraction bypassed in this phase.
-        // Orders are treated purely as 'Requested Bookings' or sales leads.
       }
-    })(),
+
+      // Simultaneously commit a row to AuditEvents within this transaction
+      await writeAuditEvent(tx, {
+        event_id: `evt-${generateId()}`,
+        trace_id: traceId || null,
+        actor_id: activeActor,
+        device_id: deviceId,
+        entity_type: 'ORDER',
+        action: 'CREATE',
+        previous_state: null,
+        new_state: JSON.stringify(incomingLog),
+        gps_coordinates: null,
+        created_at: now,
+        shop_id: shopId,
+        executed_by_id: activeActor,
+        salesperson_id: repId,
+        approved_by_id: null,
+      });
+    }),
   );
 
   if (error) {
@@ -464,4 +496,19 @@ export const applyQuotaAdjustments = async (
   }
 
   return fetchDailyQuotas();
+};
+
+export const mapExpectedInbound = (ei: any): ExpectedInbound => ({
+  id: ei.id,
+  sku: ei.sku,
+  expectedQuantity: ei.expected_quantity,
+  origin: ei.origin,
+  estimatedArrivalDate: ei.estimated_arrival_date,
+  createdAt: ei.created_at,
+  updatedAt: ei.updated_at,
+});
+
+export const fetchExpectedInbounds = async (): Promise<ExpectedInbound[]> => {
+  const list = await database.select().from(sqliteSchema.expected_inbounds);
+  return list.map(mapExpectedInbound);
 };

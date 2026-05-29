@@ -75,6 +75,10 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
     );
   };
 
+  const filteredAvailableItems = availableItems.filter(
+    (item) => item.inventoryStatus === 'AVAILABLE' || !item.inventoryStatus,
+  );
+
   return (
     <Box>
       <Text variant="title" mb="s">
@@ -97,7 +101,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         onChangeText={setSkuSearch}
       />
       <Box style={{ height: 180 }} mb="m">
-        {availableItems.length === 0 ? (
+        {filteredAvailableItems.length === 0 ? (
           <Box p="s">
             <SkeletonRow height={45} width="100%" />
             <Box height={8} />
@@ -107,7 +111,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
           </Box>
         ) : (
           <FlashList
-            data={availableItems}
+            data={filteredAvailableItems}
             keyExtractor={(item) => item.id}
             estimatedItemSize={75}
             renderItem={({ item }) => {

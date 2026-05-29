@@ -97,6 +97,7 @@ describe('shared-types', () => {
         base_wholesale_price: 5.5,
         base_currency: 'USD',
         volume_discount_brackets: '[{"quantity": 10, "discount_percent": 5}]',
+        inventory_status: 'AVAILABLE',
         created_at: 10000,
         updated_at: 10000,
       };
@@ -121,6 +122,9 @@ describe('shared-types', () => {
         synced_at_server: null,
         is_offline_entry: true,
         device_id: 'dev-1',
+        executed_by_id: null,
+        salesperson_id: null,
+        approved_by_id: null,
         created_at: 10000,
         updated_at: 10000,
       };

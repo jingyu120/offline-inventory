@@ -10,6 +10,7 @@ import { DrizzleService } from '../../core/drizzle';
 import { AppConfig } from '../../core/config/app-config';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import axios from 'axios';
 import { guardAsync } from '@burma-inventory/shared-types';
 import * as schema from '@burma-inventory/shared-types';
@@ -783,6 +784,8 @@ No markdown tags like \`\`\`json, no explanations.`;
   async processScreenshot(
     logId: string,
     filePath?: string,
+    traceId?: string,
+    actorId?: string,
     quantization?: string,
   ) {
     this.logger.log(
@@ -924,13 +927,81 @@ Return ONLY raw JSON. Do not include any markdown fences or comments.`;
       }
     }
 
-    await this.drizzle.db
-      .update(schema.pgSchema.interaction_logs)
-      .set({
+    await this.drizzle.db.transaction(async (tx) => {
+      await tx
+        .update(schema.pgSchema.interaction_logs)
+        .set({
+          ai_verification_status: status,
+          ai_verification_notes: explanation,
+        })
+        .where(eq(schema.pgSchema.interaction_logs.id, logId));
+
+      const lastEvents = await tx
+        .select({ hash: schema.pgSchema.audit_events.hash })
+        .from(schema.pgSchema.audit_events)
+        .orderBy(desc(schema.pgSchema.audit_events.created_at))
+        .limit(1);
+
+      const prevHash =
+        lastEvents.length > 0 && lastEvents[0].hash
+          ? lastEvents[0].hash
+          : 'genesis';
+      const timestamp = Date.now().toString().padStart(15, '0');
+      const randomSuffix = crypto.randomBytes(8).toString('hex');
+      const eventId = `evt-srv-${timestamp}-${randomSuffix}`;
+      const now = Date.now();
+
+      const resolvedActorId = actorId || 'system';
+      const resolvedDeviceId = 'system-device';
+
+      const updatedLog = {
+        ...log,
         ai_verification_status: status,
         ai_verification_notes: explanation,
-      })
-      .where(eq(schema.pgSchema.interaction_logs.id, logId));
+      };
+
+      const eventData = {
+        event_id: eventId,
+        trace_id: traceId || null,
+        actor_id: resolvedActorId,
+        device_id: resolvedDeviceId,
+        entity_type: 'ORDER',
+        action: 'UPDATE',
+        previous_state: JSON.stringify(log),
+        new_state: JSON.stringify(updatedLog),
+        gps_coordinates: null,
+        created_at: now,
+      };
+
+      const dataToHash =
+        JSON.stringify({
+          event_id: eventData.event_id,
+          trace_id: eventData.trace_id,
+          entity_type: eventData.entity_type,
+          action: eventData.action,
+          previous_state: eventData.previous_state,
+          new_state: eventData.new_state,
+          gps_coordinates: eventData.gps_coordinates,
+          created_at: Number(eventData.created_at),
+        }) +
+        '|' +
+        resolvedActorId +
+        '|' +
+        prevHash;
+
+      const computedHash = crypto
+        .createHash('sha256')
+        .update(dataToHash)
+        .digest('hex');
+
+      await tx.insert(schema.pgSchema.audit_events).values({
+        ...eventData,
+        previous_state: log, // PG jsonb
+        new_state: updatedLog, // PG jsonb
+        hash: computedHash,
+        status: 'VALID',
+      });
+    });
 
     this.logger.log(
       `Completed screenshot audit for logId: ${logId}. Status: ${status}, Notes: ${explanation}`,

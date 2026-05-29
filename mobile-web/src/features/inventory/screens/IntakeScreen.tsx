@@ -16,6 +16,7 @@ import {
   DropdownSelector,
 } from '@burma-inventory/ui-components';
 import { ImageAnnotationModal } from '../components/ImageAnnotationModal';
+import { InboundForecastList } from '../components/InboundForecastList';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from '@burma-inventory/ui-components';
 import { database } from '../../../core/database/database';
@@ -392,6 +393,7 @@ export function IntakeScreen() {
             .update(sqliteSchema.item_stocks)
             .set({
               quantity: Math.max(0, record.quantity + delta),
+              inventory_status: 'PENDING_APPROVAL',
               updated_at: now,
             })
             .where(eq(sqliteSchema.item_stocks.id, record.id));
@@ -401,6 +403,7 @@ export function IntakeScreen() {
             id: stockId,
             item_id: item.id,
             quantity: Math.max(0, delta),
+            inventory_status: 'PENDING_APPROVAL',
             created_at: now,
             updated_at: now,
           });
@@ -492,6 +495,7 @@ export function IntakeScreen() {
           name: name,
           unit_price: parsedPrice,
           category: category,
+          inventory_status: 'PENDING_APPROVAL',
           created_at: now,
           updated_at: now,
         });
@@ -501,6 +505,7 @@ export function IntakeScreen() {
           id: newStockId,
           item_id: newItemId,
           quantity: Math.max(0, parsedStock),
+          inventory_status: 'PENDING_APPROVAL',
           created_at: now,
           updated_at: now,
         });
@@ -556,6 +561,7 @@ export function IntakeScreen() {
                   0,
                   record.quantity + (update.quantity_delta || 0),
                 ),
+                inventory_status: 'AVAILABLE',
                 updated_at: now,
               })
               .where(eq(sqliteSchema.item_stocks.id, record.id));
@@ -565,6 +571,7 @@ export function IntakeScreen() {
               id: stockId,
               item_id: update.item_id,
               quantity: Math.max(0, update.quantity_delta || 0),
+              inventory_status: 'AVAILABLE',
               created_at: now,
               updated_at: now,
             });
@@ -580,6 +587,7 @@ export function IntakeScreen() {
             name: update.name || '',
             unit_price: update.unit_price || 0,
             category: update.category || '',
+            inventory_status: 'AVAILABLE',
             created_at: now,
             updated_at: now,
           });
@@ -589,6 +597,7 @@ export function IntakeScreen() {
             id: newStockId,
             item_id: newItemId,
             quantity: Math.max(0, update.quantity_delta || 0),
+            inventory_status: 'AVAILABLE',
             created_at: now,
             updated_at: now,
           });
@@ -883,6 +892,9 @@ export function IntakeScreen() {
             </Box>
           )}
         </Card>
+
+        {/* Inbound Forecast List */}
+        <InboundForecastList />
 
         {/* Pending Approvals Queue Panel */}
         {pendingUpdates.length > 0 && (

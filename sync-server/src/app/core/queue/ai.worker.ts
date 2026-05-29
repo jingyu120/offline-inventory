@@ -17,8 +17,13 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
         console.log(`[AiWorker] Processing job ${job.id} (${name})`);
         try {
           if (name === 'process-screenshot') {
-            const { interactionLogId, filePath } = data;
-            await this.aiService.processScreenshot(interactionLogId, filePath);
+            const { interactionLogId, filePath, traceId, actorId } = data;
+            await this.aiService.processScreenshot(
+              interactionLogId,
+              filePath,
+              traceId,
+              actorId,
+            );
           } else if (name === 'eod-digest') {
             const { dateStr } = data;
             await this.aiService.generateEodDigest(dateStr);

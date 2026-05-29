@@ -27,6 +27,8 @@ import { trpcClient } from '../../../core/trpc/trpcClient';
 import { SKU_METRICS } from '../../../config/appConfig';
 import { HitlVerificationPanel } from '../components/HitlVerificationPanel';
 import { DlqDashboard } from '../components/DlqDashboard';
+import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
+import { PendingSalesApproval } from '../components/PendingSalesApproval';
 import { TouchableOpacity } from 'react-native';
 
 export const TeamPulseScreen: React.FC = () => {
@@ -68,9 +70,9 @@ export const TeamPulseScreen: React.FC = () => {
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<'oversight' | 'hitl' | 'dlq'>(
-    'oversight',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'oversight' | 'hitl' | 'dlq' | 'approvals'
+  >('oversight');
 
   // Focus states for emerald focus rings on inputs
   const [dateFocused, setDateFocused] = useState(false);
@@ -228,11 +230,41 @@ export const TeamPulseScreen: React.FC = () => {
             </Text>
           </Box>
         </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setActiveTab('approvals')}>
+          <Box
+            py="s"
+            px="m"
+            borderBottomWidth={2}
+            borderBottomColor={
+              activeTab === 'approvals' ? 'brand' : 'transparent'
+            }
+          >
+            <Text
+              variant="body"
+              fontWeight="bold"
+              color={activeTab === 'approvals' ? 'brand' : 'secondaryText'}
+            >
+              Approvals
+            </Text>
+          </Box>
+        </TouchableOpacity>
       </Box>
 
       {activeTab === 'hitl' && <HitlVerificationPanel shops={shops} />}
 
       {activeTab === 'dlq' && <DlqDashboard />}
+
+      {activeTab === 'approvals' && (
+        <Box flexDirection={isDesktop ? 'row' : 'column'} gap="m" mb="m">
+          <Box flex={1}>
+            <PendingIntakeApproval />
+          </Box>
+          <Box flex={1}>
+            <PendingSalesApproval />
+          </Box>
+        </Box>
+      )}
 
       {activeTab === 'oversight' && (
         <>

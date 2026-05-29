@@ -408,6 +408,33 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS audit_events (
+        event_id TEXT PRIMARY KEY NOT NULL,
+        trace_id TEXT,
+        actor_id TEXT,
+        device_id TEXT,
+        entity_type TEXT NOT NULL,
+        action TEXT NOT NULL,
+        previous_state TEXT,
+        new_state TEXT,
+        gps_coordinates TEXT,
+        hash TEXT,
+        status TEXT NOT NULL DEFAULT 'VALID',
+        created_at INTEGER NOT NULL,
+        shop_id TEXT,
+        executed_by_id TEXT,
+        salesperson_id TEXT,
+        approved_by_id TEXT
+      );
+      CREATE TABLE IF NOT EXISTS expected_inbounds (
+        id TEXT PRIMARY KEY NOT NULL,
+        sku TEXT NOT NULL,
+        expected_quantity INTEGER NOT NULL,
+        origin TEXT NOT NULL DEFAULT 'Thailand',
+        estimated_arrival_date TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Run table creation as migration as well in case DB is already initialized
@@ -426,6 +453,33 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         status TEXT NOT NULL DEFAULT 'PENDING',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS expected_inbounds (
+        id TEXT PRIMARY KEY NOT NULL,
+        sku TEXT NOT NULL,
+        expected_quantity INTEGER NOT NULL,
+        origin TEXT NOT NULL DEFAULT 'Thailand',
+        estimated_arrival_date TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS audit_events (
+        event_id TEXT PRIMARY KEY NOT NULL,
+        trace_id TEXT,
+        actor_id TEXT,
+        device_id TEXT,
+        entity_type TEXT NOT NULL,
+        action TEXT NOT NULL,
+        previous_state TEXT,
+        new_state TEXT,
+        gps_coordinates TEXT,
+        hash TEXT,
+        status TEXT NOT NULL DEFAULT 'VALID',
+        created_at INTEGER NOT NULL,
+        shop_id TEXT,
+        executed_by_id TEXT,
+        salesperson_id TEXT,
+        approved_by_id TEXT
       );
     `);
 
@@ -493,6 +547,30 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
     alterTable('shops', 'ward_id', 'TEXT');
     alterTable('items', 'deleted_at', 'INTEGER');
     alterTable('projects', 'deleted_at', 'INTEGER');
+    alterTable('draft_carts', 'trace_id', 'TEXT');
+    alterTable('draft_carts', 'actor_id', 'TEXT');
+    alterTable('image_upload_queue', 'trace_id', 'TEXT');
+    alterTable('image_upload_queue', 'actor_id', 'TEXT');
+    alterTable(
+      'items',
+      'inventory_status',
+      "TEXT NOT NULL DEFAULT 'AVAILABLE'",
+    );
+    alterTable(
+      'item_stocks',
+      'inventory_status',
+      "TEXT NOT NULL DEFAULT 'AVAILABLE'",
+    );
+    alterTable('interaction_logs', 'executed_by_id', 'TEXT');
+    alterTable('interaction_logs', 'salesperson_id', 'TEXT');
+    alterTable('interaction_logs', 'approved_by_id', 'TEXT');
+    alterTable('audit_events', 'shop_id', 'TEXT');
+    alterTable('audit_events', 'executed_by_id', 'TEXT');
+    alterTable('audit_events', 'salesperson_id', 'TEXT');
+    alterTable('audit_events', 'approved_by_id', 'TEXT');
+    alterTable('draft_carts', 'executed_by_id', 'TEXT');
+    alterTable('draft_carts', 'salesperson_id', 'TEXT');
+    alterTable('draft_carts', 'approved_by_id', 'TEXT');
 
     // Check if shops table is empty
     let isEmpty = true;

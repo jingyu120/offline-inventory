@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DrizzleService } from '../../core/drizzle';
 import { guardAsync } from '@burma-inventory/shared-types';
 import { AiService } from '../ai/ai.service';
+import { ActorService } from '../../core/auth/actor.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -232,6 +233,40 @@ const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     toRecord: (w) => w,
     toDrizzle: (w) => w,
   },
+  audit_events: {
+    delegate: 'audit_events',
+    softDelete: false,
+    hasTimestamps: false,
+    toRecord: (r) => ({
+      ...r,
+      previous_state:
+        typeof r.previous_state === 'string'
+          ? r.previous_state
+          : JSON.stringify(r.previous_state),
+      new_state:
+        typeof r.new_state === 'string'
+          ? r.new_state
+          : JSON.stringify(r.new_state),
+    }),
+    toDrizzle: (r) => ({
+      ...r,
+      previous_state:
+        typeof r.previous_state === 'string' && r.previous_state
+          ? JSON.parse(r.previous_state)
+          : r.previous_state,
+      new_state:
+        typeof r.new_state === 'string' && r.new_state
+          ? JSON.parse(r.new_state)
+          : r.new_state,
+    }),
+  },
+  expected_inbounds: {
+    delegate: 'expected_inbounds',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
+  },
 };
 
 @Injectable()
@@ -241,7 +276,92 @@ export class SyncService {
   constructor(
     private readonly drizzle: DrizzleService,
     private readonly aiService: AiService,
+    private readonly actorService: ActorService,
   ) {}
+
+  async getLastAuditEvent() {
+    const lastEvents = await this.drizzle.readDb
+      .select()
+      .from(schema.pgSchema.audit_events)
+      .orderBy(desc(schema.pgSchema.audit_events.created_at))
+      .limit(1);
+    return lastEvents[0] || null;
+  }
+
+  calculateEventHash(event: any, actorId: string, prevHash: string): string {
+    const dataToHash =
+      JSON.stringify({
+        event_id: event.event_id,
+        trace_id: event.trace_id,
+        entity_type: event.entity_type,
+        action: event.action,
+        previous_state:
+          typeof event.previous_state === 'string'
+            ? event.previous_state
+            : JSON.stringify(event.previous_state),
+        new_state:
+          typeof event.new_state === 'string'
+            ? event.new_state
+            : JSON.stringify(event.new_state),
+        gps_coordinates: event.gps_coordinates,
+        created_at: Number(event.created_at),
+      }) +
+      '|' +
+      actorId +
+      '|' +
+      prevHash;
+
+    return crypto.createHash('sha256').update(dataToHash).digest('hex');
+  }
+
+  async commitAuditEvent(
+    tx: any,
+    entityType: 'ORDER' | 'SHOP' | 'INVENTORY',
+    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'OVERRIDE',
+    previousState: any,
+    newState: any,
+  ) {
+    const actorId = this.actorService.getActorId();
+    const deviceId = this.actorService.getDeviceId();
+    const traceId = this.actorService.getTraceId() || null;
+
+    const lastEvents = await tx
+      .select({ hash: schema.pgSchema.audit_events.hash })
+      .from(schema.pgSchema.audit_events)
+      .orderBy(desc(schema.pgSchema.audit_events.created_at))
+      .limit(1);
+
+    const prevHash =
+      lastEvents.length > 0 && lastEvents[0].hash
+        ? lastEvents[0].hash
+        : 'genesis';
+    const eventId = `evt-srv-${this.generateSequentialId()}`;
+    const now = Date.now();
+
+    const eventData = {
+      event_id: eventId,
+      trace_id: traceId,
+      actor_id: actorId,
+      device_id: deviceId,
+      entity_type: entityType,
+      action: action,
+      previous_state: previousState ? JSON.stringify(previousState) : null,
+      new_state: newState ? JSON.stringify(newState) : null,
+      gps_coordinates:
+        newState?.gps_coordinates || previousState?.gps_coordinates || null,
+      created_at: now,
+    };
+
+    const hash = this.calculateEventHash(eventData, actorId, prevHash);
+
+    await tx.insert(schema.pgSchema.audit_events).values({
+      ...eventData,
+      previous_state: previousState, // PG jsonb
+      new_state: newState, // PG jsonb
+      hash,
+      status: 'VALID',
+    });
+  }
 
   private generateSequentialId(): string {
     const timestamp = Date.now().toString().padStart(15, '0');
@@ -383,6 +503,38 @@ export class SyncService {
         (c.deleted?.length || 0);
     }
 
+    if (changes && (changes as any).audit_events) {
+      const auditEvents = (changes as any).audit_events;
+      if (auditEvents.created && auditEvents.created.length > 0) {
+        const sorted = [...auditEvents.created].sort(
+          (a, b) => a.created_at - b.created_at,
+        );
+        for (let i = 0; i < sorted.length; i++) {
+          const event = sorted[i];
+          let prevHash = 'genesis';
+          if (i > 0) {
+            prevHash = sorted[i - 1].hash || 'genesis';
+          } else {
+            const lastDbEvent = await this.getLastAuditEvent();
+            if (lastDbEvent) {
+              prevHash = lastDbEvent.hash || 'genesis';
+            }
+          }
+          const computedHash = this.calculateEventHash(
+            event,
+            event.actor_id || 'system',
+            prevHash,
+          );
+          if (computedHash !== event.hash) {
+            this.logger.error(
+              `[Audit Hash Chain Broken] Event ${event.event_id} has hash ${event.hash} but expected ${computedHash}`,
+            );
+            event.status = 'COMPROMISED';
+          }
+        }
+      }
+    }
+
     const [, error] = await guardAsync(
       this.drizzle.db.transaction(async (tx) => {
         for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
@@ -400,6 +552,19 @@ export class SyncService {
               .insert(table)
               .values(changeset.created.map(cfg.toDrizzle))
               .onConflictDoNothing();
+
+            if (tableName === 'shops' || tableName === 'interaction_logs') {
+              const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+              for (const record of changeset.created) {
+                await this.commitAuditEvent(
+                  tx,
+                  entityType,
+                  'CREATE',
+                  null,
+                  record,
+                );
+              }
+            }
           }
 
           // Updates
@@ -420,6 +585,17 @@ export class SyncService {
                     `Could not create missing update record ${record.id}: ${err.message}`,
                   );
                 });
+
+              if (tableName === 'shops' || tableName === 'interaction_logs') {
+                const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+                await this.commitAuditEvent(
+                  tx,
+                  entityType,
+                  'CREATE',
+                  null,
+                  incomingDrizzle,
+                );
+              }
               continue;
             }
 
@@ -427,10 +603,22 @@ export class SyncService {
             const existingTime = existing.updated_at || 0;
 
             if (incomingTime > existingTime) {
+              const prev = { ...existing };
               await tx
                 .update(table)
                 .set(incomingDrizzle)
                 .where(eq(table.id, record.id));
+
+              if (tableName === 'shops' || tableName === 'interaction_logs') {
+                const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+                await this.commitAuditEvent(
+                  tx,
+                  entityType,
+                  'UPDATE',
+                  prev,
+                  incomingDrizzle,
+                );
+              }
             } else {
               const patchData: Record<string, any> = {};
               for (const [key, val] of Object.entries(incomingDrizzle)) {
@@ -449,16 +637,47 @@ export class SyncService {
               patchData.updated_at = existing.updated_at;
 
               if (Object.keys(patchData).length > 1) {
+                const prev = { ...existing };
                 await tx
                   .update(table)
                   .set(patchData)
                   .where(eq(table.id, record.id));
+
+                if (tableName === 'shops' || tableName === 'interaction_logs') {
+                  const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+                  const updatedRecord = { ...existing, ...patchData };
+                  await this.commitAuditEvent(
+                    tx,
+                    entityType,
+                    'UPDATE',
+                    prev,
+                    updatedRecord,
+                  );
+                }
               }
             }
           }
 
           // Deletes
           if (changeset.deleted.length > 0) {
+            if (tableName === 'shops' || tableName === 'interaction_logs') {
+              const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+              for (const id of changeset.deleted) {
+                const existingRows = await tx
+                  .select()
+                  .from(table)
+                  .where(eq(table.id, id));
+                const existing = existingRows[0] || null;
+                await this.commitAuditEvent(
+                  tx,
+                  entityType,
+                  'DELETE',
+                  existing,
+                  null,
+                );
+              }
+            }
+
             if (cfg.softDelete) {
               await tx
                 .update(table)
@@ -613,11 +832,15 @@ export class SyncService {
           this.logger.log(
             `Post-push hook matched file ${filename} for log ${logId}. Starting audit...`,
           );
-          this.aiService.processScreenshot(logId, filePath).catch((err) => {
-            this.logger.error(
-              `Error processing screenshot for pushed log ${logId}: ${err.message}`,
-            );
-          });
+          const traceId = this.actorService.getTraceId();
+          const actorId = this.actorService.getActorId();
+          this.aiService
+            .processScreenshot(logId, filePath, traceId, actorId)
+            .catch((err) => {
+              this.logger.error(
+                `Error processing screenshot for pushed log ${logId}: ${err.message}`,
+              );
+            });
         }
       }
     }

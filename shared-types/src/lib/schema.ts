@@ -6,6 +6,7 @@ import {
   doublePrecision,
   bigint,
   index,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -96,6 +97,7 @@ export const items = pgTable(
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
     deleted_at: bigint('deleted_at', { mode: 'number' }),
+    inventory_status: text('inventory_status').notNull().default('AVAILABLE'),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
@@ -114,6 +116,7 @@ export const item_stocks = pgTable(
     created_at: bigint('created_at', { mode: 'number' }).notNull(),
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
     deleted_at: bigint('deleted_at', { mode: 'number' }),
+    inventory_status: text('inventory_status').notNull().default('AVAILABLE'),
   },
   (table) => ({
     itemIdIdx: index('item_stocks_item_id_idx').on(table.item_id),
@@ -141,6 +144,9 @@ export const interaction_logs = pgTable(
     deleted_at: bigint('deleted_at', { mode: 'number' }),
     ai_verification_status: text('ai_verification_status'),
     ai_verification_notes: text('ai_verification_notes'),
+    executed_by_id: text('executed_by_id'),
+    salesperson_id: text('salesperson_id'),
+    approved_by_id: text('approved_by_id'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -532,3 +538,32 @@ export const wards = pgTable(
     townshipIdIdx: index('wards_township_id_idx').on(table.township_id),
   }),
 );
+
+export const audit_events = pgTable('audit_events', {
+  event_id: text('event_id').primaryKey(),
+  trace_id: text('trace_id'),
+  actor_id: text('actor_id'), // UUID string
+  device_id: text('device_id'), // UUID string
+  entity_type: text('entity_type').notNull(), // 'ORDER', 'SHOP', 'INVENTORY'
+  action: text('action').notNull(), // 'CREATE', 'UPDATE', 'DELETE', 'OVERRIDE'
+  previous_state: jsonb('previous_state'),
+  new_state: jsonb('new_state'),
+  gps_coordinates: text('gps_coordinates'),
+  hash: text('hash'),
+  status: text('status').notNull().default('VALID'),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+  shop_id: text('shop_id'),
+  executed_by_id: text('executed_by_id'),
+  salesperson_id: text('salesperson_id'),
+  approved_by_id: text('approved_by_id'),
+});
+
+export const expected_inbounds = pgTable('expected_inbounds', {
+  id: text('id').primaryKey(),
+  sku: text('sku').notNull(),
+  expected_quantity: integer('expected_quantity').notNull(),
+  origin: text('origin').notNull().default('Thailand'),
+  estimated_arrival_date: text('estimated_arrival_date').notNull(),
+  created_at: bigint('created_at', { mode: 'number' }).notNull(),
+  updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+});

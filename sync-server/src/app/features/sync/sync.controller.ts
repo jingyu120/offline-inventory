@@ -124,6 +124,7 @@ export class SyncController {
   @UseInterceptors(FileInterceptor('file', { storage }))
   async uploadFile(
     @UploadedFile() file: any,
+    @Req() req: any,
     @Body('interactionLogId') interactionLogId?: string,
     @Body('competitorInsightId') competitorInsightId?: string,
   ) {
@@ -152,8 +153,15 @@ export class SyncController {
     );
 
     // Trigger local asynchronous multimodal screenshot auditing via BullMQ
+    const traceId = req.traceId || req.headers?.['x-trace-id'];
+    const actorId = req.actorId || req.headers?.['x-actor-id'] || 'system';
     const fullPath = join(process.cwd(), this.config.uploadsDir, file.filename);
-    await this.aiQueueService.addScreenshotJob(interactionLogId, fullPath);
+    await this.aiQueueService.addScreenshotJob(
+      interactionLogId,
+      fullPath,
+      traceId,
+      actorId,
+    );
 
     return { success: true, viberScreenshotUrl: url };
   }

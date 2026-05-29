@@ -79,6 +79,7 @@ export interface ItemRecord {
   base_wholesale_price?: number | null;
   base_currency?: string | null;
   volume_discount_brackets?: string | null;
+  inventory_status: string;
   created_at: number;
   updated_at: number;
 }
@@ -97,6 +98,9 @@ export interface InteractionLogRecord {
   synced_at_server: number | null;
   is_offline_entry: boolean;
   device_id: string;
+  executed_by_id?: string | null;
+  salesperson_id?: string | null;
+  approved_by_id?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -135,6 +139,7 @@ export interface ItemStockRecord {
   item_id: string;
   quantity: number;
   pending_allocation_count: number;
+  inventory_status: string;
   created_at: number;
   updated_at: number;
 }
@@ -299,6 +304,25 @@ export interface PendingInventoryUpdateRecord {
   updated_at: number;
 }
 
+export interface AuditEventRecord {
+  event_id: string;
+  trace_id: string | null;
+  actor_id: string | null;
+  device_id: string | null;
+  entity_type: string;
+  action: string;
+  previous_state: string | null;
+  new_state: string | null;
+  gps_coordinates: string | null;
+  hash: string | null;
+  status: string;
+  shop_id?: string | null;
+  executed_by_id?: string | null;
+  salesperson_id?: string | null;
+  approved_by_id?: string | null;
+  created_at: number;
+}
+
 // ─── Zod Validation Schemas ─────────────────────────────────────────
 
 export const RegionRecordSchema = z.object({
@@ -356,6 +380,7 @@ export const ItemRecordSchema = z.object({
   base_wholesale_price: z.number().nullable().optional(),
   base_currency: z.string().nullable().optional(),
   volume_discount_brackets: z.string().nullable().optional(),
+  inventory_status: z.string().default('AVAILABLE'),
   created_at: z.number(),
   updated_at: z.number(),
 });
@@ -374,6 +399,9 @@ export const InteractionLogRecordSchema = z.object({
   synced_at_server: z.number().nullable(),
   is_offline_entry: z.boolean().default(false),
   device_id: z.string(),
+  executed_by_id: z.string().nullable().optional(),
+  salesperson_id: z.string().nullable().optional(),
+  approved_by_id: z.string().nullable().optional(),
   created_at: z.number(),
   updated_at: z.number(),
   ai_verification_status: z.string().nullable().optional(),
@@ -414,6 +442,7 @@ export const ItemStockRecordSchema = z.object({
   item_id: z.string(),
   quantity: z.number().int().nonnegative().default(0),
   pending_allocation_count: z.number().int().nonnegative().default(0),
+  inventory_status: z.string().default('AVAILABLE'),
   created_at: z.number(),
   updated_at: z.number(),
 });
@@ -596,6 +625,25 @@ export const PendingInventoryUpdateRecordSchema = z.object({
   updated_at: z.number(),
 });
 
+export const AuditEventRecordSchema = z.object({
+  event_id: z.string(),
+  trace_id: z.string().nullable().optional(),
+  actor_id: z.string().nullable().optional(),
+  device_id: z.string().nullable().optional(),
+  entity_type: z.string(),
+  action: z.string(),
+  previous_state: z.string().nullable().optional(),
+  new_state: z.string().nullable().optional(),
+  gps_coordinates: z.string().nullable().optional(),
+  hash: z.string().nullable().optional(),
+  status: z.string().default('VALID'),
+  shop_id: z.string().nullable().optional(),
+  executed_by_id: z.string().nullable().optional(),
+  salesperson_id: z.string().nullable().optional(),
+  approved_by_id: z.string().nullable().optional(),
+  created_at: z.number(),
+});
+
 export const TownshipRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -641,6 +689,16 @@ export const RECORD_SCHEMAS: Record<string, z.ZodSchema> = {
   currency_exchange_rates: CurrencyExchangeRateRecordSchema,
   competitor_insights: CompetitorInsightRecordSchema,
   pending_inventory_updates: PendingInventoryUpdateRecordSchema,
+  audit_events: AuditEventRecordSchema,
+  expected_inbounds: z.object({
+    id: z.string(),
+    sku: z.string(),
+    expected_quantity: z.number(),
+    origin: z.string(),
+    estimated_arrival_date: z.string(),
+    created_at: z.number(),
+    updated_at: z.number(),
+  }),
 };
 
 export const WatermelonChangeSetSchema = <T extends z.ZodTypeAny>(
@@ -691,6 +749,18 @@ export const PushChangesBodySchema = z.object({
       pending_inventory_updates: WatermelonChangeSetSchema(
         PendingInventoryUpdateRecordSchema,
       ),
+      audit_events: WatermelonChangeSetSchema(AuditEventRecordSchema),
+      expected_inbounds: WatermelonChangeSetSchema(
+        z.object({
+          id: z.string(),
+          sku: z.string(),
+          expected_quantity: z.number(),
+          origin: z.string(),
+          estimated_arrival_date: z.string(),
+          created_at: z.number(),
+          updated_at: z.number(),
+        }),
+      ),
     })
     .partial(),
 });
@@ -736,7 +806,9 @@ export type SyncTableName =
   | 'rep_kpis'
   | 'currency_exchange_rates'
   | 'competitor_insights'
-  | 'pending_inventory_updates';
+  | 'pending_inventory_updates'
+  | 'audit_events'
+  | 'expected_inbounds';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -819,6 +891,7 @@ export interface Item {
   baseWholesalePrice?: number | null;
   baseCurrency?: string | null;
   volumeDiscountBrackets?: string | null;
+  inventoryStatus?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -837,6 +910,9 @@ export interface InteractionLog {
   syncedAtServer: number | null;
   isOfflineEntry: boolean;
   deviceId: string;
+  executedById?: string | null;
+  salespersonId?: string | null;
+  approvedById?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -875,6 +951,7 @@ export interface ItemStock {
   itemId: string;
   quantity: number;
   pendingAllocationCount: number;
+  inventoryStatus?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -1072,3 +1149,33 @@ export interface Ward {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface ExpectedInboundRecord {
+  id: string;
+  sku: string;
+  expected_quantity: number;
+  origin: string;
+  estimated_arrival_date: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ExpectedInbound {
+  id: string;
+  sku: string;
+  expectedQuantity: number;
+  origin: string;
+  estimatedArrivalDate: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const ExpectedInboundRecordSchema = z.object({
+  id: z.string(),
+  sku: z.string(),
+  expected_quantity: z.number(),
+  origin: z.string().default('Thailand'),
+  estimated_arrival_date: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});

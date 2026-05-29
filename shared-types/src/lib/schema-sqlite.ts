@@ -93,6 +93,7 @@ export const items = sqliteTable(
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
     deleted_at: integer('deleted_at'),
+    inventory_status: text('inventory_status').notNull().default('AVAILABLE'),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
@@ -110,6 +111,7 @@ export const item_stocks = sqliteTable(
       .default(0),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    inventory_status: text('inventory_status').notNull().default('AVAILABLE'),
   },
   (table) => ({
     itemIdIdx: index('item_stocks_item_id_idx').on(table.item_id),
@@ -136,6 +138,9 @@ export const interaction_logs = sqliteTable(
     device_id: text('device_id').notNull(),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    executed_by_id: text('executed_by_id'),
+    salesperson_id: text('salesperson_id'),
+    approved_by_id: text('approved_by_id'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -377,6 +382,8 @@ export const image_upload_queue = sqliteTable('image_upload_queue', {
   interaction_log_id: text('interaction_log_id'),
   competitor_insight_id: text('competitor_insight_id'),
   status: text('status').notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  trace_id: text('trace_id'),
+  actor_id: text('actor_id'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
@@ -402,6 +409,11 @@ export const draft_carts = sqliteTable('draft_carts', {
   currency: text('currency').notNull().default('MMK'),
   project_id: text('project_id'),
   items_json: text('items_json').notNull(),
+  trace_id: text('trace_id'),
+  actor_id: text('actor_id'),
+  executed_by_id: text('executed_by_id'),
+  salesperson_id: text('salesperson_id'),
+  approved_by_id: text('approved_by_id'),
   updated_at: integer('updated_at').notNull(),
 });
 
@@ -496,3 +508,32 @@ export const wards = sqliteTable(
     townshipIdIdx: index('wards_township_id_idx').on(table.township_id),
   }),
 );
+
+export const audit_events = sqliteTable('audit_events', {
+  event_id: text('event_id').primaryKey(),
+  trace_id: text('trace_id'),
+  actor_id: text('actor_id'),
+  device_id: text('device_id'),
+  entity_type: text('entity_type').notNull(),
+  action: text('action').notNull(),
+  previous_state: text('previous_state'), // stored as JSON string
+  new_state: text('new_state'), // stored as JSON string
+  gps_coordinates: text('gps_coordinates'),
+  hash: text('hash'),
+  status: text('status').notNull().default('VALID'),
+  created_at: integer('created_at').notNull(),
+  shop_id: text('shop_id'),
+  executed_by_id: text('executed_by_id'),
+  salesperson_id: text('salesperson_id'),
+  approved_by_id: text('approved_by_id'),
+});
+
+export const expected_inbounds = sqliteTable('expected_inbounds', {
+  id: text('id').primaryKey(),
+  sku: text('sku').notNull(),
+  expected_quantity: integer('expected_quantity').notNull(),
+  origin: text('origin').notNull().default('Thailand'),
+  estimated_arrival_date: text('estimated_arrival_date').notNull(),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});

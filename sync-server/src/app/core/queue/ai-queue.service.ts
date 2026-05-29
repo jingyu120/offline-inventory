@@ -21,10 +21,17 @@ export class AiQueueService implements OnModuleDestroy {
     });
   }
 
-  async addScreenshotJob(interactionLogId: string, filePath: string) {
+  async addScreenshotJob(
+    interactionLogId: string,
+    filePath: string,
+    traceId?: string,
+    actorId?: string,
+  ) {
     await this.queue.add('process-screenshot', {
       interactionLogId,
       filePath,
+      traceId,
+      actorId,
     });
   }
 

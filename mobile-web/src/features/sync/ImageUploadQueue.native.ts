@@ -8,9 +8,29 @@ import NetInfo from '@react-native-community/netinfo';
 let isProcessing = false;
 
 export class ImageUploadQueue {
+  static isPaused = false;
+
+  static pause(): void {
+    ImageUploadQueue.isPaused = true;
+    console.log('[ImageUploadQueue] Queue manually paused.');
+  }
+
+  static resume(): void {
+    ImageUploadQueue.isPaused = false;
+    console.log('[ImageUploadQueue] Queue manually resumed.');
+    ImageUploadQueue.processQueue().catch((err) => {
+      console.error(
+        '[ImageUploadQueue] background process error in resume:',
+        err,
+      );
+    });
+  }
+
   static async enqueueImage(
     interactionLogId: string,
     tempUri: string,
+    traceId?: string,
+    actorId?: string,
   ): Promise<void> {
     console.log(
       `[ImageUploadQueue] Enqueuing screenshot for log ${interactionLogId}, tempUri: ${tempUri}`,
@@ -62,6 +82,8 @@ export class ImageUploadQueue {
         local_file_path: localFilePath,
         interaction_log_id: interactionLogId,
         status: 'pending',
+        trace_id: traceId || null,
+        actor_id: actorId || null,
         created_at: now,
         updated_at: now,
       });
@@ -149,6 +171,13 @@ export class ImageUploadQueue {
   }
 
   static async processQueue(): Promise<void> {
+    if (ImageUploadQueue.isPaused) {
+      console.log(
+        '[ImageUploadQueue] Queue is manually paused. Skipping execution.',
+      );
+      return;
+    }
+
     try {
       const state = await NetInfo.fetch();
       const is2G =
@@ -221,6 +250,10 @@ export class ImageUploadQueue {
               httpMethod: 'POST',
               uploadType: FileSystem.FileSystemUploadType.MULTIPART,
               parameters: uploadParams,
+              headers: {
+                'x-trace-id': (task as any).trace_id || '',
+                'x-actor-id': (task as any).actor_id || '',
+              },
             },
           );
 

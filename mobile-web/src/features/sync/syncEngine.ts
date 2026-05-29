@@ -12,6 +12,9 @@ import {
   getDeviceId,
   getActiveRepId,
 } from '../../core/storage/platformStorage';
+import { ActorService } from '../../core/auth/ActorService';
+import { ImageUploadQueue } from './ImageUploadQueue';
+import { isNetworkDegraded } from './networkQualityUtil';
 
 async function applyPullChanges(changes: any): Promise<void> {
   for (const [tableName, changeset] of Object.entries(changes)) {
@@ -99,6 +102,24 @@ async function executeSyncCycle(): Promise<void> {
   const devId = await getDeviceId();
   const userId = await getActiveRepId();
 
+  // Network-Aware Queue Prioritization
+  try {
+    const degraded = await isNetworkDegraded();
+    if (degraded) {
+      console.log(
+        '[SyncEngine] Highly degraded network (2G/EDGE or mock packet loss). Pausing ImageUploadQueue.',
+      );
+      ImageUploadQueue.pause();
+    } else {
+      ImageUploadQueue.resume();
+    }
+  } catch (err) {
+    console.warn(
+      '[SyncEngine] Failed to check network quality for queue prioritization:',
+      err,
+    );
+  }
+
   // 1. Pull Changes
   const lastSyncedAt = await getLastSyncedAt();
   console.log(
@@ -112,6 +133,10 @@ async function executeSyncCycle(): Promise<void> {
         last_synced_at: lastSyncedAt,
         device_id: devId,
         user_id: userId || undefined,
+      },
+      headers: {
+        'x-actor-id': ActorService.getActorId(),
+        'x-device-id': devId,
       },
     });
   } catch (error: any) {
@@ -157,6 +182,8 @@ async function executeSyncCycle(): Promise<void> {
     'currency_exchange_rates',
     'competitor_insights',
     'pending_inventory_updates',
+    'audit_events',
+    'expected_inbounds',
   ];
 
   const pushChanges: any = {};
@@ -216,9 +243,23 @@ async function executeSyncCycle(): Promise<void> {
     }
 
     if (createdRecords.length > 0 || updatedRecords.length > 0) {
+      let finalCreated = createdRecords;
+      let finalUpdated = updatedRecords;
+
+      if (tableName === 'items' || tableName === 'item_stocks') {
+        finalCreated = createdRecords.map((r) => ({
+          ...r,
+          inventory_status: 'PENDING_APPROVAL',
+        }));
+        finalUpdated = updatedRecords.map((r) => ({
+          ...r,
+          inventory_status: 'PENDING_APPROVAL',
+        }));
+      }
+
       pushChanges[tableName] = {
-        created: createdRecords,
-        updated: updatedRecords,
+        created: finalCreated,
+        updated: finalUpdated,
         deleted: [],
       };
     }
@@ -241,6 +282,8 @@ async function executeSyncCycle(): Promise<void> {
         {
           headers: {
             'x-idempotency-key': idempotencyKey,
+            'x-actor-id': ActorService.getActorId(),
+            'x-device-id': devId,
           },
         },
       );
