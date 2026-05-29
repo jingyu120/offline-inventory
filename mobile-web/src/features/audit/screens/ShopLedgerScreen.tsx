@@ -437,6 +437,11 @@ export function ShopLedgerScreen() {
           }}
           shop={loggingShop}
         />
+        <RegisterShopModal
+          visible={registerModalVisible}
+          onClose={() => setRegisterModalVisible(false)}
+          onRegister={handleRegisterSuccess}
+        />
       </Box>
     );
   }
