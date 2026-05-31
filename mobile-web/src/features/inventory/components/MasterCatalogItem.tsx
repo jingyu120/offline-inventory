@@ -40,37 +40,39 @@ export function MasterCatalogItem({
       borderLeftColor={isLowStock ? 'danger' : 'success'}
     >
       <Box flex={1} mr="m">
-        <Box flexDirection="row" alignItems="center" mb="xs">
+        <Box mb="xs">
           <Text variant="body" fontWeight="bold">
             {item.name}
           </Text>
-          <Box bg="secondaryBackground" px="s" py="xs" borderRadius="s" ml="s">
+        </Box>
+        <Box flexDirection="row" flexWrap="wrap" alignItems="center" gap="s">
+          <Box bg="secondaryBackground" px="s" py="xs" borderRadius="s">
             <Text variant="bodySecondary" fontSize={11} fontWeight="bold">
               {item.sku}
             </Text>
           </Box>
-        </Box>
-        <Box flexDirection="row" alignItems="center">
-          <Tag
-            size={12}
-            stroke={theme.colors.secondaryText}
-            style={{ marginRight: 4 }}
-          />
-          <Text variant="bodySecondary" mr="m">
-            {item.category}
-          </Text>
-          <Layers
-            size={12}
-            stroke={theme.colors.secondaryText}
-            style={{ marginRight: 4 }}
-          />
-          <Text variant="bodySecondary">
-            {t('price')}:{' '}
-            {t('priceFormatted').replace(
-              '{price}',
-              item.unitPrice.toLocaleString(),
-            )}
-          </Text>
+          <Box flexDirection="row" alignItems="center">
+            <Tag
+              size={12}
+              stroke={theme.colors.secondaryText}
+              style={{ marginRight: 4 }}
+            />
+            <Text variant="bodySecondary">{item.category}</Text>
+          </Box>
+          <Box flexDirection="row" alignItems="center">
+            <Layers
+              size={12}
+              stroke={theme.colors.secondaryText}
+              style={{ marginRight: 4 }}
+            />
+            <Text variant="bodySecondary">
+              {t('price')}:{' '}
+              {t('priceFormatted').replace(
+                '{price}',
+                item.unitPrice.toLocaleString(),
+              )}
+            </Text>
+          </Box>
         </Box>
       </Box>
 

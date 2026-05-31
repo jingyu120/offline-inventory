@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
@@ -71,6 +72,7 @@ const DEFAULT_PATTERNS: DesignPattern[] = [
 
 export const DesignPatternGallery: React.FC = () => {
   const theme = useTheme<Theme>();
+  const { width } = useWindowDimensions();
   const { t } = useTranslation();
   const [patterns, setPatterns] = useState<DesignPattern[]>([]);
 
@@ -230,7 +232,11 @@ export const DesignPatternGallery: React.FC = () => {
             style={{ backgroundColor: 'rgba(15, 23, 42, 0.45)' }}
           >
             <Box
-              width={Platform.OS === 'web' ? 550 : 340}
+              width={
+                Platform.OS === 'web'
+                  ? Math.min(width - 32, 550)
+                  : Math.min(width - 32, 340)
+              }
               bg="mainBackground"
               borderRadius="l"
               borderWidth={1}
@@ -250,9 +256,10 @@ export const DesignPatternGallery: React.FC = () => {
                   paddingHorizontal: 16,
                 }}
               >
-                <Box>
+                <Box flex={1} mr="s">
                   <Text
-                    style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}
+                    style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}
+                    numberOfLines={2}
                   >
                     {t('specsAndStock').replace(
                       '{brand}',
@@ -324,7 +331,7 @@ export const DesignPatternGallery: React.FC = () => {
                               <Text
                                 variant="body"
                                 fontWeight="bold"
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, marginRight: 8 }}
                               >
                                 {item.name}
                               </Text>
@@ -342,8 +349,13 @@ export const DesignPatternGallery: React.FC = () => {
                               flexDirection="row"
                               justifyContent="space-between"
                               alignItems="center"
+                              gap="s"
                             >
-                              <Text variant="bodySecondary" fontSize={11}>
+                              <Text
+                                variant="bodySecondary"
+                                fontSize={11}
+                                style={{ flex: 1 }}
+                              >
                                 {t('sku')}: {item.sku} | {item.category}
                               </Text>
                               <Box flexDirection="row" alignItems="center">

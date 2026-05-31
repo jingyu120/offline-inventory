@@ -99,80 +99,72 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
           onPress={() => setIsOpen(false)}
         >
           <Pressable
+            style={styles.modalCard}
             onPress={(e) => {
               if (e && e.stopPropagation) e.stopPropagation();
             }}
           >
-            <Box style={{ width: '90%', maxWidth: 450, maxHeight: '75%' }}>
-              <Card
-                m="none"
-                p="m"
-                bg="cardBackground"
-                borderRadius="l"
-                elevation={5}
-                width="100%"
-                height="100%"
-              >
-                {label && (
-                  <Box
-                    borderBottomWidth={1}
-                    borderColor="borderColor"
-                    pb="s"
-                    mb="s"
-                  >
-                    <Text variant="title">{label}</Text>
-                  </Box>
-                )}
+            <Card
+              m="none"
+              p="m"
+              bg="cardBackground"
+              borderRadius="l"
+              elevation={5}
+              width="100%"
+              height="100%"
+            >
+              {label && (
+                <Box
+                  borderBottomWidth={1}
+                  borderColor="borderColor"
+                  pb="s"
+                  mb="s"
+                >
+                  <Text variant="title">{label}</Text>
+                </Box>
+              )}
 
-                <ScrollView style={styles.scrollStyle}>
-                  {options.map((option) => {
-                    const isSelected = option.value === selectedValue;
-                    return (
-                      <TouchableOpacity
-                        key={option.value}
-                        onPress={() => handleSelectOption(option.value)}
-                      >
-                        <Box
-                          py="s"
-                          px="m"
-                          my="xs"
-                          borderRadius="m"
-                          bg={
-                            isSelected ? 'secondaryBackground' : 'transparent'
-                          }
-                        >
-                          <Text
-                            variant="body"
-                            fontWeight={isSelected ? 'bold' : 'normal'}
-                            color={isSelected ? 'primaryButton' : 'primaryText'}
-                          >
-                            {option.label}
-                          </Text>
-                        </Box>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-
-                <TouchableOpacity onPress={() => setIsOpen(false)}>
-                  <Box
-                    borderTopWidth={1}
-                    borderColor="borderColor"
-                    mt="m"
-                    pt="s"
-                  >
-                    <Text
-                      variant="body"
-                      fontWeight="bold"
-                      color="danger"
-                      textAlign="center"
+              <ScrollView style={styles.scrollStyle}>
+                {options.map((option) => {
+                  const isSelected = option.value === selectedValue;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() => handleSelectOption(option.value)}
                     >
-                      Cancel
-                    </Text>
-                  </Box>
-                </TouchableOpacity>
-              </Card>
-            </Box>
+                      <Box
+                        py="s"
+                        px="m"
+                        my="xs"
+                        borderRadius="m"
+                        bg={isSelected ? 'secondaryBackground' : 'transparent'}
+                      >
+                        <Text
+                          variant="body"
+                          fontWeight={isSelected ? 'bold' : 'normal'}
+                          color={isSelected ? 'primaryButton' : 'primaryText'}
+                        >
+                          {option.label}
+                        </Text>
+                      </Box>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <TouchableOpacity onPress={() => setIsOpen(false)}>
+                <Box borderTopWidth={1} borderColor="borderColor" mt="m" pt="s">
+                  <Text
+                    variant="body"
+                    fontWeight="bold"
+                    color="danger"
+                    textAlign="center"
+                  >
+                    Cancel
+                  </Text>
+                </Box>
+              </TouchableOpacity>
+            </Card>
           </Pressable>
         </TouchableOpacity>
       </Modal>

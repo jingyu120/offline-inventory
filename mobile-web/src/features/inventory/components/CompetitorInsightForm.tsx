@@ -162,31 +162,63 @@ export function CompetitorInsightForm({
         </Box>
       </Box>
 
-      <Box flexDirection="row" alignItems="center" mt="m" mb="m" gap="s">
-        <Button
-          title={t('snapPhoto')}
-          onPress={() => handlePickCompetitorImage(true)}
-          variant="secondary"
-        />
-        <Button
-          title={t('chooseGallery')}
-          onPress={() => handlePickCompetitorImage(false)}
-          variant="secondary"
-        />
-        {compPhotoUri && (
-          <Text variant="bodySecondary" color="successText" fontWeight="bold">
-            {t('photoAttached')}
+      <Box
+        flexDirection={isDesktop ? 'row' : 'column'}
+        alignItems={isDesktop ? 'center' : 'stretch'}
+        justifyContent="space-between"
+        mt="m"
+        mb="m"
+        gap="s"
+      >
+        <Box
+          flexDirection="row"
+          alignItems="center"
+          gap="s"
+          width={isDesktop ? 'auto' : '100%'}
+        >
+          <Box flex={isDesktop ? 0 : 1}>
+            <Button
+              title={t('snapPhoto')}
+              onPress={() => handlePickCompetitorImage(true)}
+              variant="secondary"
+              style={isDesktop ? undefined : { width: '100%' }}
+            />
+          </Box>
+          <Box flex={isDesktop ? 0 : 1}>
+            <Button
+              title={t('chooseGallery')}
+              onPress={() => handlePickCompetitorImage(false)}
+              variant="secondary"
+              style={isDesktop ? undefined : { width: '100%' }}
+            />
+          </Box>
+          {compPhotoUri && isDesktop && (
+            <Text variant="bodySecondary" color="successText" fontWeight="bold">
+              ✓ {t('photoAttached')}
+            </Text>
+          )}
+        </Box>
+
+        {compPhotoUri && !isDesktop && (
+          <Text
+            variant="bodySecondary"
+            color="successText"
+            fontWeight="bold"
+            style={{ textAlign: 'center' }}
+          >
+            ✓ {t('photoAttached')}
           </Text>
         )}
-      </Box>
 
-      <Box alignItems="flex-end">
-        <Button
-          title={isSavingComp ? t('saving') : t('saveInsight')}
-          onPress={handleSaveCompetitorInsight}
-          variant="primary"
-          disabled={isSavingComp}
-        />
+        <Box width={isDesktop ? 'auto' : '100%'}>
+          <Button
+            title={isSavingComp ? t('saving') : t('saveInsight')}
+            onPress={handleSaveCompetitorInsight}
+            variant="primary"
+            disabled={isSavingComp}
+            style={isDesktop ? undefined : { width: '100%' }}
+          />
+        </Box>
       </Box>
 
       <ImageAnnotationModal
