@@ -16,11 +16,11 @@ class SyncConflictErrorBoundary extends React.Component<
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(_error: any) {
+  static getDerivedStateFromError(_error: $Any) {
     return { hasError: true };
   }
 
-  override componentDidCatch(error: any, errorInfo: any) {
+  override componentDidCatch(error: $Any, errorInfo: $Any) {
     console.error('SyncConflictModal crashed rendering:', error, errorInfo);
   }
 
@@ -55,11 +55,11 @@ const SyncConflictModalContent: React.FC = () => {
   };
 
   // Helper to format values for display
-  const renderRecordFields = (record: any) => {
+  const renderRecordFields = (record: $Any) => {
     if (!record || typeof record !== 'object') {
       return (
         <Text variant="bodySecondary" fontSize={13}>
-          {t('invalidRecord' as any) || 'No record data available'}
+          {t('noRecordData')}
         </Text>
       );
     }

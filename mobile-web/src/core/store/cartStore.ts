@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export interface CartItem {
-  item: any;
+  item: $Any;
   quantity: number | string;
   selectedUnit: string;
   unitPrice: number | string;

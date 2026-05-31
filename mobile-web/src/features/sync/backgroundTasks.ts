@@ -26,7 +26,7 @@ if (Platform.OS !== 'web') {
       const state = await NetInfo.fetch();
       const is2G =
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
-      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+      const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
       if (is2G || isMockDegraded) {
         console.log(

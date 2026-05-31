@@ -35,7 +35,7 @@ export interface ShopDetailPayload {
 }
 
 // Row mappers from DB (snake_case) to Frontend (camelCase)
-export const mapRegion = (r: any): Region => ({
+export const mapRegion = (r: $Any): Region => ({
   id: r.id,
   name: r.name,
   division: r.division,
@@ -43,7 +43,7 @@ export const mapRegion = (r: any): Region => ({
   updatedAt: r.updated_at,
 });
 
-export const mapShop = (s: any): Shop => ({
+export const mapShop = (s: $Any): Shop => ({
   id: s.id,
   name: s.name,
   address: s.address,
@@ -61,7 +61,7 @@ export const mapShop = (s: any): Shop => ({
   updatedAt: s.updated_at,
 });
 
-export const mapContact = (c: any): Contact => ({
+export const mapContact = (c: $Any): Contact => ({
   id: c.id,
   shopId: c.shop_id,
   name: c.name,
@@ -72,7 +72,7 @@ export const mapContact = (c: any): Contact => ({
   updatedAt: c.updated_at,
 });
 
-export const mapItem = (i: any): Item => ({
+export const mapItem = (i: $Any): Item => ({
   id: i.id,
   sku: i.sku,
   name: i.name,
@@ -95,7 +95,7 @@ export const mapItem = (i: any): Item => ({
   updatedAt: i.updated_at,
 });
 
-export const mapInteractionLog = (l: any): InteractionLog => ({
+export const mapInteractionLog = (l: $Any): InteractionLog => ({
   id: l.id,
   shopId: l.shop_id,
   repId: l.rep_id,
@@ -116,7 +116,7 @@ export const mapInteractionLog = (l: any): InteractionLog => ({
   updatedAt: l.updated_at,
 });
 
-export const mapInteractionItem = (ii: any): InteractionItem => ({
+export const mapInteractionItem = (ii: $Any): InteractionItem => ({
   id: ii.id,
   interactionLogId: ii.interaction_log_id,
   itemId: ii.item_id,
@@ -134,7 +134,7 @@ export const mapInteractionItem = (ii: any): InteractionItem => ({
   updatedAt: ii.updated_at,
 });
 
-export const mapDailyQuota = (q: any): DailyQuota => ({
+export const mapDailyQuota = (q: $Any): DailyQuota => ({
   id: q.id,
   userId: q.user_id,
   targetVisits: q.target_visits,
@@ -145,7 +145,7 @@ export const mapDailyQuota = (q: any): DailyQuota => ({
   updatedAt: q.updated_at,
 });
 
-export const mapItemStock = (s: any): ItemStock => ({
+export const mapItemStock = (s: $Any): ItemStock => ({
   id: s.id,
   itemId: s.item_id,
   quantity: s.quantity,
@@ -165,20 +165,20 @@ export const fetchShops = async (
         like(sqliteSchema.shops.name, `%${searchQuery}%`),
         isNull(sqliteSchema.shops.deleted_at),
       ),
-    ) as any;
+    ) as $Any;
   } else {
-    query = query.where(isNull(sqliteSchema.shops.deleted_at)) as any;
+    query = query.where(isNull(sqliteSchema.shops.deleted_at)) as $Any;
   }
   const fetchedShops = await query;
 
   const regions = await database.select().from(sqliteSchema.regions);
   const regionMap = new Map<string, string>(
-    regions.map((r: any) => [r.id, r.name || '']),
+    regions.map((r: $Any) => [r.id, r.name || '']),
   );
 
-  let allLogs: any[] = [];
+  let allLogs: $Any[] = [];
   if (fetchedShops.length > 0) {
-    const shopIds = fetchedShops.map((s: any) => s.id);
+    const shopIds = fetchedShops.map((s: $Any) => s.id);
     const chunkSize = 500;
     const promises = [];
     for (let i = 0; i < shopIds.length; i += chunkSize) {
@@ -203,7 +203,7 @@ export const fetchShops = async (
     }
   });
 
-  return fetchedShops.map((s: any) => {
+  return fetchedShops.map((s: $Any) => {
     const shopObj = mapShop(s) as ShopWithDetails;
     shopObj.regionName = regionMap.get(s.region_id) || 'Unknown Region';
     shopObj.lastInteractionDate = lastLogMap.get(s.id);
@@ -226,14 +226,14 @@ export const fetchShopDetails = async (
     .orderBy(desc(sqliteSchema.interaction_logs.created_at));
 
   const logsWithItems = await Promise.all(
-    logs.map(async (log: any) => {
+    logs.map(async (log: $Any) => {
       const itemsList = await database
         .select()
         .from(sqliteSchema.interaction_items)
         .where(eq(sqliteSchema.interaction_items.interaction_log_id, log.id));
 
       const itemsWithDetails = await Promise.all(
-        itemsList.map(async (ii: any) => {
+        itemsList.map(async (ii: $Any) => {
           try {
             const itemDetails = await database
               .select()
@@ -286,7 +286,7 @@ export const fetchItemsAndStockLevel = async (): Promise<{
   const stocks = await database.select().from(sqliteSchema.item_stocks);
 
   const stocksMap: Record<string, number> = {};
-  stocks.forEach((s: any) => {
+  stocks.forEach((s: $Any) => {
     stocksMap[s.item_id] = s.quantity;
   });
 
@@ -498,7 +498,7 @@ export const applyQuotaAdjustments = async (
   return fetchDailyQuotas();
 };
 
-export const mapExpectedInbound = (ei: any): ExpectedInbound => ({
+export const mapExpectedInbound = (ei: $Any): ExpectedInbound => ({
   id: ei.id,
   sku: ei.sku,
   expectedQuantity: ei.expected_quantity,

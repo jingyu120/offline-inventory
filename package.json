@@ -31,7 +31,8 @@
     "test": "npx nx run-many -t test --tui-auto-exit=true --nx-bail",
     "format": "npx nx format:write",
     "format:check": "npx nx format:check",
-    "check": "npm run typecheck -- --skip-nx-cache && npm run lint -- --skip-nx-cache && npm run test -- --skip-nx-cache && npm run format:check",
+    "check-translations": "node scripts/check-translations.js",
+    "check": "npm run check-translations && npm run typecheck -- --skip-nx-cache && npm run lint -- --skip-nx-cache && npm run test -- --skip-nx-cache && npm run format:check",
     "precommit": "./scripts/precommit.sh"
   },
   "dependencies": {

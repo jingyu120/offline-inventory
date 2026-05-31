@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  useWindowDimensions,
+  TouchableOpacity,
+} from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useGeographicHeatmapData } from '../hooks/useGeographicHeatmapData';
 import { MapFilterPanel } from '../components/MapFilterPanel';
@@ -20,7 +25,7 @@ const loadLeaflet = (callback: () => void) => {
     return;
   }
 
-  const windowAny = window as any;
+  const windowAny = window as $Any;
   if (windowAny.L) {
     callback();
     return;
@@ -72,7 +77,7 @@ const getDistance = (
 };
 
 // Nearest Neighbor Traveling Salesperson Problem (TSP) solver
-const solveTSP = (shops: any[]) => {
+const solveTSP = (shops: $Any[]) => {
   if (shops.length === 0) return [];
   const unvisited = [...shops];
   const path = [unvisited.shift()];
@@ -107,10 +112,10 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const isDesktop = width >= 768;
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
-  const mapContainerRef = useRef<any>(null);
-  const [mapInstance, setMapInstance] = useState<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const routePolylineRef = useRef<any>(null);
+  const mapContainerRef = useRef<$Any>(null);
+  const [mapInstance, setMapInstance] = useState<$Any>(null);
+  const markersRef = useRef<$Any[]>([]);
+  const routePolylineRef = useRef<$Any>(null);
 
   const {
     loading,
@@ -197,11 +202,11 @@ export const GeographicHeatmapScreen: React.FC = () => {
       return;
     }
 
-    const L = (window as any).L;
+    const L = (window as $Any).L;
 
     // Custom Offline-First TileLayer checking IndexedDB base64 data URL
     const OfflineTileLayer = L.TileLayer.extend({
-      createTile(coords: any, done: any) {
+      createTile(coords: $Any, done: $Any) {
         const tile = document.createElement('img');
         tile.crossOrigin = 'anonymous';
         const key = `tile-${coords.z}-${coords.x}-${coords.y}`;
@@ -254,7 +259,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
   // 4. Update Circle Markers on Filtered Shops Change
   useEffect(() => {
     if (!leafletLoaded || !mapInstance) return;
-    const L = (window as any).L;
+    const L = (window as $Any).L;
 
     // Clear old markers
     markersRef.current.forEach((m) => m.remove());
@@ -287,7 +292,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
         });
 
         // Store shop reference on marker for dynamic tooltips
-        (marker as any).shopData = shop;
+        (marker as $Any).shopData = shop;
         // Bind an empty tooltip initially
         marker.bindTooltip('', { direction: 'top', permanent: false });
 
@@ -302,8 +307,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
         const markerData = newMarkers.map((m) => {
           const latLng = m.getLatLng();
           const p = mapInstance.latLngToContainerPoint(latLng);
-          const r = getBubbleRadius((m as any).shopData.lifetimeValue);
-          return { marker: m, shop: (m as any).shopData, p, r };
+          const r = getBubbleRadius((m as $Any).shopData.lifetimeValue);
+          return { marker: m, shop: (m as $Any).shopData, p, r };
         });
 
         markerData.forEach((data) => {
@@ -356,7 +361,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
         console.warn('Error computing map overlaps for tooltips:', e);
         // Fallback to single shop tooltip if container points fail
         newMarkers.forEach((m) => {
-          const s = (m as any).shopData;
+          const s = (m as $Any).shopData;
           m.setTooltipContent(
             `<b>${s.name}</b><br/>${t('lifetimeValue') || 'Value'}: K${s.lifetimeValue.toLocaleString()}<br/>${t('sentimentTrend') || 'Sentiment'}: ${s.sentimentTrend}`,
           );
@@ -407,7 +412,14 @@ export const GeographicHeatmapScreen: React.FC = () => {
         routePolylineRef.current = null;
       }
     };
-  }, [filteredShops, leafletLoaded, mapInstance, t, showRouteLine, selectedRegion]);
+  }, [
+    filteredShops,
+    leafletLoaded,
+    mapInstance,
+    t,
+    showRouteLine,
+    selectedRegion,
+  ]);
 
   if (loading) {
     return (
@@ -567,41 +579,55 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
       {/* Collapsible Filter Panel Overlay */}
       {filterVisible && (
-        <Box
-          bg="cardBackground"
-          borderColor="borderColor"
-          borderWidth={1}
-          borderRadius="l"
-          p="m"
-          style={{
-            position: 'absolute',
-            top: 56,
-            left: 12,
-            right: 12,
-            zIndex: 1050,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          }}
-        >
-          <MapFilterPanel
-            regions={regions}
-            items={items}
-            selectedRegion={selectedRegion}
-            setSelectedRegion={setSelectedRegion}
-            selectedRep={selectedRep}
-            setSelectedRep={setSelectedRep}
-            selectedSku={selectedSku}
-            setSelectedSku={setSelectedSku}
-            neglectedOnly={neglectedOnly}
-            setNeglectedOnly={setNeglectedOnly}
-            isCaching={isCaching}
-            cacheProgress={cacheProgress}
-            cacheTotal={cacheTotal}
-            preCacheOfflineMap={preCacheOfflineMap}
-            showRouteLine={showRouteLine}
-            setShowRouteLine={setShowRouteLine}
-            availableReps={availableReps}
+        <>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1045,
+            }}
+            activeOpacity={1}
+            onPress={() => setFilterVisible(false)}
           />
-        </Box>
+          <Box
+            bg="cardBackground"
+            borderColor="borderColor"
+            borderWidth={1}
+            borderRadius="l"
+            p="m"
+            style={{
+              position: 'absolute',
+              top: 56,
+              left: 12,
+              right: 12,
+              zIndex: 1050,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            }}
+          >
+            <MapFilterPanel
+              regions={regions}
+              items={items}
+              selectedRegion={selectedRegion}
+              setSelectedRegion={setSelectedRegion}
+              selectedRep={selectedRep}
+              setSelectedRep={setSelectedRep}
+              selectedSku={selectedSku}
+              setSelectedSku={setSelectedSku}
+              neglectedOnly={neglectedOnly}
+              setNeglectedOnly={setNeglectedOnly}
+              isCaching={isCaching}
+              cacheProgress={cacheProgress}
+              cacheTotal={cacheTotal}
+              preCacheOfflineMap={preCacheOfflineMap}
+              showRouteLine={showRouteLine}
+              setShowRouteLine={setShowRouteLine}
+              availableReps={availableReps}
+            />
+          </Box>
+        </>
       )}
 
       {/* Map Color Recency Legend (bottom-left) */}

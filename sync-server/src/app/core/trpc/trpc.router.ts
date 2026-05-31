@@ -13,8 +13,16 @@ export class TrpcRouter implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    console.log('[TrpcRouter] Registering tRPC resolvers...');
     trpcResolvers.getSyncLogs = async (input) => {
-      return this.syncService.getSyncLogs(input.lastSeenId, input.limit);
+      const logs = await this.syncService.getSyncLogs(
+        input.lastSeenId,
+        input.limit,
+      );
+      return {
+        success: true,
+        logs,
+      };
     };
 
     trpcResolvers.quotaOptimizations = async () => {

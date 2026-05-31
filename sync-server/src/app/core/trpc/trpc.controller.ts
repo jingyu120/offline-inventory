@@ -2,9 +2,14 @@ import { Controller, All, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from '@burma-inventory/shared-types/server';
+import { TrpcRouter } from './trpc.router';
 
 @Controller('trpc')
 export class TrpcController {
+  constructor(private readonly trpcRouter: TrpcRouter) {
+    console.log('[TrpcController] Initialized and dependencies injected');
+  }
+
   private trpcMiddleware = createExpressMiddleware({
     router: appRouter,
     createContext: () => ({}),

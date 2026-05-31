@@ -4,17 +4,78 @@ import { z } from 'zod';
 const t = initTRPC.create();
 
 // Registry of resolvers to decouple server implementation from types
-export const trpcResolvers = {
-  getSyncLogs: null as
+// Bound to globalThis to prevent instance mismatch under dual-package or bundler-resolution dual loading
+const globalResolvers = (globalThis as Record<string, unknown>)[
+  '__trpcResolvers'
+] || {
+  getSyncLogs: null,
+  quotaOptimizations: null,
+  eodDigest: null,
+  analyzeSentiment: null,
+  getMismatchLogs: null,
+  resolveMismatchLog: null,
+  getFailedJobs: null,
+  updateJobData: null,
+  retryJob: null,
+  removeJob: null,
+};
+
+(globalThis as Record<string, unknown>)['__trpcResolvers'] = globalResolvers;
+
+export const trpcResolvers = globalResolvers as {
+  getSyncLogs:
     | null
-    | ((input: { lastSeenId?: string; limit: number }) => Promise<any>),
-  quotaOptimizations: null as null | (() => Promise<any>),
-  eodDigest: null as null | ((input: { date?: string }) => Promise<any>),
-  analyzeSentiment: null as
+    | ((input: { lastSeenId?: string; limit: number }) => Promise<{
+        success: boolean;
+        logs: {
+          id: string;
+          device_id: string;
+          user_id: string | null;
+          action: string;
+          records_pulled: number;
+          records_pushed: number;
+          status: string;
+          error_message: string | null;
+          created_at: number;
+          createdAt: Date;
+          user: { id: string; username: string; role: string } | null;
+        }[];
+      }>);
+  quotaOptimizations:
     | null
-    | ((input: { notes: string[] }) => Promise<any>),
-  getMismatchLogs: null as null | (() => Promise<any>),
-  resolveMismatchLog: null as
+    | (() => Promise<
+        {
+          region: string;
+          currentQuota: number;
+          suggestedQuota: number;
+          reason: string;
+        }[]
+      >);
+  eodDigest:
+    | null
+    | ((input: { date?: string }) => Promise<{
+        date: string;
+        compiledAt: Date;
+        topPerformingRep: string;
+        complianceScorecard: {
+          repId: string;
+          username: string;
+          totalLogs: number;
+          quotaTarget: number;
+          complianceStatus: 'GREEN' | 'YELLOW' | 'RED';
+          batchDumpingFlagged: boolean;
+        }[];
+        warnings: string[];
+        marketSynthesis: unknown;
+      }>);
+  analyzeSentiment:
+    | null
+    | ((input: { notes: string[] }) => Promise<{
+        sentimentTrend: 'IMPROVING' | 'STABLE' | 'DECLINING';
+        explanation: string;
+      }>);
+  getMismatchLogs: null | (() => Promise<unknown[]>);
+  resolveMismatchLog:
     | null
     | ((input: {
         logId: string;
@@ -27,13 +88,31 @@ export const trpcResolvers = {
           selectedUnit: string;
           stockCondition: string;
         }[];
-      }) => Promise<any>),
-  getFailedJobs: null as null | (() => Promise<any>),
-  updateJobData: null as
+      }) => Promise<{ success: boolean }>);
+  getFailedJobs:
     | null
-    | ((input: { jobId: string; data: any }) => Promise<any>),
-  retryJob: null as null | ((input: { jobId: string }) => Promise<any>),
-  removeJob: null as null | ((input: { jobId: string }) => Promise<any>),
+    | (() => Promise<
+        {
+          id?: string;
+          name: string;
+          data: unknown;
+          failedReason?: string;
+          stacktrace?: string[] | null;
+          timestamp: number;
+        }[]
+      >);
+  updateJobData:
+    | null
+    | ((input: {
+        jobId: string;
+        data: unknown;
+      }) => Promise<{ success: boolean }>);
+  retryJob:
+    | null
+    | ((input: { jobId: string }) => Promise<{ success: boolean }>);
+  removeJob:
+    | null
+    | ((input: { jobId: string }) => Promise<{ success: boolean }>);
 };
 
 export const appRouter = t.router({
@@ -111,7 +190,7 @@ export const appRouter = t.router({
     .input(
       z.object({
         jobId: z.string(),
-        data: z.any(),
+        data: z.unknown(),
       }),
     )
     .mutation(async ({ input }) => {

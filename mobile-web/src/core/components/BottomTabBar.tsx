@@ -17,7 +17,7 @@ interface BottomTabBarProps {
   setCurrentScreen: (
     screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
   ) => void;
-  activeTheme: any;
+  activeTheme: $Any;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
@@ -48,7 +48,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     >
       {ROLE_SCREENS[activeRep.role]?.map((screen) => {
         let label = '';
-        let IconComponent: any = ClipboardList;
+        let IconComponent: $Any = ClipboardList;
         if (screen === 'ledger') {
           label = language === 'my' ? 'ဆိုင်စာရင်း' : 'Ledger';
           IconComponent = ClipboardList;

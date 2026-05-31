@@ -1,15 +1,17 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { Box, Text, Card } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
+import { useTheme } from '@shopify/restyle';
 import { RepDayStats } from '../hooks/useTeamPulseData';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { REPRESENTATIVES } from '../../../config/appConfig';
 
 interface ComplianceScorecardProps {
-  selectedRep: 'rep-1' | 'rep-2';
-  setSelectedRep: (rep: 'rep-1' | 'rep-2') => void;
+  selectedRep: string;
+  setSelectedRep: (rep: string) => void;
   selectedDayIndex: number;
   setSelectedDayIndex: (dayIndex: number) => void;
-  getRepDayStats: (repId: 'rep-1' | 'rep-2', dayIndex: number) => RepDayStats;
+  getRepDayStats: (repId: string, dayIndex: number) => RepDayStats;
 }
 
 export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
@@ -20,6 +22,8 @@ export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
   getRepDayStats,
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
+
   const daysOfWeekLabels = [
     t('mon'),
     t('tue'),
@@ -31,9 +35,9 @@ export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
   ];
 
   const getStatusColor = (status: 'GREEN' | 'YELLOW' | 'RED') => {
-    if (status === 'GREEN') return '#22C55E';
-    if (status === 'YELLOW') return '#EAB308';
-    return '#FF3B30';
+    if (status === 'GREEN') return theme.colors.success;
+    if (status === 'YELLOW') return theme.colors.warning;
+    return theme.colors.danger;
   };
 
   return (
@@ -67,107 +71,62 @@ export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
         ))}
       </Box>
 
-      {/* Rep 1 Row */}
-      <Box py="s" flexDirection="row" alignItems="center">
-        <Box width="30%">
-          <Text variant="body" fontWeight="bold">
-            Ko Min (rep-1)
-          </Text>
-          <Text variant="bodySecondary">Yangon</Text>
-        </Box>
-        {daysOfWeekLabels.map((_, idx) => {
-          const stats = getRepDayStats('rep-1', idx);
-          const isSelected =
-            selectedRep === 'rep-1' && selectedDayIndex === idx;
-          return (
-            <TouchableOpacity
-              key={`rep-1-${idx}`}
-              onPress={() => {
-                setSelectedRep('rep-1');
-                setSelectedDayIndex(idx);
-              }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: getStatusColor(stats.status),
-                marginHorizontal: 4,
-                paddingVertical: 10,
-                borderRadius: 6,
-                borderWidth: isSelected ? 2.5 : 0,
-                borderColor: '#1E1B4B',
-              }}
-            >
-              <Text variant="body" fontWeight="bold" style={{ color: '#fff' }}>
-                {stats.logCount}
-              </Text>
-              {stats.batchFlagged && (
+      {/* Representative Rows */}
+      {REPRESENTATIVES.map((rep) => (
+        <Box key={rep.id} py="s" flexDirection="row" alignItems="center">
+          <Box width="30%">
+            <Text variant="body" fontWeight="bold">
+              {rep.name} ({rep.id})
+            </Text>
+            <Text variant="bodySecondary">{rep.territory}</Text>
+          </Box>
+          {daysOfWeekLabels.map((_, idx) => {
+            const stats = getRepDayStats(rep.id, idx);
+            const isSelected =
+              selectedRep === rep.id && selectedDayIndex === idx;
+            return (
+              <TouchableOpacity
+                key={`${rep.id}-${idx}`}
+                onPress={() => {
+                  setSelectedRep(rep.id);
+                  setSelectedDayIndex(idx);
+                }}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: getStatusColor(stats.status),
+                  marginHorizontal: 4,
+                  paddingVertical: 10,
+                  borderRadius: 6,
+                  borderWidth: isSelected ? 2.5 : 0,
+                  borderColor: theme.colors.primaryButton,
+                }}
+              >
                 <Text
-                  style={{
-                    fontSize: 9,
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                  }}
+                  variant="body"
+                  fontWeight="bold"
+                  style={{ color: theme.colors.pureWhite }}
                 >
-                  ⚠️
+                  {stats.logCount}
                 </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </Box>
-
-      {/* Rep 2 Row */}
-      <Box py="s" flexDirection="row" alignItems="center">
-        <Box width="30%">
-          <Text variant="body" fontWeight="bold">
-            Ko Hla (rep-2)
-          </Text>
-          <Text variant="bodySecondary">Mandalay/Shan</Text>
+                {stats.batchFlagged && (
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                    }}
+                  >
+                    ⚠️
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </Box>
-        {daysOfWeekLabels.map((_, idx) => {
-          const stats = getRepDayStats('rep-2', idx);
-          const isSelected =
-            selectedRep === 'rep-2' && selectedDayIndex === idx;
-          return (
-            <TouchableOpacity
-              key={`rep-2-${idx}`}
-              onPress={() => {
-                setSelectedRep('rep-2');
-                setSelectedDayIndex(idx);
-              }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: getStatusColor(stats.status),
-                marginHorizontal: 4,
-                paddingVertical: 10,
-                borderRadius: 6,
-                borderWidth: isSelected ? 2.5 : 0,
-                borderColor: '#1E1B4B',
-              }}
-            >
-              <Text variant="body" fontWeight="bold" style={{ color: '#fff' }}>
-                {stats.logCount}
-              </Text>
-              {stats.batchFlagged && (
-                <Text
-                  style={{
-                    fontSize: 9,
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                  }}
-                >
-                  ⚠️
-                </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </Box>
+      ))}
 
       {/* Legend indicators */}
       <Box
@@ -177,33 +136,15 @@ export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
         flexWrap="wrap"
       >
         <Box flexDirection="row" alignItems="center" mr="m" mb="xs">
-          <Box
-            width={12}
-            height={12}
-            borderRadius="s"
-            style={{ backgroundColor: '#22C55E' }}
-            mr="xs"
-          />
+          <Box width={12} height={12} borderRadius="s" bg="success" mr="xs" />
           <Text variant="bodySecondary">{t('metQuota')}</Text>
         </Box>
         <Box flexDirection="row" alignItems="center" mr="m" mb="xs">
-          <Box
-            width={12}
-            height={12}
-            borderRadius="s"
-            style={{ backgroundColor: '#EAB308' }}
-            mr="xs"
-          />
+          <Box width={12} height={12} borderRadius="s" bg="warning" mr="xs" />
           <Text variant="bodySecondary">{t('partialActivity')}</Text>
         </Box>
         <Box flexDirection="row" alignItems="center" mr="m" mb="xs">
-          <Box
-            width={12}
-            height={12}
-            borderRadius="s"
-            style={{ backgroundColor: '#FF3B30' }}
-            mr="xs"
-          />
+          <Box width={12} height={12} borderRadius="s" bg="danger" mr="xs" />
           <Text variant="bodySecondary">{t('zeroEntries')}</Text>
         </Box>
         <Box flexDirection="row" alignItems="center" mb="xs">

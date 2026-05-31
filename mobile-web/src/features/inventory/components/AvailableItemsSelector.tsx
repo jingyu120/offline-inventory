@@ -8,6 +8,7 @@ import { useTheme } from '@shopify/restyle';
 import { Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { FlashList } from '@shopify/flash-list';
+import { INVENTORY_STATUS } from '../../../config/appConfig';
 
 interface AvailableItemsSelectorProps {
   skuSearch: string;
@@ -51,7 +52,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         style={{ flex: 1 }}
       >
         <Text variant="body" color="pureWhite" fontWeight="bold">
-          ✓ {t('stockLevelOk') || 'Stock Level OK'}
+          ✓ {t('stockLevelOk')}
         </Text>
       </Box>
     );
@@ -69,14 +70,16 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         style={{ flex: 1 }}
       >
         <Text variant="body" color="pureWhite" fontWeight="bold">
-          ✗ {t('depleted') || 'Depleted'}
+          ✗ {t('depleted')}
         </Text>
       </Box>
     );
   };
 
   const filteredAvailableItems = availableItems.filter(
-    (item) => item.inventoryStatus === 'AVAILABLE' || !item.inventoryStatus,
+    (item) =>
+      item.inventoryStatus === INVENTORY_STATUS.AVAILABLE ||
+      !item.inventoryStatus,
   );
 
   return (
@@ -137,7 +140,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
 
               return (
                 <Swipeable
-                  ref={(el: any) => {
+                  ref={(el: $Any) => {
                     if (el) {
                       swipeableRefs.current[item.id] = el;
                     }
@@ -194,8 +197,8 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                               fontWeight="bold"
                             >
                               {selectedCond === 'DEPLETED'
-                                ? 'DEPLETED'
-                                : 'OK ✓'}
+                                ? t('depleted').toUpperCase()
+                                : t('okCheck')}
                             </Text>
                           </Box>
                         )}
@@ -222,11 +225,11 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                         }
                         style={{ marginTop: 2 }}
                       >
-                        {t('price') || 'Price'}:{' '}
+                        {t('price')}:{' '}
                         {(() => {
                           const price = getItemPrice(item);
                           return selectedCurrency === 'MMK'
-                            ? `${Math.round(price).toLocaleString()} MMK`
+                            ? `${Math.round(price).toLocaleString()} ${t('currencyKyats')}`
                             : `${price.toFixed(2)} ${selectedCurrency}`;
                         })()}{' '}
                         | {t('availableStock')}:{' '}

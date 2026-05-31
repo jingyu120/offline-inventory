@@ -11,11 +11,14 @@ import { database } from '../../../core/database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq } from 'drizzle-orm';
 import { Check, X, ShieldAlert, Layers } from 'lucide-react-native';
+import { INVENTORY_STATUS } from '../../../config/appConfig';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 export function PendingIntakeApproval() {
+  const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const [loading, setLoading] = useState(true);
-  const [pendingItems, setPendingItems] = useState<any[]>([]);
+  const [pendingItems, setPendingItems] = useState<$Any[]>([]);
 
   const loadPendingIntakes = async () => {
     setLoading(true);
@@ -24,14 +27,22 @@ export function PendingIntakeApproval() {
       const itemsList = await database
         .select()
         .from(sqliteSchema.items)
-        .where(eq(sqliteSchema.items.inventory_status, 'PENDING_APPROVAL'));
+        .where(
+          eq(
+            sqliteSchema.items.inventory_status,
+            INVENTORY_STATUS.PENDING_APPROVAL,
+          ),
+        );
 
       // Query stocks with status PENDING_APPROVAL
       const stocksList = await database
         .select()
         .from(sqliteSchema.item_stocks)
         .where(
-          eq(sqliteSchema.item_stocks.inventory_status, 'PENDING_APPROVAL'),
+          eq(
+            sqliteSchema.item_stocks.inventory_status,
+            INVENTORY_STATUS.PENDING_APPROVAL,
+          ),
         );
 
       // Group/Map them so we can show SKU name, quantity, etc.
@@ -74,7 +85,7 @@ export function PendingIntakeApproval() {
     }
   };
 
-  const handleAuthorize = async (item: any) => {
+  const handleAuthorize = async (item: $Any) => {
     try {
       const now = Date.now();
       // Update item_stocks to AVAILABLE
@@ -82,7 +93,7 @@ export function PendingIntakeApproval() {
         await database
           .update(sqliteSchema.item_stocks)
           .set({
-            inventory_status: 'AVAILABLE',
+            inventory_status: INVENTORY_STATUS.AVAILABLE,
             updated_at: now,
           })
           .where(eq(sqliteSchema.item_stocks.id, item.stockId));
@@ -93,24 +104,24 @@ export function PendingIntakeApproval() {
         await database
           .update(sqliteSchema.items)
           .set({
-            inventory_status: 'AVAILABLE',
+            inventory_status: INVENTORY_STATUS.AVAILABLE,
             updated_at: now,
           })
           .where(eq(sqliteSchema.items.id, item.itemId));
       }
 
       Alert.alert(
-        'Authorized',
-        `Successfully authorized SKU ${item.sku} into available stock.`,
+        t('authorizedTitle'),
+        t('skuAuthorizedSuccess', { sku: item.sku }),
       );
       await loadPendingIntakes();
     } catch (e) {
       console.error('Failed to authorize intake:', e);
-      Alert.alert('Error', 'Failed to authorize intake update.');
+      Alert.alert(t('error'), t('skuAuthorizeFailed'));
     }
   };
 
-  const handleReject = async (item: any) => {
+  const handleReject = async (item: $Any) => {
     try {
       const now = Date.now();
       // Delete stock update or mark as rejected/deleted
@@ -124,7 +135,7 @@ export function PendingIntakeApproval() {
           .delete(sqliteSchema.items)
           .where(eq(sqliteSchema.items.id, item.itemId));
       }
-      Alert.alert('Rejected', 'Quarantined intake rejected and removed.');
+      Alert.alert(t('rejectedSuccess'), t('quarantinedIntakeRejected'));
       await loadPendingIntakes();
     } catch (e) {
       console.error('Failed to reject intake:', e);
@@ -152,7 +163,7 @@ export function PendingIntakeApproval() {
           style={{ marginRight: 8 }}
         />
         <Text variant="title" fontSize={18}>
-          Pending Stock & SKU Authorizations
+          {t('pendingStockSkuAuth')}
         </Text>
       </Box>
 
@@ -165,7 +176,7 @@ export function PendingIntakeApproval() {
           borderWidth={1}
         >
           <Text variant="bodySecondary" fontStyle="italic">
-            No pending stock intake approvals in queue.
+            {t('noPendingIntakeQueue')}
           </Text>
         </Card>
       ) : (
@@ -199,7 +210,7 @@ export function PendingIntakeApproval() {
                           color="warningText"
                           fontWeight="bold"
                         >
-                          QUARANTINED
+                          {t('quarantined')}
                         </Text>
                       </Box>
                       <Text variant="body" fontWeight="bold">
@@ -207,16 +218,16 @@ export function PendingIntakeApproval() {
                       </Text>
                     </Box>
                     <Text variant="bodySecondary" fontSize={13}>
-                      SKU: {item.sku} | Category: {item.category}
+                      {t('sku')}: {item.sku} | {t('category')}: {item.category}
                     </Text>
                     <Text
                       variant="bodySecondary"
                       fontSize={13}
                       style={{ marginTop: 2 }}
                     >
-                      Intake Quantity:{' '}
+                      {t('intakeQuantity')}{' '}
                       <Text fontWeight="bold" color="primaryText">
-                        {item.quantity} PCS
+                        {item.quantity} {t('unitPcs')}
                       </Text>
                     </Text>
                     <Text
@@ -224,7 +235,9 @@ export function PendingIntakeApproval() {
                       fontSize={11}
                       style={{ marginTop: 4 }}
                     >
-                      Logged on: {new Date(item.createdAt).toLocaleString()}
+                      {t('loggedOn', {
+                        date: new Date(item.createdAt).toLocaleString(),
+                      })}
                     </Text>
                   </Box>
 

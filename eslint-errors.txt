@@ -1,0 +1,542 @@
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/package.json
+   8:3  warning  The "mobile-web" project uses the following packages, but they are missing from "dependencies":
+    - react-native-gesture-handler
+    - react-error-boundary
+    - @react-native-community/netinfo
+    - react-native-mmkv
+    - zustand
+    - @trpc/client
+    - zod
+    - @shopify/flash-list  @nx/dependency-checks
+  23:5  warning  The "expo-secure-store" package is not used by "mobile-web" project                                                                                                                                                                                                                               @nx/dependency-checks
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/app-root/App.tsx
+   30:3   warning  'Alert' is defined but never used              @typescript-eslint/no-unused-vars
+   68:36  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+   76:70  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  133:26  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  134:28  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  138:43  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  138:57  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  177:43  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  258:19  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  309:11  warning  'language' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  374:52  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/config/appConfig.ts
+  220:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/components/BottomTabBar.tsx
+  20:16  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:11  warning  't' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  51:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/components/DesignPatternGallery.tsx
+   73:9   warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   82:48  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   91:53  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  127:29  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  131:42  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/components/ErrorBoundaryFallback.tsx
+  111:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/components/NavBar.tsx
+   15:16  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   62:41  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  129:43  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  145:24  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  196:51  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  213:32  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  238:41  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  257:22  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  283:32  warning  'hovered' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  283:43  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  308:93  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  348:31  warning  'pressed' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  348:51  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  368:87  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  381:41  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  400:22  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  413:41  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  444:24  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  504:47  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  522:28  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  573:55  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  593:36  error    Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/components/ToastProvider.tsx
+    7:3   warning  'Animated' is defined but never used      @typescript-eslint/no-unused-vars
+  101:24  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/data/mockSeeding.ts
+  3:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/data/repositories.ts
+   38:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  229:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  236:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  289:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  501:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/database/database.native.ts
+  30:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/database/database.web.ts
+   12:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   76:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  508:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  639:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  640:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  641:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  650:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  651:4   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  652:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  655:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  655:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  674:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  684:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  687:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  714:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/database/tileDb.native.ts
+  3:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/database/tileDb.web.ts
+  2:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  4:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/i18n/i18n.tsx
+  33:14  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+  42:14  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/store/cartStore.ts
+  4:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/utils/ScannerThrottle.ts
+  40:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/utils/audit.ts
+  23:7  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/utils/crypto.ts
+   7:9  warning  'maxWord' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  11:9  warning  'result' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/utils/ocr.ts
+  1:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/utils/pricing.ts
+  5:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  7:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/DlqDashboard.tsx
+   22:3   warning  'RefreshCw' is defined but never used     @typescript-eslint/no-unused-vars
+   23:3   warning  'Edit3' is defined but never used         @typescript-eslint/no-unused-vars
+   38:36  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:50  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   65:33  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/HitlVerificationPanel.tsx
+    5:3   warning  'Platform' is defined but never used      @typescript-eslint/no-unused-vars
+   30:3   warning  'RefreshCw' is defined but never used     @typescript-eslint/no-unused-vars
+   35:10  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:36  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:44  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   51:50  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:33  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:47  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:62  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/MapDetailPane.tsx
+   24:16  error    Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   25:15  error    Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   41:3   warning  'onShopSelect' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   70:26  error    Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  173:47  error    Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/MapLegend.tsx
+  19:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/PendingIntakeApproval.tsx
+    8:34  warning  'Button' is defined but never used        @typescript-eslint/no-unused-vars
+   13:20  warning  'ShieldAlert' is defined but never used   @typescript-eslint/no-unused-vars
+   21:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   80:40  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  116:37  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:13  warning  'now' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/PendingSalesApproval.tsx
+   21:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  258:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/components/SyncLogsTable.tsx
+    7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/hooks/useGeographicHeatmapData.ts
+    3:8   warning  'axios' is defined but never used                     @typescript-eslint/no-unused-vars
+    6:3   warning  'AI_ANALYZE_SENTIMENT_URL' is defined but never used  @typescript-eslint/no-unused-vars
+  284:48  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/hooks/useTeamPulseData.ts
+   4:8   warning  'axios' is defined but never used                        @typescript-eslint/no-unused-vars
+   7:3   warning  'AI_EOD_DIGEST_URL' is defined but never used            @typescript-eslint/no-unused-vars
+   8:3   warning  'AI_QUOTAS_OPTIMIZATIONS_URL' is defined but never used  @typescript-eslint/no-unused-vars
+  54:64  error    Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  60:52  error    Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/screens/GeographicHeatmapScreen.tsx
+   23:31  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   89:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   90:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   91:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  110:34  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:50  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:29  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:35  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:37  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  257:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  276:40  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  276:56  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  290:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  305:43  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  306:43  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  359:27  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  382:50  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  382:63  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/admin/screens/TeamPulseScreen.tsx
+   79:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  363:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  509:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  631:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  656:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/GPSCheckInCard.tsx
+  15:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/GemmaCopilot.tsx
+  20:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/PredictionAnalyticsCard.tsx
+  11:10  warning  'eq' is defined but never used            @typescript-eslint/no-unused-vars
+  15:18  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:58  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:13  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/RegisterShopModal.tsx
+    2:36  warning  'Platform' is defined but never used        @typescript-eslint/no-unused-vars
+   35:9   warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   83:22  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   92:22  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  254:17  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/RepScorecardCard.tsx
+    7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    8:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    9:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/SelectedItemsList.tsx
+   33:24  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   35:14  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   47:12  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  101:26  warning  'setFocusedPriceId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  120:49  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  195:17  warning  'priceFocused' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  264:32  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  398:47  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  431:30  warning  'e' is defined but never used                           @typescript-eslint/no-unused-vars
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/ShopDetailPane.tsx
+  134:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  149:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  193:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  245:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  264:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  270:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  277:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  511:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/ShopSidebarList.tsx
+   55:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  424:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/components/UpdateTerritoryModal.tsx
+    2:36  warning  'Platform' is defined but never used        @typescript-eslint/no-unused-vars
+   37:9   warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   65:22  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   74:22  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  155:17  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/screens/InteractionLoggingScreen.tsx
+   25:3   warning  'mapItem' is defined but never used                @typescript-eslint/no-unused-vars
+   81:34  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  105:44  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  107:10  warning  'ocrVerifying' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  108:64  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  156:30  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  240:54  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  241:56  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  353:16  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  449:21  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  450:50  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  468:31  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  626:22  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  730:20  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  837:51  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/audit/screens/ShopLedgerScreen.tsx
+    4:3   warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
+  271:49  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  280:30  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  315:49  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  324:30  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  359:49  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  367:30  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/inventory/components/AvailableItemsSelector.tsx
+  141:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/inventory/components/CompetitorInsightForm.tsx
+  133:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/inventory/components/ImageAnnotationModal.tsx
+  91:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/inventory/screens/IntakeScreen.tsx
+   31:3   warning  'Package' is defined but never used       @typescript-eslint/no-unused-vars
+   80:48  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:56  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  390:46  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  487:45  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  504:36  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  513:41  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.native.ts
+   57:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  254:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.web.ts
+  191:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  192:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/SyncConflictManager.ts
+   6:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   7:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   8:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/backgroundTasks.ts
+  29:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/components/SyncConflictModal.tsx
+  19:43  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:37  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:53  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:39  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  77:22  warning  '_' is defined but never used             @typescript-eslint/no-unused-vars
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts
+  22:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/networkQualityUtil.native.ts
+   8:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/networkQualityUtil.web.ts
+  2:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  6:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  7:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/syncEngine.ts
+   19:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   35:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  208:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  313:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  320:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  320:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  336:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/viber/components/ViberIntegration.tsx
+  93:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/viber/components/ViberSimulator.tsx
+   50:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   51:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   54:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   62:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   82:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  257:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  351:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  647:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  667:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  738:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/types/lucide.d.ts
+  7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/shared-types/package.json
+  17:3  warning  The "shared-types" project uses the following packages, but they are missing from "dependencies":
+    - @trpc/server  @nx/dependency-checks
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/package.json
+   5:3  warning  The "sync-server" project uses the following packages, but they are missing from "dependencies":
+    - tslib
+    - express
+    - multer
+    - dotenv
+    - @nx/webpack  @nx/dependency-checks
+  10:5  warning  The "@nestjs/platform-fastify" package is not used by "sync-server" project                                                                                             @nx/dependency-checks
+  16:5  warning  The "ioredis" package is not used by "sync-server" project                                                                                                              @nx/dependency-checks
+  18:5  warning  The "reflect-metadata" package is not used by "sync-server" project                                                                                                     @nx/dependency-checks
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/core/auth/actor.interceptor.ts
+  11:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/core/drizzle/drizzle.service.ts
+  627:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/core/queue/ai-queue.service.ts
+  56:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/features/ai/ai.service.ts
+   69:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  367:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/features/sync/sync.controller.ts
+   36:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  258:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  314:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  328:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/justin.zhang/Desktop/burma/burma-inventory/sync-server/src/app/features/sync/sync.service.ts
+    17:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    21:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    22:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   291:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   318:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   321:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   322:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   383:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   396:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   397:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   439:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   440:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   442:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   443:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   449:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   486:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   499:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   506:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   507:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   546:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   583:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   623:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   626:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   739:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   812:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   921:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   932:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   955:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1126:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1264:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 390 problems (338 errors, 52 warnings)
+  0 errors and 7 warnings potentially fixable with the `--fix` option.
+

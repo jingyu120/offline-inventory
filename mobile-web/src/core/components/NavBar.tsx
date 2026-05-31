@@ -12,7 +12,7 @@ export { ROLE_SCREENS };
 interface NavBarProps {
   themeMode: 'light' | 'dark';
   setThemeMode: (mode: 'light' | 'dark') => void;
-  activeTheme: any;
+  activeTheme: $Any;
   currentScreen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot';
   setCurrentScreen: (
     screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
@@ -59,7 +59,7 @@ export const NavBar: React.FC<NavBarProps> = ({
   ) => {
     const cfg = SCREENS.find((s) => s.value === screen);
     if (cfg) {
-      return { label: t(cfg.labelKey as any) || cfg.value, icon: cfg.icon };
+      return { label: t(cfg.labelKey as $Any) || cfg.value, icon: cfg.icon };
     }
     return { label: screen, icon: '📄' };
   };
@@ -77,6 +77,26 @@ export const NavBar: React.FC<NavBarProps> = ({
       position="relative"
       zIndex={10000}
     >
+      {(isRepDropdownOpen || isNavDropdownOpen || isThermalDropdownOpen) && (
+        <Pressable
+          style={{
+            position: (Platform.OS === 'web'
+              ? 'fixed'
+              : 'absolute') as 'absolute',
+            top: 0,
+            bottom: Platform.OS === 'web' ? 0 : -2000,
+            left: Platform.OS === 'web' ? 0 : -1000,
+            right: Platform.OS === 'web' ? 0 : -1000,
+            zIndex: 1000,
+            backgroundColor: 'transparent',
+          }}
+          onPress={() => {
+            setIsRepDropdownOpen(false);
+            setIsNavDropdownOpen(false);
+            setIsThermalDropdownOpen(false);
+          }}
+        />
+      )}
       <Box flexDirection="row" alignItems="center" flex={1} overflow="visible">
         <Text
           variant="title"
@@ -95,7 +115,12 @@ export const NavBar: React.FC<NavBarProps> = ({
         )}
       </Box>
 
-      <Box flexDirection="row" alignItems="center" overflow="visible">
+      <Box
+        flexDirection="row"
+        alignItems="center"
+        overflow="visible"
+        zIndex={10010}
+      >
         {/* Active Rep Selector Dropdown */}
         <Box
           position="relative"
@@ -108,7 +133,7 @@ export const NavBar: React.FC<NavBarProps> = ({
               setIsRepDropdownOpen(!isRepDropdownOpen);
               setIsNavDropdownOpen(false);
             }}
-            style={({ pressed, hovered }: any) => ({
+            style={({ pressed, hovered }: $Any) => ({
               paddingVertical: 6,
               paddingHorizontal: isDesktop ? 12 : 8,
               borderRadius: 16,
@@ -124,7 +149,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                     transitionProperty: 'transform, background-color',
                     transitionDuration: '150ms',
                     transitionTimingFunction: 'ease-in-out',
-                  } as any)
+                  } as $Any)
                 : {}),
             })}
           >
@@ -175,7 +200,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                         'success',
                       );
                     }}
-                    style={({ pressed, hovered }: any) => ({
+                    style={({ pressed, hovered }: $Any) => ({
                       paddingVertical: 8,
                       paddingHorizontal: 12,
                       backgroundColor: isSelected
@@ -192,7 +217,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                             transitionProperty: 'transform, background-color',
                             transitionDuration: '150ms',
                             transitionTimingFunction: 'ease-in-out',
-                          } as any)
+                          } as $Any)
                         : {}),
                     })}
                   >
@@ -205,7 +230,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                       {rep.name} ({rep.role})
                     </Text>
                     <Text variant="bodySecondary" style={{ fontSize: 10 }}>
-                      {rep.regionName || 'No Region'}
+                      {rep.regionName || t('noRegion')}
                     </Text>
                   </Pressable>
                 );
@@ -217,7 +242,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         {/* Language Toggle Button */}
         <Pressable
           onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
-          style={({ pressed, hovered }: any) => ({
+          style={({ pressed, hovered }: $Any) => ({
             paddingVertical: isDesktop ? 6 : undefined,
             paddingHorizontal: isDesktop ? 12 : undefined,
             width: isDesktop ? undefined : 32,
@@ -236,7 +261,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                   transitionProperty: 'transform, background-color',
                   transitionDuration: '150ms',
                   transitionTimingFunction: 'ease-in-out',
-                } as any)
+                } as $Any)
               : {}),
           })}
         >
@@ -262,7 +287,7 @@ export const NavBar: React.FC<NavBarProps> = ({
               setIsRepDropdownOpen(false);
               setIsNavDropdownOpen(false);
             }}
-            style={({ pressed, hovered }: any) => {
+            style={({ pressed, hovered }: $Any) => {
               let bg = activeTheme.colors.borderColor;
               if (thermalState === 'NOMINAL')
                 bg = '#10B981'; // green
@@ -287,7 +312,7 @@ export const NavBar: React.FC<NavBarProps> = ({
             <Text style={{ fontSize: 11, color: '#fff', fontWeight: 'bold' }}>
               🌡️{' '}
               {t(
-                `thermal${thermalState.charAt(0) + thermalState.slice(1).toLowerCase()}` as any,
+                `thermal${thermalState.charAt(0) + thermalState.slice(1).toLowerCase()}` as $Any,
               ) || thermalState}
             </Text>
           </Pressable>
@@ -327,7 +352,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                           : 'success',
                       );
                     }}
-                    style={({ pressed, hovered }: any) => ({
+                    style={({ pressed, hovered }: $Any) => ({
                       paddingVertical: 8,
                       paddingHorizontal: 12,
                       backgroundColor: isSelected
@@ -347,7 +372,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                       color={isSelected ? 'brand' : 'primaryText'}
                     >
                       {t(
-                        `thermal${state.charAt(0) + state.slice(1).toLowerCase()}` as any,
+                        `thermal${state.charAt(0) + state.slice(1).toLowerCase()}` as $Any,
                       ) || state}
                     </Text>
                   </Pressable>
@@ -360,7 +385,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         {/* Theme Toggle Button */}
         <Pressable
           onPress={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-          style={({ pressed, hovered }: any) => ({
+          style={({ pressed, hovered }: $Any) => ({
             paddingVertical: isDesktop ? 6 : undefined,
             paddingHorizontal: isDesktop ? 12 : undefined,
             width: isDesktop ? undefined : 32,
@@ -379,7 +404,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                   transitionProperty: 'transform, background-color',
                   transitionDuration: '150ms',
                   transitionTimingFunction: 'ease-in-out',
-                } as any)
+                } as $Any)
               : {}),
           })}
         >
@@ -392,7 +417,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         <Pressable
           onPress={handleSync}
           disabled={isSyncing}
-          style={({ pressed, hovered }: any) => {
+          style={({ pressed, hovered }: $Any) => {
             const statusBg = syncError
               ? activeTheme.colors.danger
               : isSyncing
@@ -423,7 +448,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                     transitionDuration: '150ms',
                     transitionTimingFunction: 'ease-in-out',
                     userSelect: 'none',
-                  } as any)
+                  } as $Any)
                 : {}),
             };
           }}
@@ -483,7 +508,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                   setIsNavDropdownOpen(!isNavDropdownOpen);
                   setIsRepDropdownOpen(false);
                 }}
-                style={({ pressed, hovered }: any) => ({
+                style={({ pressed, hovered }: $Any) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
                   backgroundColor: hovered
@@ -501,7 +526,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                         transitionProperty: 'transform, background-color',
                         transitionDuration: '150ms',
                         transitionTimingFunction: 'ease-in-out',
-                      } as any)
+                      } as $Any)
                     : {}),
                 })}
               >
@@ -552,7 +577,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                           setCurrentScreen(screen);
                           setIsNavDropdownOpen(false);
                         }}
-                        style={({ pressed, hovered }: any) => ({
+                        style={({ pressed, hovered }: $Any) => ({
                           flexDirection: 'row',
                           alignItems: 'center',
                           paddingVertical: 8,
@@ -572,7 +597,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                                   'transform, background-color',
                                 transitionDuration: '150ms',
                                 transitionTimingFunction: 'ease-in-out',
-                              } as any)
+                              } as $Any)
                             : {}),
                         })}
                       >

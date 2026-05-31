@@ -1,6 +1,6 @@
 import { open } from '@op-engineering/op-sqlite';
 
-let mbtilesDb: any = null;
+let mbtilesDb: $Any = null;
 try {
   mbtilesDb = open({
     name: 'map_tiles.mbtiles',

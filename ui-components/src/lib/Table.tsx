@@ -15,7 +15,7 @@ export interface TableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   keyExtractor: (item: T) => string;
-  minWidth?: number | string;
+  minWidth?: number | `${number}%`;
 }
 
 export function Table<T>({
@@ -94,7 +94,7 @@ export function Table<T>({
     >
       <Box
         flex={1}
-        minWidth={minWidth as any}
+        minWidth={minWidth}
         bg="cardBackground"
         borderRadius="m"
         p="m"

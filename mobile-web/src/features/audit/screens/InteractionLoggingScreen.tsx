@@ -78,7 +78,7 @@ export function InteractionLoggingScreen({
   const setNotes = (val: string) => updateSession(shopId, { notes: val });
 
   const selectedItems = session.selectedItems;
-  const setSelectedItems = (val: any) => {
+  const setSelectedItems = (val: $Any) => {
     const newItems =
       typeof val === 'function' ? val(session.selectedItems) : val;
     updateSession(shopId, { selectedItems: newItems });
@@ -102,10 +102,10 @@ export function InteractionLoggingScreen({
 
   const [skuSearch, setSkuSearch] = useState('');
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<$Any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [ocrVerifying, setOcrVerifying] = useState(false);
-  const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
+  const [lastInteractionLog, setLastInteractionLog] = useState<$Any>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [traceId, setTraceId] = useState('');
 
@@ -153,7 +153,7 @@ export function InteractionLoggingScreen({
           selectedCurrency: draft.currency,
           selectedProjectId: draft.project_id,
         });
-        setTraceId((draft as any).trace_id || generateUUIDv4());
+        setTraceId((draft as $Any).trace_id || generateUUIDv4());
         setIsDraftLoaded(true);
       } else {
         resetForm();
@@ -237,8 +237,8 @@ export function InteractionLoggingScreen({
   const selectedCurrency = session.selectedCurrency;
   const setSelectedCurrency = (val: string) =>
     updateSession(shopId, { selectedCurrency: val });
-  const [exchangeRates, setExchangeRates] = useState<any[]>([]);
-  const [priceBookItems, setPriceBookItems] = useState<any[]>([]);
+  const [exchangeRates, setExchangeRates] = useState<$Any[]>([]);
+  const [priceBookItems, setPriceBookItems] = useState<$Any[]>([]);
   const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
 
   const loadLastInteractionLog = async () => {
@@ -350,7 +350,7 @@ export function InteractionLoggingScreen({
             salesperson_id: activeRep.id,
             approved_by_id: null,
             updated_at: Math.floor(Date.now() / 1000),
-          } as any);
+          } as $Any);
         }
       } catch (e) {
         console.error('[Draft Cart] Failed to auto-save draft cart:', e);
@@ -446,8 +446,8 @@ export function InteractionLoggingScreen({
       if (itemsList.length > 0) {
         const { items: allItems } = await fetchItemsAndStockLevel();
         const mapped = itemsList
-          .map((ii: any) => {
-            const itemDetail = allItems.find((i: any) => i.id === ii.item_id);
+          .map((ii: $Any) => {
+            const itemDetail = allItems.find((i: $Any) => i.id === ii.item_id);
             if (!itemDetail) return null;
             const unitPriceVal =
               ii.unit_price !== undefined && ii.unit_price !== null
@@ -465,12 +465,12 @@ export function InteractionLoggingScreen({
               pendingAllocationCount: ii.pending_allocation_count ?? 0,
             };
           })
-          .filter(Boolean) as any[];
+          .filter(Boolean) as $Any[];
         setSelectedItems(mapped);
       }
     } catch (e) {
       console.error('Failed to duplicate last order:', e);
-      Alert.alert(t('error') || 'Error', 'Failed to duplicate last order.');
+      Alert.alert(t('error'), t('failedToDuplicateLastOrder'));
     }
   };
 
@@ -608,10 +608,7 @@ export function InteractionLoggingScreen({
       (si) => Number(si.unitPrice || 0) < getItemPrice(si.item) * 0.85,
     );
     if (hasBelowFloor && !isOverrideMarginAcknowledged) {
-      Alert.alert(
-        t('validationError') || 'Validation Error',
-        'Please check the Confirm Overridden Margin safety box before saving.',
-      );
+      Alert.alert(t('validationError'), t('checkOverrideMarginError'));
       return;
     }
 
@@ -623,7 +620,7 @@ export function InteractionLoggingScreen({
           ? selected.quantity
           : parseInt(selected.quantity || '0', 10);
       const pendingAlloc = parseInt(
-        (selected as any).pendingAllocationCount?.toString() || '0',
+        (selected as $Any).pendingAllocationCount?.toString() || '0',
         10,
       );
       if (
@@ -632,7 +629,7 @@ export function InteractionLoggingScreen({
       ) {
         Alert.alert(
           t('validationError'),
-          `SKU ${selected.item.sku}: Please enter a valid quantity of 1 or more.`,
+          t('enterValidQtyForSku').replace('{sku}', selected.item.sku),
         );
         return;
       }
@@ -727,7 +724,7 @@ export function InteractionLoggingScreen({
                 justifyContent: 'center',
                 alignItems: 'center',
                 backdropFilter: 'blur(8px)',
-              } as any)
+              } as $Any)
             : undefined
         }
       >
@@ -834,7 +831,7 @@ export function InteractionLoggingScreen({
                 {COMMERCIAL_STATUSES.map((status) => (
                   <Box key={status.value} mr="s" mb="s">
                     <Button
-                      title={t(status.labelKey as any) || status.value}
+                      title={t(status.labelKey as $Any) || status.value}
                       variant={
                         commercialStatus === status.value
                           ? 'primary'
@@ -847,7 +844,7 @@ export function InteractionLoggingScreen({
               </Box>
 
               <Text variant="title" mb="s">
-                {t('priceCurrency') || 'Price Currency'}
+                {t('priceCurrency')}
               </Text>
               <Box flexDirection="row" mb="m">
                 {CURRENCIES.map((curr) => {

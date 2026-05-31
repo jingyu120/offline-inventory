@@ -4,7 +4,20 @@ import jsoncParser from 'jsonc-eslint-parser';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist', '**/node_modules', '**/.expo', '**/tmp', '**/public'],
+    ignores: [
+      '**/dist',
+      '**/node_modules',
+      '**/.expo',
+      '**/tmp',
+      '**/public',
+      '**/*.d.ts',
+    ],
+  },
+  {
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: 'error',
+    },
   },
   // Global Nx plugin configuration
   ...nx.configs['flat/base'],
@@ -53,10 +66,23 @@ export default tseslint.config(
         'warn',
         { argsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
+  {
+    files: [
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/test-setup.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
   {
     files: ['**/*.js', '**/*.jsx', '**/*.config.js', '**/*.config.mjs'],
     rules: {

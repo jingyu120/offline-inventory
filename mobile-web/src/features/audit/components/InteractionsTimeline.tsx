@@ -123,7 +123,10 @@ export const InteractionsTimeline: React.FC<InteractionsTimelineProps> = ({
                       alignItems="center"
                     >
                       <Text variant="bodySecondary" fontWeight="bold">
-                        {item.quantity}x
+                        {t('qtyTimes').replace(
+                          '{qty}',
+                          item.quantity.toString(),
+                        )}
                       </Text>
                       <Text variant="bodySecondary" style={{ marginLeft: 4 }}>
                         {item.name} ({item.sku})

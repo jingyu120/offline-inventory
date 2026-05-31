@@ -5,8 +5,10 @@ import { useTheme } from '@shopify/restyle';
 import { ExpectedInbound } from '@burma-inventory/shared-types';
 import { fetchExpectedInbounds } from '../../../core/data/repositories';
 import { Truck, Calendar, ArrowRight, RefreshCw } from 'lucide-react-native';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 export function InboundForecastList() {
+  const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const [inbounds, setInbounds] = useState<ExpectedInbound[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export function InboundForecastList() {
             style={{ marginRight: 8 }}
           />
           <Text variant="title" fontSize={16}>
-            Inbound Transit Forecast (Thailand)
+            {t('inboundTransitForecast')}
           </Text>
         </Box>
         <TouchableOpacity onPress={loadForecast} style={{ padding: 4 }}>
@@ -67,7 +69,7 @@ export function InboundForecastList() {
       ) : inbounds.length === 0 ? (
         <Box py="m" alignItems="center">
           <Text variant="bodySecondary" fontStyle="italic">
-            No transit trucks expected today.
+            {t('noTransitTrucksToday')}
           </Text>
         </Box>
       ) : (
@@ -97,11 +99,11 @@ export function InboundForecastList() {
                 </Box>
                 <Box flex={1}>
                   <Text variant="body" fontWeight="bold">
-                    SKU: {item.sku}
+                    {t('sku')}: {item.sku}
                   </Text>
                   <Box flexDirection="row" alignItems="center" mt="xs">
                     <Text variant="bodySecondary" fontSize={12}>
-                      Origin: {item.origin}
+                      {t('origin')}: {item.origin}
                     </Text>
                     <ArrowRight
                       size={10}
@@ -114,7 +116,7 @@ export function InboundForecastList() {
                       color="successText"
                       fontWeight="bold"
                     >
-                      Qty: {item.expectedQuantity}
+                      {t('qty')}: {item.expectedQuantity}
                     </Text>
                   </Box>
                 </Box>
@@ -128,7 +130,7 @@ export function InboundForecastList() {
                     style={{ marginRight: 4 }}
                   />
                   <Text variant="bodySecondary" fontSize={12} fontWeight="bold">
-                    ETA: {item.estimatedArrivalDate}
+                    {t('eta')}: {item.estimatedArrivalDate}
                   </Text>
                 </Box>
                 <Text
@@ -136,7 +138,7 @@ export function InboundForecastList() {
                   fontSize={10}
                   style={{ marginTop: 2 }}
                 >
-                  Status: In Transit
+                  {t('statusInTransit')}
                 </Text>
               </Box>
             </Box>

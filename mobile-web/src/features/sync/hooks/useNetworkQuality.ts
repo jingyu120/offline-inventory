@@ -19,7 +19,7 @@ export function useNetworkQuality(): NetworkQuality {
     NetInfo.fetch().then((state: NetInfoState) => {
       const is2G =
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
-      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+      const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
       setQuality({
         isConnected: state.isConnected ?? false,
@@ -32,7 +32,7 @@ export function useNetworkQuality(): NetworkQuality {
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
       const is2G =
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
-      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+      const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
       setQuality({
         isConnected: state.isConnected ?? false,

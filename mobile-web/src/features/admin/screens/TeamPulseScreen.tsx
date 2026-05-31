@@ -31,6 +31,17 @@ import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
 import { PendingSalesApproval } from '../components/PendingSalesApproval';
 import { TouchableOpacity } from 'react-native';
 
+const TAB_OVERSIGHT = 'oversight';
+const TAB_HITL = 'hitl';
+const TAB_DLQ = 'dlq';
+const TAB_APPROVALS = 'approvals';
+
+const DATE_FORMAT_PLACEHOLDER = 'YYYY-MM-DD';
+const PLATFORM_WEB = 'web';
+const PLATFORM_IOS = 'ios';
+const CSV_PLACEHOLDER =
+  'Name,Address,Region,Division,ContactName,PhoneNumber,Email,PriceTier,LifetimeValue\nCity Mart Hledan,Yangon,Yangon Division,U Hla,0912345678,hledan@citymart.com.mm,Retailer,5000';
+
 export const TeamPulseScreen: React.FC = () => {
   const { t, language } = useTranslation();
   const theme = useTheme<Theme>();
@@ -66,13 +77,13 @@ export const TeamPulseScreen: React.FC = () => {
     error?: string;
   } | null>(null);
 
-  const [syncLogs, setSyncLogs] = useState<any[]>([]);
+  const [syncLogs, setSyncLogs] = useState<$Any[]>([]);
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState<
     'oversight' | 'hitl' | 'dlq' | 'approvals'
-  >('oversight');
+  >(TAB_OVERSIGHT);
 
   // Focus states for emerald focus rings on inputs
   const [dateFocused, setDateFocused] = useState(false);
@@ -85,7 +96,7 @@ export const TeamPulseScreen: React.FC = () => {
           transitionProperty: 'border-color, border-width',
           transitionDuration: '150ms',
           transitionTimingFunction: 'ease-in-out',
-        } as any)
+        } as $Any)
       : {};
 
   const fetchSyncLogs = async (isLoadMore = false) => {
@@ -178,84 +189,84 @@ export const TeamPulseScreen: React.FC = () => {
         mb="l"
         gap="m"
       >
-        <TouchableOpacity onPress={() => setActiveTab('oversight')}>
+        <TouchableOpacity onPress={() => setActiveTab(TAB_OVERSIGHT)}>
           <Box
             py="s"
             px="m"
             borderBottomWidth={2}
             borderBottomColor={
-              activeTab === 'oversight' ? 'brand' : 'transparent'
+              activeTab === TAB_OVERSIGHT ? 'brand' : 'transparent'
             }
           >
             <Text
               variant="body"
               fontWeight="bold"
-              color={activeTab === 'oversight' ? 'brand' : 'secondaryText'}
+              color={activeTab === TAB_OVERSIGHT ? 'brand' : 'secondaryText'}
             >
-              Oversight Overview
+              {t('oversightOverview')}
             </Text>
           </Box>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setActiveTab('hitl')}>
+        <TouchableOpacity onPress={() => setActiveTab(TAB_HITL)}>
           <Box
             py="s"
             px="m"
             borderBottomWidth={2}
-            borderBottomColor={activeTab === 'hitl' ? 'brand' : 'transparent'}
+            borderBottomColor={activeTab === TAB_HITL ? 'brand' : 'transparent'}
           >
             <Text
               variant="body"
               fontWeight="bold"
-              color={activeTab === 'hitl' ? 'brand' : 'secondaryText'}
+              color={activeTab === TAB_HITL ? 'brand' : 'secondaryText'}
             >
-              HITL Resolutions
+              {t('hitlResolutions')}
             </Text>
           </Box>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setActiveTab('dlq')}>
+        <TouchableOpacity onPress={() => setActiveTab(TAB_DLQ)}>
           <Box
             py="s"
             px="m"
             borderBottomWidth={2}
-            borderBottomColor={activeTab === 'dlq' ? 'brand' : 'transparent'}
+            borderBottomColor={activeTab === TAB_DLQ ? 'brand' : 'transparent'}
           >
             <Text
               variant="body"
               fontWeight="bold"
-              color={activeTab === 'dlq' ? 'brand' : 'secondaryText'}
+              color={activeTab === TAB_DLQ ? 'brand' : 'secondaryText'}
             >
-              DLQ Monitor
+              {t('dlqMonitor')}
             </Text>
           </Box>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setActiveTab('approvals')}>
+        <TouchableOpacity onPress={() => setActiveTab(TAB_APPROVALS)}>
           <Box
             py="s"
             px="m"
             borderBottomWidth={2}
             borderBottomColor={
-              activeTab === 'approvals' ? 'brand' : 'transparent'
+              activeTab === TAB_APPROVALS ? 'brand' : 'transparent'
             }
           >
             <Text
               variant="body"
               fontWeight="bold"
-              color={activeTab === 'approvals' ? 'brand' : 'secondaryText'}
+              color={activeTab === TAB_APPROVALS ? 'brand' : 'secondaryText'}
             >
-              Approvals
+              {t('approvals')}
             </Text>
           </Box>
         </TouchableOpacity>
       </Box>
 
-      {activeTab === 'hitl' && <HitlVerificationPanel shops={shops} />}
+      {activeTab === TAB_HITL && <HitlVerificationPanel shops={shops} />}
 
-      {activeTab === 'dlq' && <DlqDashboard />}
+      {activeTab === TAB_DLQ && <DlqDashboard />}
 
-      {activeTab === 'approvals' && (
+      {activeTab === TAB_APPROVALS && (
         <Box flexDirection={isDesktop ? 'row' : 'column'} gap="m" mb="m">
           <Box flex={1}>
             <PendingIntakeApproval />
@@ -266,7 +277,7 @@ export const TeamPulseScreen: React.FC = () => {
         </Box>
       )}
 
-      {activeTab === 'oversight' && (
+      {activeTab === TAB_OVERSIGHT && (
         <>
           {/* Row 1: Compliance Grid & Velocity Auditing */}
           <Box
@@ -328,12 +339,12 @@ export const TeamPulseScreen: React.FC = () => {
               >
                 <Box mr="s">
                   <Text variant="caption" color="secondaryText" mb="xs">
-                    Date Filter
+                    {t('dateFilter')}
                   </Text>
                   <ThemedTextInput
                     value={digestDate}
                     onChangeText={setDigestDate}
-                    placeholder="YYYY-MM-DD"
+                    placeholder={DATE_FORMAT_PLACEHOLDER}
                     onFocus={() => setDateFocused(true)}
                     onBlur={() => setDateFocused(false)}
                     p="s"
@@ -346,11 +357,11 @@ export const TeamPulseScreen: React.FC = () => {
                       fontSize: 14,
                       fontFamily: 'monospace',
                       color: theme.colors.primaryText,
-                      ...(Platform.OS === 'web'
+                      ...(Platform.OS === PLATFORM_WEB
                         ? ({
                             outlineStyle: 'none',
                             ...webTransition,
-                          } as any)
+                          } as $Any)
                         : {}),
                     }}
                   />
@@ -496,7 +507,7 @@ export const TeamPulseScreen: React.FC = () => {
                             {index + 1}. {sku.label}
                           </Text>
                           <Text variant="bodySecondary">
-                            {t(sku.trendKey as any) || sku.trendKey}
+                            {t(sku.trendKey as $Any) || sku.trendKey}
                           </Text>
                         </Box>
                         <Text
@@ -587,12 +598,10 @@ export const TeamPulseScreen: React.FC = () => {
           {/* Odoo CSV Importer */}
           <Card p="m" mb="m" bg="cardBackground">
             <Text variant="title" mb="xs">
-              Odoo Shop Directory CSV Importer
+              {t('odooImporterTitle')}
             </Text>
             <Text variant="bodySecondary" mb="m">
-              Paste Odoo CSV data below to import shops and contacts. Expected
-              columns: Name, Address, Region, Division, ContactName,
-              PhoneNumber, Email, PriceTier, LifetimeValue
+              {t('odooImporterDesc')}
             </Text>
 
             <ThemedTextInput
@@ -600,7 +609,7 @@ export const TeamPulseScreen: React.FC = () => {
               numberOfLines={6}
               value={csvText}
               onChangeText={setCsvText}
-              placeholder={`Name,Address,Region,Division,ContactName,PhoneNumber,Email,PriceTier,LifetimeValue\nCity Mart Hledan,Yangon,Yangon Division,U Hla,0912345678,hledan@citymart.com.mm,Retailer,5000`}
+              placeholder={CSV_PLACEHOLDER}
               placeholderTextColor={theme.colors.secondaryText}
               onFocus={() => setCsvFocused(true)}
               onBlur={() => setCsvFocused(false)}
@@ -612,22 +621,23 @@ export const TeamPulseScreen: React.FC = () => {
               bg="mainBackground"
               mb="s"
               style={{
-                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                fontFamily:
+                  Platform.OS === PLATFORM_IOS ? 'Courier' : 'monospace',
                 fontSize: 13,
                 color: theme.colors.primaryText,
                 textAlignVertical: 'top',
-                ...(Platform.OS === 'web'
+                ...(Platform.OS === PLATFORM_WEB
                   ? ({
                       outlineStyle: 'none',
                       ...webTransition,
-                    } as any)
+                    } as $Any)
                   : {}),
               }}
             />
 
             <Box flexDirection="row" gap="s" mb={importResult ? 'm' : 'none'}>
               <Button
-                title={importing ? 'Importing...' : 'Import CSV Data'}
+                title={importing ? t('importing') : t('importCsvData')}
                 onPress={async () => {
                   if (!csvText.trim()) return;
                   setImporting(true);
@@ -645,13 +655,13 @@ export const TeamPulseScreen: React.FC = () => {
                       loadDatabaseData();
                       fetchSyncLogs(false);
                     }
-                  } catch (e: any) {
+                  } catch (e: $Any) {
                     setImportResult({
                       success: false,
                       error:
                         e.response?.data?.error ||
                         e.message ||
-                        'Failed to import CSV',
+                        t('importFailed'),
                     });
                   } finally {
                     setImporting(false);
@@ -661,7 +671,7 @@ export const TeamPulseScreen: React.FC = () => {
                 disabled={importing || !csvText.trim()}
               />
               <Button
-                title="Clear"
+                title={t('clear')}
                 onPress={() => {
                   setCsvText('');
                   setImportResult(null);
@@ -686,10 +696,12 @@ export const TeamPulseScreen: React.FC = () => {
                       color="successText"
                       mb="xs"
                     >
-                      Import Succeeded!
+                      {t('importSucceeded')}
                     </Text>
                     <Text variant="bodySecondary" color="successText">
-                      Successfully imported {importResult.importedCount} shops.
+                      {t('importSucceededMsg', {
+                        count: importResult.importedCount ?? 0,
+                      })}
                     </Text>
                     {importResult.warnings &&
                       importResult.warnings.length > 0 && (
@@ -705,7 +717,7 @@ export const TeamPulseScreen: React.FC = () => {
                             color="successText"
                             mb="xs"
                           >
-                            Warnings:
+                            {t('warningsLabel')}
                           </Text>
                           <ScrollView
                             style={{ maxHeight: 100 }}
@@ -733,7 +745,7 @@ export const TeamPulseScreen: React.FC = () => {
                       color="errorText"
                       mb="xs"
                     >
-                      Import Failed
+                      {t('importFailed')}
                     </Text>
                     <Text variant="bodySecondary" color="errorText">
                       {importResult.error}
@@ -753,13 +765,11 @@ export const TeamPulseScreen: React.FC = () => {
               mb="m"
             >
               <Box flex={1} mr="s">
-                <Text variant="title">Sync Audit Logs</Text>
-                <Text variant="bodySecondary">
-                  Real-time synchronization status audit log dashboard
-                </Text>
+                <Text variant="title">{t('syncAuditLogs')}</Text>
+                <Text variant="bodySecondary">{t('syncAuditLogsDesc')}</Text>
               </Box>
               <Button
-                title={syncLogsLoading ? 'Refreshing...' : 'Refresh'}
+                title={syncLogsLoading ? t('refreshing') : t('refresh')}
                 onPress={() => fetchSyncLogs(false)}
                 variant="outline"
                 size="small"
@@ -784,7 +794,7 @@ export const TeamPulseScreen: React.FC = () => {
                 justifyContent="center"
                 alignItems="center"
               >
-                <Text variant="bodySecondary">No sync logs recorded.</Text>
+                <Text variant="bodySecondary">{t('noSyncLogsRecorded')}</Text>
               </Box>
             ) : (
               <SyncLogsTable

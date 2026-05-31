@@ -1,42 +1,24 @@
 import React from 'react';
 import { TouchableOpacity, Platform } from 'react-native';
-import { Box, Text, Card } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
+import { useTheme } from '@shopify/restyle';
 import { Shop, guardAsync, sqliteSchema } from '@burma-inventory/shared-types';
 import { database } from '../../../core/database/database';
 import { eq } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
 import { useToast } from '../../../core/components/ToastProvider';
 import { useTranslation } from '../../../core/i18n/i18n';
+import {
+  calculateDistance,
+  GEOFENCE_RADIUS_CHECKIN_METERS,
+} from '../../../core/utils/geo';
 
 interface GPSCheckInCardProps {
   shop: Shop;
-  todayCheckIn: any;
+  todayCheckIn: $Any;
   loadDetails: () => Promise<void>;
   isDesktop: boolean;
 }
-
-const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-) => {
-  const R = 6371e3; // metres
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) *
-      Math.cos(phi2) *
-      Math.sin(deltaLambda / 2) *
-      Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in metres
-};
 
 export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
   shop,
@@ -47,6 +29,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
   const { activeRep } = useAuth();
   const { showToast } = useToast();
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
 
   const handleCheckIn = async (simulateNearby: boolean) => {
     try {
@@ -58,7 +41,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
       const userLon = simulateNearby ? shopLon + 0.001 : shopLon + 0.03;
 
       const dist = calculateDistance(shopLat, shopLon, userLat, userLon);
-      const verified = dist <= 500;
+      const verified = dist <= GEOFENCE_RADIUS_CHECKIN_METERS;
 
       const [, error] = await guardAsync(
         (async () => {
@@ -212,7 +195,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
             <TouchableOpacity
               onPress={() => handleCheckIn(true)}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: theme.colors.success,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
                 borderRadius: 8,
@@ -221,7 +204,13 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
+              <Text
+                style={{
+                  color: theme.colors.pureWhite,
+                  fontWeight: 'bold',
+                  fontSize: 13,
+                }}
+              >
                 {t('checkInNearby')}
               </Text>
             </TouchableOpacity>
@@ -229,7 +218,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
             <TouchableOpacity
               onPress={() => handleCheckIn(false)}
               style={{
-                backgroundColor: '#EF4444',
+                backgroundColor: theme.colors.danger,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
                 borderRadius: 8,
@@ -238,7 +227,13 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
+              <Text
+                style={{
+                  color: theme.colors.pureWhite,
+                  fontWeight: 'bold',
+                  fontSize: 13,
+                }}
+              >
                 {t('checkInFarAway')}
               </Text>
             </TouchableOpacity>

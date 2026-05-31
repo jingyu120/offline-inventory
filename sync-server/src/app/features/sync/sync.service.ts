@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DrizzleService } from '../../core/drizzle';
 import { guardAsync } from '@burma-inventory/shared-types';
 import { AiService } from '../ai/ai.service';
-import { ActorService } from '../../core/auth/actor.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -14,12 +13,12 @@ import type {
   WatermelonChangeSet,
 } from '@burma-inventory/shared-types';
 
-interface TableSyncConfig<TRecord = any> {
+interface TableSyncConfig<TRecord = $Any> {
   delegate: string;
   softDelete: boolean;
   hasTimestamps: boolean;
-  toRecord: (row: any) => TRecord;
-  toDrizzle: (record: TRecord) => any;
+  toRecord: (row: $Any) => TRecord;
+  toDrizzle: (record: TRecord) => $Any;
 }
 
 const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
@@ -276,7 +275,6 @@ export class SyncService {
   constructor(
     private readonly drizzle: DrizzleService,
     private readonly aiService: AiService,
-    private readonly actorService: ActorService,
   ) {}
 
   async getLastAuditEvent() {
@@ -288,7 +286,7 @@ export class SyncService {
     return lastEvents[0] || null;
   }
 
-  calculateEventHash(event: any, actorId: string, prevHash: string): string {
+  calculateEventHash(event: $Any, actorId: string, prevHash: string): string {
     const dataToHash =
       JSON.stringify({
         event_id: event.event_id,
@@ -315,16 +313,15 @@ export class SyncService {
   }
 
   async commitAuditEvent(
-    tx: any,
+    tx: $Any,
     entityType: 'ORDER' | 'SHOP' | 'INVENTORY',
     action: 'CREATE' | 'UPDATE' | 'DELETE' | 'OVERRIDE',
-    previousState: any,
-    newState: any,
+    previousState: $Any,
+    newState: $Any,
+    actorId: string,
+    deviceId: string,
+    traceId: string | null,
   ) {
-    const actorId = this.actorService.getActorId();
-    const deviceId = this.actorService.getDeviceId();
-    const traceId = this.actorService.getTraceId() || null;
-
     const lastEvents = await tx
       .select({ hash: schema.pgSchema.audit_events.hash })
       .from(schema.pgSchema.audit_events)
@@ -380,7 +377,7 @@ export class SyncService {
       tableName: string,
       cfg: TableSyncConfig,
     ): Promise<WatermelonChangeSet<unknown>> => {
-      const table = (schema.pgSchema as any)[cfg.delegate];
+      const table = (schema.pgSchema as $Any)[cfg.delegate];
       if (!table) {
         throw new Error(`Drizzle table for ${cfg.delegate} is not defined`);
       }
@@ -393,8 +390,8 @@ export class SyncService {
         return { created: all.map(cfg.toRecord), updated: [], deleted: [] };
       }
 
-      const conditions: any[] = [];
-      const updatedConditions: any[] = [];
+      const conditions: $Any[] = [];
+      const updatedConditions: $Any[] = [];
 
       if (hasCreatedAt) {
         conditions.push(gt(table.created_at, lastPulledAt));
@@ -436,17 +433,17 @@ export class SyncService {
           : Promise.resolve([]),
       ]);
 
-      const softDeletedIds = new Set(softDeleted.map((r: any) => r.id));
-      const created = newRecords.filter((r: any) => !softDeletedIds.has(r.id));
+      const softDeletedIds = new Set(softDeleted.map((r: $Any) => r.id));
+      const created = newRecords.filter((r: $Any) => !softDeletedIds.has(r.id));
       const newlyDeleted = newRecords
-        .filter((r: any) => softDeletedIds.has(r.id))
-        .map((r: any) => ({ id: r.id }));
+        .filter((r: $Any) => softDeletedIds.has(r.id))
+        .map((r: $Any) => ({ id: r.id }));
       const deleted = [...softDeleted, ...newlyDeleted];
 
       return {
         created: created.map(cfg.toRecord),
         updated: updated.map(cfg.toRecord),
-        deleted: deleted.map((r: any) => r.id),
+        deleted: deleted.map((r: $Any) => r.id),
       };
     };
 
@@ -483,7 +480,7 @@ export class SyncService {
         });
     }
 
-    return { changes: changes as any, timestamp: Date.now() };
+    return { changes: changes as $Any, timestamp: Date.now() };
   }
 
   // ── Push ──────────────────────────────────────────────────────────
@@ -492,19 +489,24 @@ export class SyncService {
     changes: PushChangesBody['changes'],
     deviceId?: string,
     userId?: string,
+    traceId?: string,
   ): Promise<void> {
+    const actorId = userId || 'system';
+    const finalDeviceId = deviceId || 'system-device';
+    const finalTraceId = traceId || null;
+
     let totalPushed = 0;
     for (const changeset of Object.values(changes || {})) {
       if (!changeset) continue;
-      const c = changeset as any;
+      const c = changeset as $Any;
       totalPushed +=
         (c.created?.length || 0) +
         (c.updated?.length || 0) +
         (c.deleted?.length || 0);
     }
 
-    if (changes && (changes as any).audit_events) {
-      const auditEvents = (changes as any).audit_events;
+    if (changes && (changes as $Any).audit_events) {
+      const auditEvents = (changes as $Any).audit_events;
       if (auditEvents.created && auditEvents.created.length > 0) {
         const sorted = [...auditEvents.created].sort(
           (a, b) => a.created_at - b.created_at,
@@ -543,7 +545,7 @@ export class SyncService {
             | undefined;
           if (!changeset) continue;
 
-          const table = (schema.pgSchema as any)[cfg.delegate];
+          const table = (schema.pgSchema as $Any)[cfg.delegate];
           if (!table) continue;
 
           // Creates
@@ -562,6 +564,9 @@ export class SyncService {
                   'CREATE',
                   null,
                   record,
+                  actorId,
+                  finalDeviceId,
+                  finalTraceId,
                 );
               }
             }
@@ -580,7 +585,7 @@ export class SyncService {
               await tx
                 .insert(table)
                 .values(incomingDrizzle)
-                .catch((err: any) => {
+                .catch((err: $Any) => {
                   this.logger.warn(
                     `Could not create missing update record ${record.id}: ${err.message}`,
                   );
@@ -594,6 +599,9 @@ export class SyncService {
                   'CREATE',
                   null,
                   incomingDrizzle,
+                  actorId,
+                  finalDeviceId,
+                  finalTraceId,
                 );
               }
               continue;
@@ -617,13 +625,16 @@ export class SyncService {
                   'UPDATE',
                   prev,
                   incomingDrizzle,
+                  actorId,
+                  finalDeviceId,
+                  finalTraceId,
                 );
               }
             } else {
-              const patchData: Record<string, any> = {};
+              const patchData: Record<string, $Any> = {};
               for (const [key, val] of Object.entries(incomingDrizzle)) {
                 if (val !== undefined && val !== null) {
-                  const existingVal = (existing as any)[key];
+                  const existingVal = (existing as $Any)[key];
                   if (
                     existingVal === null ||
                     existingVal === undefined ||
@@ -652,6 +663,9 @@ export class SyncService {
                     'UPDATE',
                     prev,
                     updatedRecord,
+                    actorId,
+                    finalDeviceId,
+                    finalTraceId,
                   );
                 }
               }
@@ -674,6 +688,9 @@ export class SyncService {
                   'DELETE',
                   existing,
                   null,
+                  actorId,
+                  finalDeviceId,
+                  finalTraceId,
                 );
               }
             }
@@ -728,7 +745,11 @@ export class SyncService {
       this.logger.error(`Anomaly detection error: ${err.message}`);
     });
 
-    this.triggerAuditForPushedLogs(changes.interaction_logs).catch((err) => {
+    this.triggerAuditForPushedLogs(
+      changes.interaction_logs,
+      actorId,
+      traceId,
+    ).catch((err) => {
       this.logger.error(
         `Failed to trigger post-push screenshot audit: ${err.message}`,
       );
@@ -736,7 +757,7 @@ export class SyncService {
   }
 
   private async runAnomalyDetection(
-    itemChangeset: WatermelonChangeSet<any> | undefined,
+    itemChangeset: WatermelonChangeSet<$Any> | undefined,
   ) {
     if (!itemChangeset) return;
     const records = [
@@ -809,7 +830,9 @@ export class SyncService {
   }
 
   private async triggerAuditForPushedLogs(
-    logChangeset: WatermelonChangeSet<any> | undefined,
+    logChangeset: WatermelonChangeSet<$Any> | undefined,
+    actorId: string,
+    traceId?: string,
   ) {
     if (!logChangeset) return;
     const records = [
@@ -832,8 +855,6 @@ export class SyncService {
           this.logger.log(
             `Post-push hook matched file ${filename} for log ${logId}. Starting audit...`,
           );
-          const traceId = this.actorService.getTraceId();
-          const actorId = this.actorService.getActorId();
           this.aiService
             .processScreenshot(logId, filePath, traceId, actorId)
             .catch((err) => {
@@ -918,7 +939,7 @@ export class SyncService {
     if (lastSeenId) {
       query = query.where(
         gt(schema.pgSchema.sync_audit_logs.id, lastSeenId),
-      ) as any;
+      ) as $Any;
     }
 
     const logs = await query
@@ -929,7 +950,7 @@ export class SyncService {
       ...new Set(logs.map((l) => l.user_id).filter(Boolean)),
     ] as string[];
 
-    let users: any[] = [];
+    let users: $Any[] = [];
     if (userIds.length > 0) {
       users = await this.drizzle.readDb
         .select({
@@ -952,7 +973,7 @@ export class SyncService {
   async importOdoo(
     csvText: string,
   ): Promise<{ importedCount: number; warnings: string[] }> {
-    const parseCSV = (text: string): any[] => {
+    const parseCSV = (text: string): $Any[] => {
       const lines = text.split(/\r?\n/);
       if (lines.length <= 1) return [];
 
@@ -1123,7 +1144,7 @@ export class SyncService {
     return { importedCount, warnings };
   }
 
-  async checkIdempotency(key: string): Promise<any | null> {
+  async checkIdempotency(key: string): Promise<$Any | null> {
     const records = await this.drizzle.db
       .select()
       .from(schema.pgSchema.idempotency_keys)
@@ -1261,7 +1282,7 @@ export class SyncService {
     });
   }
 
-  async saveIdempotency(key: string, response: any): Promise<void> {
+  async saveIdempotency(key: string, response: $Any): Promise<void> {
     try {
       await this.drizzle.db
         .insert(schema.pgSchema.idempotency_keys)

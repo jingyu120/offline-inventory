@@ -5,13 +5,13 @@ export async function isNetworkDegraded(): Promise<boolean> {
     const state = await NetInfo.fetch();
     const is2G =
       state.type === 'cellular' && state.details?.cellularGeneration === '2g';
-    const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+    const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
     return is2G || isMockDegraded;
   } catch (err) {
     console.warn(
       '[NetworkQuality] Failed to check network state, assuming not degraded:',
       err,
     );
-    return (global as any).__mockNetworkDegraded === true;
+    return (global as $Any).__mockNetworkDegraded === true;
   }
 }

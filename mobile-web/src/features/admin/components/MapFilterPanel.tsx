@@ -15,6 +15,8 @@ import { Region, Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { REPS } from '../../../core/auth/auth';
 
+const PLATFORM_WEB = 'web';
+
 interface MapFilterPanelProps {
   regions: Region[];
   items: Item[];
@@ -170,12 +172,12 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         >
           <Box mr="s">
             <Text variant="body" fontWeight="bold">
-              {t('showRouteLine') || 'Route Line'}
+              {t('showRouteLine')}
             </Text>
             <Text variant="bodySecondary">
               {routeLineDisabled
-                ? t('selectRegionFirst') || 'Select a region first'
-                : t('optimalVisitOrder') || 'Optimal visit order'}
+                ? t('selectRegionFirst')
+                : t('optimalVisitOrder')}
             </Text>
           </Box>
           <Switch
@@ -188,7 +190,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Pre-Cache Offline Map */}
-        {Platform.OS === 'web' && (
+        {Platform.OS === PLATFORM_WEB && (
           <Box
             flexDirection="row"
             alignItems="center"

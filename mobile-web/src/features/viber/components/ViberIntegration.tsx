@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { INTERACTION_TYPES } from '../../../config/appConfig';
 
 interface ViberIntegrationProps {
   type: string;
@@ -15,6 +16,8 @@ interface ViberIntegrationProps {
   screenshotUri: string | null;
   setScreenshotUri: (uri: string | null) => void;
 }
+
+const VIBER_TYPE = 'VIBER';
 
 export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
   type,
@@ -85,9 +88,10 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
   };
 
   const getLogTypeBtnLabel = (tName: string) => {
-    if (tName === 'PHONE_CALL') return t('phone');
-    if (tName === 'VIBER') return 'Viber';
-    if (tName === 'SHOP_VISIT') return t('typeVisit');
+    const config = INTERACTION_TYPES.find((it) => it.value === tName);
+    if (config) {
+      return config.labelKey === 'Viber' ? 'Viber' : t(config.labelKey as $Any);
+    }
     return tName.replaceAll('_', ' ');
   };
 
@@ -97,18 +101,23 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
         {t('interactionType')}
       </Text>
       <Box flexDirection="row" flexWrap="wrap" mb="m">
-        {['PHONE_CALL', 'VIBER', 'SHOP_VISIT'].map((tVal) => (
-          <Box key={tVal} mr="s" mb="s">
-            <Button
-              title={getLogTypeBtnLabel(tVal)}
-              variant={type === tVal ? 'primary' : 'outline'}
-              onPress={() => setType(tVal)}
-            />
-          </Box>
-        ))}
+        {INTERACTION_TYPES.filter((itConfig) =>
+          ['PHONE_CALL', 'VIBER', 'SHOP_VISIT'].includes(itConfig.value),
+        ).map((itConfig) => {
+          const tVal = itConfig.value;
+          return (
+            <Box key={tVal} mr="s" mb="s">
+              <Button
+                title={getLogTypeBtnLabel(tVal)}
+                variant={type === tVal ? 'primary' : 'outline'}
+                onPress={() => setType(tVal)}
+              />
+            </Box>
+          );
+        })}
       </Box>
 
-      {type === 'VIBER' && (
+      {type === VIBER_TYPE && (
         <Box mb="m" flexDirection="row" alignItems="center">
           <Button
             title={t('openViberChat')}

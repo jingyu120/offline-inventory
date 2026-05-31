@@ -3,12 +3,14 @@ import { Box, Text, Button, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { Platform } from 'react-native';
 import { FallbackProps } from 'react-error-boundary';
+import { useTranslation } from '../i18n/i18n';
 
 export const ErrorBoundaryFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 }) => {
   const theme = useTheme<Theme>();
+  const { t } = useTranslation();
 
   const handleReset = async () => {
     try {
@@ -85,11 +87,10 @@ export const ErrorBoundaryFallback: React.FC<FallbackProps> = ({
         alignItems="center"
       >
         <Text variant="header" color="dangerText" mb="s" textAlign="center">
-          ⚠ Local Database Panic
+          {t('localDatabasePanic')}
         </Text>
         <Text variant="body" color="dangerText" mb="m" textAlign="center">
-          A critical database thread error or startup panic occurred. The local
-          storage might be corrupted.
+          {t('localDatabasePanicDesc')}
         </Text>
         <Box
           p="m"
@@ -107,11 +108,11 @@ export const ErrorBoundaryFallback: React.FC<FallbackProps> = ({
               color: theme.colors.primaryText,
             }}
           >
-            {(error as any)?.message || 'Unknown panic error'}
+            {(error as $Any)?.message || t('unknownPanicError')}
           </Text>
         </Box>
         <Button
-          title="Reset Local Cache & Reload"
+          title={t('resetLocalCacheReload')}
           variant="primary"
           onPress={handleReset}
         />

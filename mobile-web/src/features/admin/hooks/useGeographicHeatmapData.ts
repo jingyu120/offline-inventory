@@ -281,7 +281,7 @@ export const useGeographicHeatmapData = () => {
         e,
       );
       setSentimentResult({
-        sentimentTrend: shop.sentimentTrend as any,
+        sentimentTrend: shop.sentimentTrend as $Any,
         explanation:
           'Failed to query live Gemma 4 sentiment server. Displaying database default cached trend.',
       });

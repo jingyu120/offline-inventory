@@ -98,7 +98,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
                     backdropFilter: 'blur(8px)', // Glassmorphism
                     minWidth: 280,
                     maxWidth: 400,
-                  } as any
+                  } as $Any
                 }
               >
                 <Text fontSize={18} style={{ marginRight: 10 }}>

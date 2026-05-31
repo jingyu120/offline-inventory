@@ -12,11 +12,13 @@ import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq, isNull } from 'drizzle-orm';
 import { ActorService } from '../../../core/auth/ActorService';
 import { Check, X, ShieldAlert, ShoppingBag, User } from 'lucide-react-native';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 export function PendingSalesApproval() {
+  const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const [loading, setLoading] = useState(true);
-  const [pendingSales, setPendingSales] = useState<any[]>([]);
+  const [pendingSales, setPendingSales] = useState<$Any[]>([]);
 
   const loadPendingSales = async () => {
     setLoading(true);
@@ -106,7 +108,7 @@ export function PendingSalesApproval() {
     }
   };
 
-  const handleApprove = async (sale: any) => {
+  const handleApprove = async (sale: $Any) => {
     try {
       const now = Date.now();
       const managerActorId = ActorService.getActorId();
@@ -119,15 +121,15 @@ export function PendingSalesApproval() {
         })
         .where(eq(sqliteSchema.interaction_logs.id, sale.id));
 
-      Alert.alert('Approved', 'Sale order approved successfully.');
+      Alert.alert(t('approvedSuccess'), t('saleOrderApproved'));
       await loadPendingSales();
     } catch (e) {
       console.error('Failed to approve sales order:', e);
-      Alert.alert('Error', 'Failed to approve order.');
+      Alert.alert(t('error'), t('failedToApproveOrder'));
     }
   };
 
-  const handleReject = async (sale: any) => {
+  const handleReject = async (sale: $Any) => {
     try {
       const now = Date.now();
       const managerActorId = ActorService.getActorId();
@@ -141,7 +143,7 @@ export function PendingSalesApproval() {
         })
         .where(eq(sqliteSchema.interaction_logs.id, sale.id));
 
-      Alert.alert('Rejected', 'Sale order rejected and marked as cancelled.');
+      Alert.alert(t('rejectedSuccess'), t('saleOrderRejected'));
       await loadPendingSales();
     } catch (e) {
       console.error('Failed to reject sales order:', e);
@@ -169,7 +171,7 @@ export function PendingSalesApproval() {
           style={{ marginRight: 8 }}
         />
         <Text variant="title" fontSize={18}>
-          Pending Sales & Margin Approvals
+          {t('pendingSalesMarginAuth')}
         </Text>
       </Box>
 
@@ -182,7 +184,7 @@ export function PendingSalesApproval() {
           borderWidth={1}
         >
           <Text variant="bodySecondary" fontStyle="italic">
-            No pending sales order approvals in queue.
+            {t('noPendingSalesQueue')}
           </Text>
         </Card>
       ) : (
@@ -246,15 +248,14 @@ export function PendingSalesApproval() {
                       fontSize={12}
                       style={{ flex: 1 }}
                     >
-                      Warning: Margin Override Detected (Sale Price &lt;
-                      Wholesale Min)
+                      {t('marginWarningTitle')}
                     </Text>
                   </Box>
                 )}
 
                 {/* Items List */}
                 <Box mb="m" bg="mainBackground" p="s" borderRadius="s">
-                  {sale.items.map((item: any, itemIdx: number) => (
+                  {sale.items.map((item: $Any, itemIdx: number) => (
                     <Box
                       key={`${item.id}-${itemIdx}`}
                       flexDirection="row"
@@ -275,7 +276,7 @@ export function PendingSalesApproval() {
                           {item.name} ({item.sku})
                         </Text>
                         <Text variant="bodySecondary" fontSize={11}>
-                          Qty: {item.quantity} {item.selectedUnit} @{' '}
+                          {t('qty')}: {item.quantity} {item.selectedUnit} @{' '}
                           {item.unitPriceAtSale.toLocaleString()}{' '}
                           {item.selectedCurrency}
                         </Text>
@@ -286,9 +287,10 @@ export function PendingSalesApproval() {
                             color="dangerText"
                             fontWeight="bold"
                           >
-                            Wholesale price is{' '}
-                            {item.baseWholesalePrice.toLocaleString()}{' '}
-                            {item.selectedCurrency}
+                            {t('wholesalePriceIs', {
+                              price: item.baseWholesalePrice.toLocaleString(),
+                              currency: item.selectedCurrency,
+                            })}
                           </Text>
                         )}
                       </Box>
@@ -313,7 +315,7 @@ export function PendingSalesApproval() {
                     }}
                   >
                     <Text variant="body" fontSize={14} fontWeight="bold">
-                      Total Amount
+                      {t('totalAmount')}
                     </Text>
                     <Text
                       variant="body"
@@ -321,7 +323,9 @@ export function PendingSalesApproval() {
                       fontWeight="bold"
                       color="primaryText"
                     >
-                      {Math.round(sale.totalAmount).toLocaleString()} MMK
+                      {t('priceFormatted', {
+                        price: Math.round(sale.totalAmount).toLocaleString(),
+                      })}
                     </Text>
                   </Box>
                 </Box>
@@ -338,7 +342,7 @@ export function PendingSalesApproval() {
                       style={{ marginRight: 4 }}
                     />
                     <Text variant="bodySecondary" fontSize={11}>
-                      Rep: {sale.salespersonId || sale.repId}
+                      {t('salesRep')}: {sale.salespersonId || sale.repId}
                     </Text>
                   </Box>
 
@@ -365,7 +369,7 @@ export function PendingSalesApproval() {
                         color="dangerText"
                         fontWeight="bold"
                       >
-                        Reject
+                        {t('reject')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -390,7 +394,7 @@ export function PendingSalesApproval() {
                         color="successText"
                         fontWeight="bold"
                       >
-                        Approve
+                        {t('approve')}
                       </Text>
                     </TouchableOpacity>
                   </Box>

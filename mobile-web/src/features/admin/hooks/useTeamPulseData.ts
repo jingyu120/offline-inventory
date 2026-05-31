@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from '../../../core/i18n/i18n';
 import axios from 'axios';
 import { trpcClient } from '../../../core/trpc/trpcClient';
 import {
   AI_EOD_DIGEST_URL,
   AI_QUOTAS_OPTIMIZATIONS_URL,
+  REPRESENTATIVES,
 } from '../../../config/appConfig';
 import {
   fetchShops,
@@ -29,6 +31,7 @@ export interface RepDayStats {
 }
 
 export const useTeamPulseData = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -36,7 +39,9 @@ export const useTeamPulseData = () => {
   const [allLogs, setAllLogs] = useState<InteractionLog[]>([]);
 
   // Selection states
-  const [selectedRep, setSelectedRep] = useState<'rep-1' | 'rep-2'>('rep-1');
+  const [selectedRep, setSelectedRep] = useState<string>(
+    REPRESENTATIVES[0]?.id || 'rep-1',
+  );
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1; // Map to 0-6 (Mon-Sun)
@@ -46,13 +51,13 @@ export const useTeamPulseData = () => {
   const [selectedShopId, setSelectedShopId] = useState<string>('');
 
   // AI states
-  const [quotaOptimizations, setQuotaOptimizations] = useState<any[]>([]);
+  const [quotaOptimizations, setQuotaOptimizations] = useState<$Any[]>([]);
   const [optimizationsLoading, setOptimizationsLoading] = useState(false);
   const [digestDate, setDigestDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
   const [loadingDigest, setLoadingDigest] = useState(false);
-  const [digestResult, setDigestResult] = useState<any | null>(null);
+  const [digestResult, setDigestResult] = useState<$Any | null>(null);
 
   // Load database entities
   const loadDatabaseData = async () => {
@@ -128,10 +133,7 @@ export const useTeamPulseData = () => {
   };
 
   // Generate compliance grid stats
-  const getRepDayStats = (
-    repId: 'rep-1' | 'rep-2',
-    dayIndex: number,
-  ): RepDayStats => {
+  const getRepDayStats = (repId: string, dayIndex: number): RepDayStats => {
     // Compute start of current week freshly on each call to avoid stale date
     // if the app stays open across a midnight boundary.
     const startOfWeek = getStartOfWeek();
@@ -248,12 +250,12 @@ export const useTeamPulseData = () => {
       setQuotas(updatedQuotas);
 
       Alert.alert(
-        'Quota Optimizations Applied',
-        'Gemma 4 suggested regional quotas have been written to local database and will propagate on sync.',
+        t('quotaOptimizationsApplied'),
+        t('quotaOptimizationsAppliedMsg'),
       );
     } catch (e) {
       console.error('Failed to apply quota optimizations:', e);
-      Alert.alert('Error', 'Failed to save updated quotas in SQLite database.');
+      Alert.alert(t('error'), t('quotaSaveFailed'));
     }
   };
 

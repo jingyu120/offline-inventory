@@ -11,8 +11,13 @@ import {
 import { RepDayStats } from '../hooks/useTeamPulseData';
 import { useTranslation } from '../../../core/i18n/i18n';
 
+import {
+  getRepresentativeName,
+  getLogTypeLabel,
+} from '../../../config/appConfig';
+
 interface VelocityTimelineProps {
-  selectedRep: 'rep-1' | 'rep-2';
+  selectedRep: string;
   selectedDayIndex: number;
   stats: RepDayStats;
   shops: { id: string; name: string }[];
@@ -41,15 +46,6 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
     return shops.find((s) => s.id === shopId)?.name || 'Unknown Shop';
   };
 
-  const getLogTypeLabel = (logType: string) => {
-    if (logType === 'PHONE_CALL') return t('phone');
-    if (logType === 'VIBER') return 'Viber';
-    if (logType === 'SHOP_VISIT') return t('typeVisit');
-    if (logType === 'STOCK_DELIVERY') return t('typeOrder');
-    if (logType === 'PAYMENT_COLLECTION') return t('typeCollection');
-    return logType.replaceAll('_', ' ');
-  };
-
   return (
     <Card p="m" bg="cardBackground" height="100%">
       <Box
@@ -62,7 +58,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
           {t('timelineAnalysis')} ({daysOfWeekLabels[selectedDayIndex]})
         </Text>
         <Text variant="bodySecondary" fontWeight="bold">
-          {selectedRep === 'rep-1' ? 'Ko Min' : 'Ko Hla'}
+          {getRepresentativeName(selectedRep)}
         </Text>
       </Box>
 
@@ -158,7 +154,9 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
                     minute: '2-digit',
                   })}
                 </Text>
-                <Text variant="bodySecondary">{getLogTypeLabel(log.type)}</Text>
+                <Text variant="bodySecondary">
+                  {getLogTypeLabel(log.type, t)}
+                </Text>
               </Box>
 
               {/* Log node details */}

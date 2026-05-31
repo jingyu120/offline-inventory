@@ -17,8 +17,8 @@ import { ThermalGuard } from '../../../core/utils/thermalGuard';
 interface GemmaCopilotProps {
   notes: string;
   setNotes: (val: string) => void;
-  selectedItems: any[];
-  setSelectedItems: (items: any[]) => void;
+  selectedItems: $Any[];
+  setSelectedItems: (items: $Any[]) => void;
   setCommercialStatus: (status: string) => void;
 }
 

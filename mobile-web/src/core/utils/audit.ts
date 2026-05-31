@@ -20,7 +20,7 @@ export interface AuditEventPayload {
 }
 
 export async function writeAuditEvent(
-  tx: any, // drizzle transaction context
+  tx: $Any, // drizzle transaction context
   event: AuditEventPayload,
 ): Promise<string> {
   // Query previous event's hash

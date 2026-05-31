@@ -52,7 +52,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
   const theme = useTheme<Theme>();
   const { t } = useTranslation();
 
-  const [restockAlerts, setRestockAlerts] = React.useState<any[]>([]);
+  const [restockAlerts, setRestockAlerts] = React.useState<$Any[]>([]);
 
   React.useEffect(() => {
     if (!selectedShop) {
@@ -66,13 +66,15 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
         const logs = await database
           .select()
           .from(sqliteSchema.interaction_logs);
-        const shopLogs = logs.filter((l: any) => l.shop_id === selectedShop.id);
+        const shopLogs = logs.filter(
+          (l: $Any) => l.shop_id === selectedShop.id,
+        );
         if (shopLogs.length === 0) {
           setRestockAlerts([]);
           return;
         }
 
-        const logIds = shopLogs.map((l: any) => l.id);
+        const logIds = shopLogs.map((l: $Any) => l.id);
 
         // Fetch items and stocks
         const allItems = await database.select().from(sqliteSchema.items);
@@ -84,7 +86,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
         const allIntItems = await database
           .select()
           .from(sqliteSchema.interaction_items);
-        const shopIntItems = allIntItems.filter((ii: any) =>
+        const shopIntItems = allIntItems.filter((ii: $Any) =>
           logIds.includes(ii.interaction_log_id),
         );
 
@@ -98,12 +100,12 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
           itemSales[sale.item_id].dates.push(sale.created_at || Date.now());
         }
 
-        const alerts: any[] = [];
+        const alerts: $Any[] = [];
         for (const [itemId, sales] of Object.entries(itemSales)) {
-          const item = allItems.find((i: any) => i.id === itemId);
+          const item = allItems.find((i: $Any) => i.id === itemId);
           if (!item) continue;
 
-          const stock = allStocks.find((s: any) => s.item_id === itemId);
+          const stock = allStocks.find((s: $Any) => s.item_id === itemId);
           const stockQty = stock ? stock.quantity : 0;
 
           // Simple moving average calculation
@@ -166,6 +168,31 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
     if (t === 'NEGATIVE' || t === 'DOWNWARD' || t === 'SHRINKING')
       return 'dangerText' as const;
     return 'secondaryText' as const;
+  };
+
+  const getLocalizedSentiment = (trend: string | undefined) => {
+    if (!trend) return t('trendNeutral');
+    const u = trend.toUpperCase();
+    if (
+      u === 'IMPROVING' ||
+      u === 'POSITIVE' ||
+      u === 'UPWARD' ||
+      u === 'GROWING'
+    ) {
+      return t('trendImproving');
+    }
+    if (
+      u === 'DECLINING' ||
+      u === 'NEGATIVE' ||
+      u === 'DOWNWARD' ||
+      u === 'SHRINKING'
+    ) {
+      return t('trendDeclining');
+    }
+    if (u === 'STABLE') {
+      return t('trendStable');
+    }
+    return t('trendNeutral');
   };
 
   return (
@@ -375,7 +402,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                         color={getSentimentTextColor(s.sentimentTrend)}
                         fontSize={10}
                       >
-                        {s.sentimentTrend || 'NEUTRAL'}
+                        {getLocalizedSentiment(s.sentimentTrend)}
                       </Text>
                     </Box>
                   </Box>
@@ -406,7 +433,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                     {onLogInteraction && (
                       <TouchableOpacity
                         onPress={(e) => {
-                          (e as any).stopPropagation?.();
+                          (e as $Any).stopPropagation?.();
                           onLogInteraction(s);
                         }}
                         style={{
@@ -476,7 +503,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
                       color={getSentimentTextColor(s.sentimentTrend)}
                       fontSize={10}
                     >
-                      {s.sentimentTrend || 'NEUTRAL'}
+                      {getLocalizedSentiment(s.sentimentTrend)}
                     </Text>
                   </Box>
                 </Box>

@@ -1,4 +1,4 @@
-export const checkDiscrepancy = (ocrText: string, items: any[]): boolean => {
+export const checkDiscrepancy = (ocrText: string, items: $Any[]): boolean => {
   const lowerOcr = ocrText.toLowerCase();
 
   // Heuristic 1: If OCR text mentions "5 premium beers" (or similar), check if we selected exactly that.

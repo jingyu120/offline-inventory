@@ -624,7 +624,7 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
       }
 
       this.logger.log('Seeded E2E dataset (Drizzle version) successfully');
-    } catch (error: any) {
+    } catch (error: $Any) {
       this.logger.error(
         'Failed to seed E2E dataset:',
         error.stack || error.message || error,

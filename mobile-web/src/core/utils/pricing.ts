@@ -2,9 +2,9 @@ import { Item } from '@burma-inventory/shared-types';
 
 export const getItemPrice = (
   item: Item,
-  priceBookItems: any[],
+  priceBookItems: $Any[],
   selectedCurrency: string,
-  exchangeRates: any[],
+  exchangeRates: $Any[],
 ): number => {
   const pbItem = priceBookItems.find((pbi) => pbi.item_id === item.id);
   let basePrice = item.unitPrice; // standard MMK price

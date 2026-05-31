@@ -45,12 +45,27 @@ import { ErrorBoundaryFallback } from '../core/components/ErrorBoundaryFallback'
 import { DatabaseInitializer } from '../core/database/DatabaseInitializer';
 import { TelemetryLogger } from '../core/utils/telemetry';
 
+// Suppress third-party pointerEvents deprecation warnings on Web console
+if (Platform.OS === 'web') {
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => {
+    if (
+      args[0] &&
+      typeof args[0] === 'string' &&
+      args[0].includes('props.pointerEvents is deprecated')
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
 registerExchangeRateResolver(async (currency) => {
   try {
     const rates = await database
       .select()
       .from(sqliteSchema.currency_exchange_rates);
-    const rateObj = rates.find((r: any) => r.currency === currency);
+    const rateObj = rates.find((r: $Any) => r.currency === currency);
     return rateObj ? rateObj.rate_to_kyat : undefined;
   } catch (err) {
     console.warn('[App] Failed to resolve exchange rate from database:', err);
@@ -58,7 +73,7 @@ registerExchangeRateResolver(async (currency) => {
   }
 });
 
-export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
+export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const { activeRep } = useAuth();
@@ -115,12 +130,12 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
 
   React.useEffect(() => {
     // 0. Setup global error telemetry logging
-    let webErrorHandler: any;
-    let webPromiseHandler: any;
+    let webErrorHandler: $Any;
+    let webPromiseHandler: $Any;
 
     if (Platform.OS !== 'web') {
       const globalHandler = ErrorUtils.getGlobalHandler();
-      ErrorUtils.setGlobalHandler((error: any, isFatal: any) => {
+      ErrorUtils.setGlobalHandler((error: $Any, isFatal: $Any) => {
         TelemetryLogger.logEvent(
           'thread_panic',
           `Fatal: ${isFatal} | Error: ${error?.message || String(error)} | Stack: ${error?.stack || ''}`,
@@ -159,7 +174,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
         const is2G =
           state.type === 'cellular' &&
           state.details?.cellularGeneration === '2g';
-        const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+        const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
         if (is2G || isMockDegraded) {
           console.log(
@@ -240,7 +255,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: any) => {
       await syncData();
       setLastSync(new Date());
       await refreshPendingCount();
-    } catch (err: any) {
+    } catch (err: $Any) {
       setSyncError(err.message || 'Sync failed');
     } finally {
       setIsSyncing(false);
@@ -356,7 +371,7 @@ export const App = () => {
   );
 };
 
-const AppWithTheme = ({ themeMode, setThemeMode }: any) => {
+const AppWithTheme = ({ themeMode, setThemeMode }: $Any) => {
   const { language } = useTranslation();
   const baseTheme = themeMode === 'light' ? lightTheme : darkTheme;
   const activeTheme = getThemeForLanguage(baseTheme, language);

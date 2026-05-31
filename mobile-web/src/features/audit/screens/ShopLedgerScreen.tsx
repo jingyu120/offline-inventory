@@ -140,35 +140,31 @@ export function ShopLedgerScreen() {
         const drafts = await database.select().from(sqliteSchema.draft_carts);
         if (drafts.length > 0) {
           const draft = drafts[0];
-          Alert.alert(
-            'Restore Session',
-            'An interrupted checkout session was found. Would you like to restore it?',
-            [
-              {
-                text: 'Discard',
-                style: 'destructive',
-                onPress: async () => {
-                  await database
-                    .delete(sqliteSchema.draft_carts)
-                    .where(eq(sqliteSchema.draft_carts.id, draft.id));
-                },
+          Alert.alert(t('restoreSessionTitle'), t('restoreSessionMsg'), [
+            {
+              text: t('discard'),
+              style: 'destructive',
+              onPress: async () => {
+                await database
+                  .delete(sqliteSchema.draft_carts)
+                  .where(eq(sqliteSchema.draft_carts.id, draft.id));
               },
-              {
-                text: 'Restore',
-                onPress: async () => {
-                  const shopDetails = await database
-                    .select()
-                    .from(sqliteSchema.shops)
-                    .where(eq(sqliteSchema.shops.id, draft.shop_id));
-                  if (shopDetails.length > 0) {
-                    const mappedShop = mapShop(shopDetails[0]);
-                    selectShop(mappedShop);
-                    handleLogInteraction(mappedShop);
-                  }
-                },
+            },
+            {
+              text: t('restore'),
+              onPress: async () => {
+                const shopDetails = await database
+                  .select()
+                  .from(sqliteSchema.shops)
+                  .where(eq(sqliteSchema.shops.id, draft.shop_id));
+                if (shopDetails.length > 0) {
+                  const mappedShop = mapShop(shopDetails[0]);
+                  selectShop(mappedShop);
+                  handleLogInteraction(mappedShop);
+                }
               },
-            ],
-          );
+            },
+          ]);
         }
       } catch (e) {
         console.error('[Recovery Hook] Failed to check for draft carts:', e);
@@ -256,20 +252,19 @@ export function ShopLedgerScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  🏢 Burma Inventory Ledger Control
+                  {t('ledgerControlTitle')}
                 </Text>
                 <Text
                   style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 13 }}
                 >
-                  Central representative dashboard to audit accounts, inspect
-                  product specifications, and analyze capital lockup.
+                  {t('ledgerControlDesc')}
                 </Text>
               </Box>
 
               {/* KPI Stats Row */}
               <Box flexDirection="row" justifyContent="space-between" mb="l">
                 <Pressable
-                  style={({ pressed, hovered }: any) => ({
+                  style={({ pressed, hovered }: $Any) => ({
                     flex: 1,
                     marginRight: theme.spacing.m,
                     transform: [{ scale: hovered ? 1.01 : pressed ? 0.99 : 1 }],
@@ -278,7 +273,7 @@ export function ShopLedgerScreen() {
                           transitionProperty: 'transform',
                           transitionDuration: '200ms',
                           transitionTimingFunction: 'ease-in-out',
-                        } as any)
+                        } as $Any)
                       : {}),
                   })}
                 >
@@ -297,7 +292,7 @@ export function ShopLedgerScreen() {
                         color: theme.colors.secondaryText,
                       }}
                     >
-                      👥 Registered Retailers
+                      {t('registeredRetailers')}
                     </Text>
                     <Text
                       variant="kpi"
@@ -307,13 +302,13 @@ export function ShopLedgerScreen() {
                       {stats.shopsCount}
                     </Text>
                     <Text variant="caption" mt="xs">
-                      Shops across regions
+                      {t('shopsAcrossRegions')}
                     </Text>
                   </Card>
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed, hovered }: any) => ({
+                  style={({ pressed, hovered }: $Any) => ({
                     flex: 1,
                     marginRight: theme.spacing.m,
                     transform: [{ scale: hovered ? 1.01 : pressed ? 0.99 : 1 }],
@@ -322,7 +317,7 @@ export function ShopLedgerScreen() {
                           transitionProperty: 'transform',
                           transitionDuration: '200ms',
                           transitionTimingFunction: 'ease-in-out',
-                        } as any)
+                        } as $Any)
                       : {}),
                   })}
                 >
@@ -341,7 +336,7 @@ export function ShopLedgerScreen() {
                         color: theme.colors.secondaryText,
                       }}
                     >
-                      🏗️ Active Projects
+                      {t('activeProjects')}
                     </Text>
                     <Text
                       variant="kpi"
@@ -351,13 +346,13 @@ export function ShopLedgerScreen() {
                       {stats.projectsCount}
                     </Text>
                     <Text variant="caption" mt="xs">
-                      Pending project fulfillment
+                      {t('pendingProjectFulfillment')}
                     </Text>
                   </Card>
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed, hovered }: any) => ({
+                  style={({ pressed, hovered }: $Any) => ({
                     flex: 1,
                     transform: [{ scale: hovered ? 1.01 : pressed ? 0.99 : 1 }],
                     ...(Platform.OS === 'web'
@@ -365,7 +360,7 @@ export function ShopLedgerScreen() {
                           transitionProperty: 'transform',
                           transitionDuration: '200ms',
                           transitionTimingFunction: 'ease-in-out',
-                        } as any)
+                        } as $Any)
                       : {}),
                   })}
                 >
@@ -384,7 +379,7 @@ export function ShopLedgerScreen() {
                         color: theme.colors.secondaryText,
                       }}
                     >
-                      💰 Pipeline Capital Lockup
+                      💰 {t('pipelineCapitalLockup')}
                     </Text>
                     <Text
                       variant="kpi"
@@ -394,7 +389,7 @@ export function ShopLedgerScreen() {
                       {stats.lockedCapital}
                     </Text>
                     <Text variant="caption" mt="xs">
-                      Locked pipeline capital
+                      {t('lockedPipelineCapital')}
                     </Text>
                   </Card>
                 </Pressable>
@@ -419,8 +414,7 @@ export function ShopLedgerScreen() {
                   fontSize={13}
                   style={{ textAlign: 'center' }}
                 >
-                  👈 Select a retail shop from the ledger sidebar list to audit
-                  interactions, check-in history, or draft new orders.
+                  {t('selectShopSidebarPrompt')}
                 </Text>
               </Box>
             </ScrollView>

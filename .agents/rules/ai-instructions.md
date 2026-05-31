@@ -74,3 +74,10 @@ Autonomous structural modifications to schemas (`shared-types/src/lib/schema.ts`
 - **Cryptographic Hash Chaining:** To prevent offline tampering by field operators, the mobile application must natively hash every local `AuditEvent` payload, chaining it mathematically to the hash of the preceding event.
 - **Abstracted Actor Context:** Until a formal JWT gateway is implemented, the AI must never hardcode user identities. All queries, carts, and transactions must dynamically request the `actor_id` from the abstracted `ActorService` (mobile) or `ActorInterceptor` (backend) to ensure zero-friction authentication upgrades later.
 - **Trace Context Propagation:** A unique `x-trace-id` must be generated at the onset of a workflow and attached to every linked SQLite draft cart, Viber screenshot upload, AI worker job, and `AuditEvent` to ensure 100% downstream observability.
+
+---
+
+## 🛠️ 8. TypeScript Coding Standards & Linting Guards
+
+- **Forbid `any` Type Usage:** The use of the `any` type is strictly forbidden across all application code, packages, interfaces, and services. Cast values to `unknown`, `Record<string, unknown>`, or concrete interfaces/types instead. The only exception is inside test specification files (`*.spec.ts`, `*.spec.tsx`, `*.test.ts`, `*.test.tsx`).
+- **Prohibit ESLint Disable Comments:** You must never write inline comments to disable, ignore, or bypass ESLint rules (e.g., `/* eslint-disable */`, `// eslint-disable-next-line`). Code must be refactored cleanly to naturally resolve warnings (such as using a leading underscore `_` prefix for declared but unused method arguments).

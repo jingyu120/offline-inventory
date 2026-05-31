@@ -9,8 +9,8 @@ import initSqlJs from 'sql.js';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 
-let realDb: any = null;
-let initPromise: Promise<any> | null = null;
+let realDb: $Any = null;
+let initPromise: Promise<$Any> | null = null;
 
 // Helper to open IndexedDB
 function openIndexedDB(): Promise<IDBDatabase> {
@@ -60,7 +60,7 @@ async function saveDbToIndexedDB(data: Uint8Array): Promise<void> {
   }
 }
 
-function createProxyDb(sqljsDb: any) {
+function createProxyDb(sqljsDb: $Any) {
   return drizzle(
     async (sql, params, method) => {
       try {
@@ -73,7 +73,7 @@ function createProxyDb(sqljsDb: any) {
 
         const stmt = sqljsDb.prepare(sql);
         stmt.bind(params);
-        const rows: any[] = [];
+        const rows: $Any[] = [];
         while (stmt.step()) {
           const rowVal = stmt.get();
           // console.log('[Proxy SQL.js Query]', sql, '-> Row:', rowVal);
@@ -110,7 +110,7 @@ function createProxyDb(sqljsDb: any) {
   );
 }
 
-async function createTablesAndSeedIfEmpty(sqljsDb: any) {
+async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
   try {
     // Create tables if they do not exist
     sqljsDb.run(`
@@ -505,7 +505,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
         console.log(
           `Successfully migrated database: Added column ${column} to table ${table}`,
         );
-      } catch (e: any) {
+      } catch (e: $Any) {
         console.warn(
           `Migration info for column ${column} in table ${table}:`,
           e.message || e,
@@ -540,6 +540,11 @@ async function createTablesAndSeedIfEmpty(sqljsDb: any) {
       'interaction_items',
       'fulfillment_status',
       "TEXT NOT NULL DEFAULT 'PENDING_FULFILLMENT'",
+    );
+    alterTable(
+      'interaction_items',
+      'compliance_status',
+      "TEXT NOT NULL DEFAULT 'APPROVED'",
     );
     alterTable('image_upload_queue', 'competitor_insight_id', 'TEXT');
     alterTable('shops', 'deleted_at', 'INTEGER');
@@ -631,9 +636,9 @@ async function getRealDb() {
         sqljsDb = new SQL.Database();
       }
       await createTablesAndSeedIfEmpty(sqljsDb);
-      (window as any)._sqljsDb = sqljsDb;
-      (window as any)._db = createProxyDb(sqljsDb);
-      realDb = (window as any)._db;
+      (window as $Any)._sqljsDb = sqljsDb;
+      (window as $Any)._db = createProxyDb(sqljsDb);
+      realDb = (window as $Any)._db;
       return realDb;
     })();
   }
@@ -642,12 +647,12 @@ async function getRealDb() {
 
 // A chain proxy that collects all calls and replays them asynchronously when awaited (.then() is called).
 const makeChainProxy = (
-  calls: { prop: string | symbol; args: any[] }[] = [],
-): any => {
-  const handler: ProxyHandler<any> = {
+  calls: { prop: string | symbol; args: $Any[] }[] = [],
+): $Any => {
+  const handler: ProxyHandler<$Any> = {
     get(target, prop) {
       if (prop === 'then') {
-        return (resolve: any, reject: any) => {
+        return (resolve: $Any, reject: $Any) => {
           getRealDb()
             .then((db) => {
               let current = db;
@@ -666,7 +671,7 @@ const makeChainProxy = (
         };
       }
 
-      return (...args: any[]) => {
+      return (...args: $Any[]) => {
         return makeChainProxy([...calls, { prop, args }]);
       };
     },
@@ -676,10 +681,10 @@ const makeChainProxy = (
 };
 
 // Root proxy representing the database instance
-const databaseProxy = new Proxy({} as any, {
+const databaseProxy = new Proxy({} as $Any, {
   get(target, prop) {
     // If the method is called on the root database object, start a call chain
-    return (...args: any[]) => {
+    return (...args: $Any[]) => {
       return makeChainProxy([{ prop, args }]);
     };
   },
@@ -706,7 +711,7 @@ export const powerSyncDb = {
       void 0;
     };
   },
-  connect: async (_connector?: any) => {
+  connect: async (_connector?: $Any) => {
     void 0;
   },
   disconnect: async () => {

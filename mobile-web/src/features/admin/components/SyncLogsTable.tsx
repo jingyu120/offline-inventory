@@ -1,9 +1,10 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { Box, Text, Table, ColumnDef } from '@burma-inventory/ui-components';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 interface SyncLogsTableProps {
-  syncLogs: any[];
+  syncLogs: $Any[];
   isDesktop: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
@@ -17,11 +18,13 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
   hasMore,
   loadingMore,
 }) => {
-  const columns: ColumnDef<any>[] = isDesktop
+  const { t } = useTranslation();
+
+  const columns: ColumnDef<$Any>[] = isDesktop
     ? [
         {
           key: 'createdAt',
-          header: 'Time',
+          header: t('time'),
           flex: 2,
           render: (item) => (
             <Text variant="bodySecondary">
@@ -31,17 +34,17 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
         },
         {
           key: 'rep',
-          header: 'Rep',
+          header: t('rep'),
           flex: 1.5,
           render: (item) => (
             <Text variant="body" fontWeight="bold">
-              {item.user?.username || item.userId || 'System/Odoo'}
+              {item.user?.username || item.userId || t('systemOdoo')}
             </Text>
           ),
         },
         {
           key: 'action',
-          header: 'Action',
+          header: t('action'),
           flex: 1,
           render: (item) => (
             <Box
@@ -62,7 +65,7 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
         },
         {
           key: 'changesCount',
-          header: 'Changes',
+          header: t('changes'),
           flex: 1,
           render: (item) => (
             <Text variant="body" style={{ textAlign: 'center' }}>
@@ -72,7 +75,7 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
         },
         {
           key: 'status',
-          header: 'Status',
+          header: t('status'),
           flex: 1.5,
           render: (item) => (
             <Box
@@ -93,13 +96,13 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
         },
         {
           key: 'details',
-          header: 'Details',
+          header: t('details'),
           flex: 3,
           render: (item) => (
             <Text variant="bodySecondary" numberOfLines={2}>
               {item.errorReason ||
                 (item.status === 'SUCCESS'
-                  ? 'Sync completed successfully'
+                  ? t('syncCompletedSuccessfully')
                   : '')}
             </Text>
           ),
@@ -108,7 +111,7 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
     : [
         {
           key: 'createdAt',
-          header: 'Time',
+          header: t('time'),
           flex: 1.2,
           render: (item) => {
             const date = new Date(item.createdAt);
@@ -135,24 +138,24 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
         },
         {
           key: 'rep',
-          header: 'Activity',
+          header: t('activity'),
           flex: 1.8,
           render: (item) => (
             <Box>
               <Text variant="body" fontWeight="bold">
-                {item.user?.username || item.userId || 'System'}
+                {item.user?.username || item.userId || t('systemLabel')}
               </Text>
               <Text variant="caption" color="secondaryText">
                 {item.changesCount > 0
-                  ? `${item.changesCount} updates`
-                  : 'no updates'}
+                  ? t('updatesCount', { count: item.changesCount })
+                  : t('noUpdates')}
               </Text>
             </Box>
           ),
         },
         {
           key: 'status',
-          header: 'Sync Status',
+          header: t('syncStatus'),
           flex: 1.5,
           render: (item) => {
             const isSuccess = item.status === 'SUCCESS';
@@ -176,12 +179,12 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
                 px="s"
                 py="xs"
                 borderRadius="s"
-                bg={badgeBg as any}
+                bg={badgeBg as $Any}
                 alignSelf="flex-start"
               >
                 <Text
                   variant="badge"
-                  color={badgeColor as any}
+                  color={badgeColor as $Any}
                   fontWeight="bold"
                   fontSize={10}
                 >
@@ -206,7 +209,7 @@ export const SyncLogsTable: React.FC<SyncLogsTableProps> = ({
           <TouchableOpacity onPress={onLoadMore} disabled={loadingMore}>
             <Box px="m" py="s" bg="primaryButton" borderRadius="s">
               <Text variant="body" color="pureWhite">
-                {loadingMore ? 'Loading...' : 'Load More'}
+                {loadingMore ? t('loadingMore') : t('loadMore')}
               </Text>
             </Box>
           </TouchableOpacity>

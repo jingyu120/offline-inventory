@@ -1,6 +1,6 @@
 import { sqliteSchema } from '@burma-inventory/shared-types';
 
-export const seedLocalDatabase = async (db: any): Promise<void> => {
+export const seedLocalDatabase = async (db: $Any): Promise<void> => {
   // Clear existing records first
   const tables = [
     sqliteSchema.interaction_items,

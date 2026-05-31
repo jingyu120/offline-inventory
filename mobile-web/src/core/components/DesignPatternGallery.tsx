@@ -12,6 +12,7 @@ import { database } from '../database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq } from 'drizzle-orm';
 import { X, Boxes } from 'lucide-react-native';
+import { useTranslation } from '../i18n/i18n';
 
 interface DesignPattern {
   id: string;
@@ -70,6 +71,7 @@ const DEFAULT_PATTERNS: DesignPattern[] = [
 
 export const DesignPatternGallery: React.FC = () => {
   const theme = useTheme<Theme>();
+  const { t } = useTranslation();
   const [patterns, setPatterns] = useState<DesignPattern[]>([]);
 
   // State for active interactive catalog modal
@@ -77,7 +79,7 @@ export const DesignPatternGallery: React.FC = () => {
     null,
   );
   const [loadingItems, setLoadingItems] = useState<boolean>(false);
-  const [brandItems, setBrandItems] = useState<any[]>([]);
+  const [brandItems, setBrandItems] = useState<$Any[]>([]);
 
   useEffect(() => {
     // Implement local storage cache backup
@@ -86,7 +88,7 @@ export const DesignPatternGallery: React.FC = () => {
       if (cached) {
         const parsed = JSON.parse(cached);
         const hasBrandId =
-          Array.isArray(parsed) && parsed.every((p: any) => p.brandId);
+          Array.isArray(parsed) && parsed.every((p: $Any) => p.brandId);
         if (hasBrandId) {
           setPatterns(parsed);
           return;
@@ -122,11 +124,11 @@ export const DesignPatternGallery: React.FC = () => {
       // Query stock counts from local SQLite database
       const allStocks = await database.select().from(sqliteSchema.item_stocks);
       const stocksMap: Record<string, number> = {};
-      allStocks.forEach((s: any) => {
+      allStocks.forEach((s: $Any) => {
         stocksMap[s.item_id] = s.quantity;
       });
 
-      const mapped = allItems.map((item: any) => ({
+      const mapped = allItems.map((item: $Any) => ({
         id: item.id,
         name: item.name,
         sku: item.sku,
@@ -149,11 +151,10 @@ export const DesignPatternGallery: React.FC = () => {
   return (
     <Card p="m" bg="cardBackground" mb="m">
       <Text variant="title" mb="s">
-        🎨 Visual Tile Design Gallery
+        {t('visualTileGallery')}
       </Text>
       <Text variant="bodySecondary" mb="m">
-        Showcase catalog options offline directly to dealers. Tap any card below
-        to view specs.
+        {t('visualTileGalleryDesc')}
       </Text>
 
       <ScrollView
@@ -253,7 +254,10 @@ export const DesignPatternGallery: React.FC = () => {
                   <Text
                     style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}
                   >
-                    {selectedPattern.brand} Specs & Stock
+                    {t('specsAndStock').replace(
+                      '{brand}',
+                      selectedPattern.brand,
+                    )}
                   </Text>
                   <Text
                     style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 11 }}
@@ -281,7 +285,7 @@ export const DesignPatternGallery: React.FC = () => {
                       color={selectedPattern.gradient[0]}
                     />
                     <Text variant="bodySecondary" mt="s">
-                      Querying catalog items...
+                      {t('queryingCatalogItems')}
                     </Text>
                   </Box>
                 ) : (
@@ -289,7 +293,7 @@ export const DesignPatternGallery: React.FC = () => {
                     {brandItems.length === 0 ? (
                       <Box py="l" alignItems="center">
                         <Text variant="bodySecondary">
-                          No items found for this brand in database.
+                          {t('noItemsBrandDatabase')}
                         </Text>
                       </Box>
                     ) : (
@@ -330,7 +334,7 @@ export const DesignPatternGallery: React.FC = () => {
                                 color="primaryButton"
                               >
                                 {Math.round(item.unitPrice).toLocaleString()}{' '}
-                                MMK
+                                {t('currencyKyats')}
                               </Text>
                             </Box>
 
@@ -340,7 +344,7 @@ export const DesignPatternGallery: React.FC = () => {
                               alignItems="center"
                             >
                               <Text variant="bodySecondary" fontSize={11}>
-                                SKU: {item.sku} | {item.category}
+                                {t('sku')}: {item.sku} | {item.category}
                               </Text>
                               <Box flexDirection="row" alignItems="center">
                                 <Boxes
@@ -355,8 +359,13 @@ export const DesignPatternGallery: React.FC = () => {
                                   style={{ color: stockColor }}
                                 >
                                   {item.stock > 0
-                                    ? `Stock: ${item.stock} ${item.unitType}`
-                                    : 'Out of Stock'}
+                                    ? t('stockUnit')
+                                        .replace(
+                                          '{stock}',
+                                          item.stock.toString(),
+                                        )
+                                        .replace('{unit}', item.unitType)
+                                    : t('outOfStock')}
                                 </Text>
                               </Box>
                             </Box>
@@ -375,12 +384,12 @@ export const DesignPatternGallery: React.FC = () => {
                                     fontSize={10}
                                     style={{ marginRight: 8 }}
                                   >
-                                    📐 Thickness: {item.thickness}
+                                    {t('thickness')}: {item.thickness}
                                   </Text>
                                 )}
                                 {item.weight && (
                                   <Text variant="bodySecondary" fontSize={10}>
-                                    ⚖️ Weight: {item.weight}
+                                    {t('weight')}: {item.weight}
                                   </Text>
                                 )}
                               </Box>
@@ -408,7 +417,7 @@ export const DesignPatternGallery: React.FC = () => {
                     }}
                   >
                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                      Close Catalog
+                      {t('closeCatalog')}
                     </Text>
                   </TouchableOpacity>
                 </Box>

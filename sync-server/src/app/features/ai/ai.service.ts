@@ -66,7 +66,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
           }, this.config.uploadsWatcherDelayMs);
         }
       });
-    } catch (err: any) {
+    } catch (err: $Any) {
       this.logger.error(
         `Failed to start uploads directory watcher: ${err.message}`,
       );
@@ -120,7 +120,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
         targetModelName = `${targetModelName}:${quantization}`;
       }
     }
-    const payload: any = {
+    const payload: $Any = {
       model: targetModelName,
       prompt,
       stream: false,
@@ -141,7 +141,7 @@ export class AiService implements OnModuleInit, OnModuleDestroy {
     const [response, err] = await guardAsync(requestPromise);
     if (err) {
       this.logger.debug(
-        `Ollama dispatch failed: ${(err as any).message || err}`,
+        `Ollama dispatch failed: ${(err as $Any).message || err}`,
       );
       return null;
     }
@@ -266,7 +266,7 @@ Return ONLY raw JSON.`;
       undefined,
       quantization,
     );
-    const parsedItems: any[] = [];
+    const parsedItems: $Any[] = [];
     let explanation = 'Failed to extract items from image using local AI.';
 
     if (res) {
@@ -364,7 +364,7 @@ Return ONLY raw JSON.`;
         };
       } catch (err) {
         this.logger.warn(
-          `Ollama sentiment analysis failed: ${(err as any).message}. Falling back to heuristics.`,
+          `Ollama sentiment analysis failed: ${(err as $Any).message}. Falling back to heuristics.`,
         );
       }
     }

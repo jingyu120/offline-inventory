@@ -15,7 +15,6 @@ import {
   TextField,
   DropdownSelector,
 } from '@burma-inventory/ui-components';
-import { ImageAnnotationModal } from '../components/ImageAnnotationModal';
 import { InboundForecastList } from '../components/InboundForecastList';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from '@burma-inventory/ui-components';
@@ -29,11 +28,7 @@ import {
 import { mapItem, mapItemStock } from '../../../core/data/repositories';
 import { eq } from 'drizzle-orm';
 import {
-  Plus,
-  Minus,
   Package,
-  Tag,
-  Layers,
   RefreshCw,
   Check,
   X,
@@ -44,9 +39,13 @@ import {
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
-import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
+import {
+  calculateDistance,
+  GEOFENCE_RADIUS_INTAKE_METERS,
+} from '../../../core/utils/geo';
+import { CompetitorInsightForm } from '../components/CompetitorInsightForm';
+import { MasterCatalogItem } from '../components/MasterCatalogItem';
+import { INVENTORY_STATUS } from '../../../config/appConfig';
 
 const WAREHOUSE_COORDS: Record<
   string,
@@ -54,29 +53,6 @@ const WAREHOUSE_COORDS: Record<
 > = {
   'loc-yangon-wh': { latitude: 16.8661, longitude: 96.1951 },
   'loc-mandalay-wh': { latitude: 21.9754, longitude: 96.0838 },
-};
-
-const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-) => {
-  const R = 6371e3; // metres
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) *
-      Math.cos(phi2) *
-      Math.sin(deltaLambda / 2) *
-      Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in metres
 };
 
 interface ExtendedItem extends Item {
@@ -101,25 +77,14 @@ export function IntakeScreen() {
   const [initialStock, setInitialStock] = useState('100');
   const [isAdding, setIsAdding] = useState(false);
 
-  // Competitor insights form states
-  const [compName, setCompName] = useState('');
-  const [compPrice, setCompPrice] = useState('');
-  const [compPhotoUri, setCompPhotoUri] = useState<string | null>(null);
-  const [isSavingComp, setIsSavingComp] = useState(false);
-
-  const [annotationModalVisible, setAnnotationModalVisible] = useState(false);
-  const [pendingAnnotationUri, setPendingAnnotationUri] = useState<
-    string | null
-  >(null);
-
   // Geo-locking states
-  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<$Any[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const [isNearWarehouse, setIsNearWarehouse] = useState<boolean>(false);
   const [geoLockingDisabled, setGeoLockingDisabled] = useState<boolean>(false);
 
   // Pending updates queue states
-  const [pendingUpdates, setPendingUpdates] = useState<any[]>([]);
+  const [pendingUpdates, setPendingUpdates] = useState<$Any[]>([]);
 
   // Editing a pending update state
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
@@ -128,116 +93,6 @@ export function IntakeScreen() {
   const [editName, setEditName] = useState<string>('');
   const [editPrice, setEditPrice] = useState<string>('');
   const [editCategory, setEditCategory] = useState<string>('');
-
-  const handleInterceptPhoto = (uri: string) => {
-    setPendingAnnotationUri(uri);
-    setAnnotationModalVisible(true);
-  };
-
-  const handlePickCompetitorImage = async (useCamera = false) => {
-    const permissionResult = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert(
-        t('permissionRequired') || 'Permission Required',
-        useCamera
-          ? 'Camera permissions are required to snap a photo.'
-          : t('cameraRollPermissionDesc') || 'Need library permissions.',
-      );
-      return;
-    }
-
-    const pickerResult = useCamera
-      ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          quality: 1,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          quality: 1,
-        });
-
-    if (
-      !pickerResult.canceled &&
-      pickerResult.assets &&
-      pickerResult.assets.length > 0
-    ) {
-      const uri = pickerResult.assets[0].uri;
-      try {
-        const manipResult = await ImageManipulator.manipulateAsync(
-          uri,
-          [{ resize: { width: 1080 } }],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-        );
-        handleInterceptPhoto(manipResult.uri);
-      } catch (err) {
-        console.error('Image compression failed for competitor insight', err);
-        handleInterceptPhoto(uri);
-      }
-    }
-  };
-
-  const handleSaveCompetitorInsight = async () => {
-    if (!compName || !compPrice) {
-      Alert.alert(
-        t('validationError') || 'Validation Error',
-        'Please enter a competitive product name and street price.',
-      );
-      return;
-    }
-
-    const parsedPrice = parseFloat(compPrice);
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert(
-        t('validationError') || 'Validation Error',
-        'Please enter a valid street price.',
-      );
-      return;
-    }
-
-    setIsSavingComp(true);
-    try {
-      const insightId = `insight-${Math.random().toString(36).substring(2, 15)}`;
-      const now = Date.now();
-
-      await database.insert(sqliteSchema.competitor_insights).values({
-        id: insightId,
-        product_name: compName,
-        street_price: parsedPrice,
-        photo_url: null,
-        created_at: now,
-        updated_at: now,
-      });
-
-      if (compPhotoUri) {
-        await ImageUploadQueue.enqueueCompetitorInsightImage(
-          insightId,
-          compPhotoUri,
-        );
-      }
-
-      setCompName('');
-      setCompPrice('');
-      setCompPhotoUri(null);
-
-      Alert.alert(
-        t('success') || 'Success',
-        'Competitor street price insight logged successfully.',
-      );
-    } catch (e: any) {
-      console.error('Failed to save competitor insight:', e);
-      Alert.alert(
-        t('error') || 'Error',
-        'Failed to save competitor price insight.',
-      );
-    } finally {
-      setIsSavingComp(false);
-    }
-  };
 
   const checkGeofence = async (warehouseId: string) => {
     if (!warehouseId) {
@@ -253,10 +108,7 @@ export function IntakeScreen() {
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          t('error') || 'Error',
-          'Location permission is required to initialize the audit.',
-        );
+        Alert.alert(t('error'), t('locationPermissionRequired'));
         setIsNearWarehouse(false);
         return;
       }
@@ -272,22 +124,21 @@ export function IntakeScreen() {
         loc.coords.longitude,
       );
 
-      if (dist <= 100) {
+      if (dist <= GEOFENCE_RADIUS_INTAKE_METERS) {
         setIsNearWarehouse(true);
       } else {
         setIsNearWarehouse(false);
         Alert.alert(
-          'Geofenced Lock Active',
-          `You must be within 100 meters of the selected warehouse to initialize this stock update. Current distance: ${Math.round(dist)}m.`,
+          t('geofencedLockActive'),
+          t('geofenceDistanceMsg')
+            .replace('{meters}', GEOFENCE_RADIUS_INTAKE_METERS.toString())
+            .replace('{distance}', Math.round(dist).toString()),
         );
       }
-    } catch (err: any) {
+    } catch (err: $Any) {
       console.error(err);
       setIsNearWarehouse(false);
-      Alert.alert(
-        t('error') || 'Error',
-        'Failed to retrieve current device coordinates.',
-      );
+      Alert.alert(t('error'), t('failedGetCoordinates'));
     }
   };
 
@@ -342,7 +193,7 @@ export function IntakeScreen() {
 
   const handleUpdateStock = async (item: ExtendedItem, delta: number) => {
     if (!selectedWarehouseId) {
-      Alert.alert('Error', 'Please select a warehouse first.');
+      Alert.alert(t('error'), t('selectWarehouseFirstError'));
       return;
     }
 
@@ -362,20 +213,17 @@ export function IntakeScreen() {
           created_at: now,
           updated_at: now,
         });
-        Alert.alert('Success', 'Stock update submitted for approval.');
+        Alert.alert(t('success'), t('stockUpdateSubmitted'));
         await loadPendingUpdates();
       } catch (e) {
         console.error('Failed to submit pending update:', e);
-        Alert.alert('Error', 'Failed to submit stock update.');
+        Alert.alert(t('error'), t('failedSubmitStockUpdate'));
       }
       return;
     }
 
     if (!isNearWarehouse) {
-      Alert.alert(
-        t('error') || 'Error',
-        'Stock adjustment locked: You must be within 100 meters of the warehouse.',
-      );
+      Alert.alert(t('error'), t('geofencedLockWarning'));
       return;
     }
 
@@ -393,7 +241,7 @@ export function IntakeScreen() {
             .update(sqliteSchema.item_stocks)
             .set({
               quantity: Math.max(0, record.quantity + delta),
-              inventory_status: 'PENDING_APPROVAL',
+              inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
               updated_at: now,
             })
             .where(eq(sqliteSchema.item_stocks.id, record.id));
@@ -403,7 +251,7 @@ export function IntakeScreen() {
             id: stockId,
             item_id: item.id,
             quantity: Math.max(0, delta),
-            inventory_status: 'PENDING_APPROVAL',
+            inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
             created_at: now,
             updated_at: now,
           });
@@ -421,7 +269,7 @@ export function IntakeScreen() {
 
   const handleAddItem = async () => {
     if (!selectedWarehouseId) {
-      Alert.alert('Error', 'Please select a warehouse first.');
+      Alert.alert(t('error'), t('selectWarehouseFirstError'));
       return;
     }
     if (!sku || !name || !unitPrice) {
@@ -462,11 +310,11 @@ export function IntakeScreen() {
         setName('');
         setUnitPrice('');
         setInitialStock('100');
-        Alert.alert('Success', 'New SKU registration submitted for approval.');
+        Alert.alert(t('success'), t('skuRegistrationSubmitted'));
         await loadPendingUpdates();
       } catch (e) {
         console.error('Failed to submit pending SKU:', e);
-        Alert.alert('Error', 'Failed to submit SKU registration.');
+        Alert.alert(t('error'), t('failedSubmitPendingSku'));
       } finally {
         setIsAdding(false);
       }
@@ -474,10 +322,7 @@ export function IntakeScreen() {
     }
 
     if (!isNearWarehouse) {
-      Alert.alert(
-        t('error') || 'Error',
-        'SKU registration locked: You must be within 100 meters of the warehouse.',
-      );
+      Alert.alert(t('error'), t('skuRegLockedWarehouse'));
       return;
     }
 
@@ -495,7 +340,7 @@ export function IntakeScreen() {
           name: name,
           unit_price: parsedPrice,
           category: category,
-          inventory_status: 'PENDING_APPROVAL',
+          inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
           created_at: now,
           updated_at: now,
         });
@@ -505,7 +350,7 @@ export function IntakeScreen() {
           id: newStockId,
           item_id: newItemId,
           quantity: Math.max(0, parsedStock),
-          inventory_status: 'PENDING_APPROVAL',
+          inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
           created_at: now,
           updated_at: now,
         });
@@ -529,16 +374,13 @@ export function IntakeScreen() {
     }
   };
 
-  const handleApproveUpdate = async (update: any) => {
+  const handleApproveUpdate = async (update: $Any) => {
     const isManagerOrAdmin =
       activeRep.role === 'manager' || activeRep.role === 'admin';
     if (!isManagerOrAdmin) {
       // Standard rep needs to be near the specific warehouse to approve
       if (selectedWarehouseId !== update.location_id || !isNearWarehouse) {
-        Alert.alert(
-          'Verification Required',
-          'You must select the corresponding warehouse and be verified nearby (within 100 meters) to approve this update.',
-        );
+        Alert.alert(t('verificationRequired'), t('whVerificationRequiredMsg'));
         return;
       }
     }
@@ -561,7 +403,7 @@ export function IntakeScreen() {
                   0,
                   record.quantity + (update.quantity_delta || 0),
                 ),
-                inventory_status: 'AVAILABLE',
+                inventory_status: INVENTORY_STATUS.AVAILABLE,
                 updated_at: now,
               })
               .where(eq(sqliteSchema.item_stocks.id, record.id));
@@ -571,7 +413,7 @@ export function IntakeScreen() {
               id: stockId,
               item_id: update.item_id,
               quantity: Math.max(0, update.quantity_delta || 0),
-              inventory_status: 'AVAILABLE',
+              inventory_status: INVENTORY_STATUS.AVAILABLE,
               created_at: now,
               updated_at: now,
             });
@@ -587,7 +429,7 @@ export function IntakeScreen() {
             name: update.name || '',
             unit_price: update.unit_price || 0,
             category: update.category || '',
-            inventory_status: 'AVAILABLE',
+            inventory_status: INVENTORY_STATUS.AVAILABLE,
             created_at: now,
             updated_at: now,
           });
@@ -597,7 +439,7 @@ export function IntakeScreen() {
             id: newStockId,
             item_id: newItemId,
             quantity: Math.max(0, update.quantity_delta || 0),
-            inventory_status: 'AVAILABLE',
+            inventory_status: INVENTORY_STATUS.AVAILABLE,
             created_at: now,
             updated_at: now,
           });
@@ -616,17 +458,14 @@ export function IntakeScreen() {
 
     if (error) {
       console.error('Failed to approve update:', error);
-      Alert.alert('Error', 'Failed to approve update.');
+      Alert.alert(t('error'), t('failedApproveUpdate'));
     } else {
-      Alert.alert(
-        'Approved',
-        'Inventory update approved and applied successfully.',
-      );
+      Alert.alert(t('approvedSuccess'), t('inventoryApprovedApplied'));
       await loadInventory();
     }
   };
 
-  const handleRejectUpdate = async (update: any) => {
+  const handleRejectUpdate = async (update: $Any) => {
     try {
       await database
         .update(sqliteSchema.pending_inventory_updates)
@@ -635,15 +474,15 @@ export function IntakeScreen() {
           updated_at: Date.now(),
         })
         .where(eq(sqliteSchema.pending_inventory_updates.id, update.id));
-      Alert.alert('Rejected', 'Update has been rejected.');
+      Alert.alert(t('rejectedSuccess'), t('updateRejectedMsg'));
       await loadPendingUpdates();
     } catch (e) {
       console.error('Failed to reject update:', e);
-      Alert.alert('Error', 'Failed to reject update.');
+      Alert.alert(t('error'), t('failedRejectUpdate'));
     }
   };
 
-  const startEditUpdate = (update: any) => {
+  const startEditUpdate = (update: $Any) => {
     setEditingUpdateId(update.id);
     setEditQtyDelta(String(update.quantity_delta || 0));
     setEditSku(update.sku || '');
@@ -652,23 +491,23 @@ export function IntakeScreen() {
     setEditCategory(update.category || '');
   };
 
-  const handleSaveEdit = async (update: any) => {
+  const handleSaveEdit = async (update: $Any) => {
     const parsedPrice = parseFloat(editPrice);
     const parsedQty = parseInt(editQtyDelta, 10);
 
     if (update.type === 'NEW_SKU') {
       if (!editSku || !editName || !editPrice) {
-        Alert.alert('Validation Error', 'SKU, Name, and Price are required.');
+        Alert.alert(t('validationErrorTitle'), t('skuNamePriceRequired'));
         return;
       }
       if (isNaN(parsedPrice) || parsedPrice <= 0) {
-        Alert.alert('Validation Error', 'Please enter a valid price.');
+        Alert.alert(t('validationErrorTitle'), t('validPriceRequired'));
         return;
       }
     }
 
     if (isNaN(parsedQty)) {
-      Alert.alert('Validation Error', 'Please enter a valid quantity.');
+      Alert.alert(t('validationErrorTitle'), t('validQtyRequired'));
       return;
     }
 
@@ -687,10 +526,10 @@ export function IntakeScreen() {
 
       setEditingUpdateId(null);
       await loadPendingUpdates();
-      Alert.alert('Success', 'Update saved successfully.');
+      Alert.alert(t('successTitle'), t('saveChanges'));
     } catch (e) {
       console.error('Failed to save edited update:', e);
-      Alert.alert('Error', 'Failed to save updates.');
+      Alert.alert(t('errorTitle'), t('failedSaveEditUpdate'));
     }
   };
 
@@ -748,7 +587,7 @@ export function IntakeScreen() {
           >
             <Box width={isDesktop ? '60%' : '100%'} mb="s">
               <DropdownSelector
-                label="Select Warehouse for SKU Intake"
+                label={t('selectWarehouseIntake')}
                 selectedValue={selectedWarehouseId}
                 onValueChange={(val) => {
                   setSelectedWarehouseId(val);
@@ -758,7 +597,7 @@ export function IntakeScreen() {
                   label: w.name,
                   value: w.id,
                 }))}
-                placeholder="Choose a warehouse..."
+                placeholder={t('chooseWarehousePlaceholder')}
               />
             </Box>
 
@@ -776,9 +615,9 @@ export function IntakeScreen() {
             >
               <Box mr="m">
                 <Text variant="body" fontWeight="bold">
-                  Disable Geo-locking
+                  {t('disableGeoLocking')}
                 </Text>
-                <Text variant="bodySecondary">Requires approval</Text>
+                <Text variant="bodySecondary">{t('requiresApproval')}</Text>
               </Box>
               <Switch
                 value={geoLockingDisabled}
@@ -811,8 +650,7 @@ export function IntakeScreen() {
                   color="warningText"
                   fontWeight="bold"
                 >
-                  ⚠️ Geo-locking Disabled: Updates will go to the approvals
-                  queue.
+                  {t('geoLockingDisabledWarning')}
                 </Text>
               </Box>
             ) : !isNearWarehouse ? (
@@ -835,13 +673,12 @@ export function IntakeScreen() {
                     color="dangerText"
                     fontWeight="bold"
                   >
-                    ⚠️ Geofenced Lock: You are too far from this warehouse to
-                    perform updates.
+                    {t('geofencedLockWarning')}
                   </Text>
                 </Box>
                 <Box alignItems="flex-start">
                   <Button
-                    title="Simulate Nearby Location (Bypass Geofence)"
+                    title={t('simulateNearbyLocation')}
                     onPress={() => setIsNearWarehouse(true)}
                     variant="secondary"
                   />
@@ -868,8 +705,7 @@ export function IntakeScreen() {
                   color="successText"
                   fontWeight="bold"
                 >
-                  ✅ Location Verified: Inside 100-meter warehouse radius.
-                  Direct updates authorized.
+                  {t('locationVerifiedSuccess')}
                 </Text>
               </Box>
             )
@@ -887,7 +723,7 @@ export function IntakeScreen() {
                 color="warningText"
                 fontWeight="bold"
               >
-                ℹ️ Please select a warehouse to initialize inventory intake.
+                {t('pleaseSelectWarehouseIntake')}
               </Text>
             </Box>
           )}
@@ -912,7 +748,10 @@ export function IntakeScreen() {
                 style={{ marginRight: 8 }}
               />
               <Text variant="title">
-                ⏳ Pending Approvals Queue ({pendingUpdates.length})
+                {t('pendingApprovalsQueueCount').replace(
+                  '{count}',
+                  pendingUpdates.length.toString(),
+                )}
               </Text>
             </Box>
 
@@ -940,33 +779,33 @@ export function IntakeScreen() {
                     // Editing Mode (Manager/Admin Only)
                     <Box>
                       <Text variant="body" fontWeight="bold" mb="s">
-                        ✏️ Editing Pending Request
+                        {t('editingPendingRequest')}
                       </Text>
                       {update.type === 'NEW_SKU' ? (
                         <Box>
                           <TextField
-                            label="SKU Code"
+                            label={t('skuCode')}
                             value={editSku}
                             onChangeText={setEditSku}
                           />
                           <TextField
-                            label="Product Name"
+                            label={t('productName')}
                             value={editName}
                             onChangeText={setEditName}
                           />
                           <TextField
-                            label="Price (MMK)"
+                            label={t('priceMmk')}
                             value={editPrice}
                             onChangeText={setEditPrice}
                             keyboardType="numeric"
                           />
                           <TextField
-                            label="Category"
+                            label={t('category')}
                             value={editCategory}
                             onChangeText={setEditCategory}
                           />
                           <TextField
-                            label="Initial Stock Qty"
+                            label={t('initialStockQty')}
                             value={editQtyDelta}
                             onChangeText={setEditQtyDelta}
                             keyboardType="numeric"
@@ -975,10 +814,10 @@ export function IntakeScreen() {
                       ) : (
                         <Box>
                           <Text variant="body" mb="s">
-                            Item: {targetItem?.name || 'Unknown Item'}
+                            {t('item')}: {targetItem?.name || t('unknownItem')}
                           </Text>
                           <TextField
-                            label="Quantity Adjustment"
+                            label={t('quantityAdjustment')}
                             value={editQtyDelta}
                             onChangeText={setEditQtyDelta}
                             keyboardType="numeric"
@@ -992,12 +831,12 @@ export function IntakeScreen() {
                         mt="s"
                       >
                         <Button
-                          title="Cancel"
+                          title={t('cancel')}
                           onPress={() => setEditingUpdateId(null)}
                           variant="secondary"
                         />
                         <Button
-                          title="Save Changes"
+                          title={t('saveChanges')}
                           onPress={() => handleSaveEdit(update)}
                           variant="primary"
                         />
@@ -1015,12 +854,19 @@ export function IntakeScreen() {
                         <Box>
                           <Text variant="body" fontWeight="bold">
                             {update.type === 'NEW_SKU'
-                              ? `🆕 New SKU: ${update.name}`
-                              : `🔄 Stock Adjustment: ${targetItem?.name || 'Unknown Item'}`}
+                              ? t('newSkuSubmitted').replace(
+                                  '{name}',
+                                  update.name || '',
+                                )
+                              : t('stockAdjustmentSubmitted').replace(
+                                  '{name}',
+                                  targetItem?.name || t('unknownItem'),
+                                )}
                           </Text>
                           <Text variant="bodySecondary" fontSize={11}>
-                            Submitted by {update.submitted_by} · Warehouse:{' '}
-                            {whName}
+                            {t('submittedByWarehouse')
+                              .replace('{rep}', update.submitted_by)
+                              .replace('{warehouse}', whName)}
                           </Text>
                         </Box>
                         <Box bg="warningBg" px="s" py="xs" borderRadius="s">
@@ -1030,7 +876,7 @@ export function IntakeScreen() {
                             fontSize={10}
                             fontWeight="bold"
                           >
-                            PENDING
+                            {t('pending')}
                           </Text>
                         </Box>
                       </Box>
@@ -1047,16 +893,20 @@ export function IntakeScreen() {
                         {update.type === 'NEW_SKU' ? (
                           <>
                             <Text variant="bodySecondary" fontSize={12}>
-                              SKU: <Text fontWeight="bold">{update.sku}</Text>
+                              {t('sku')}:{' '}
+                              <Text fontWeight="bold">{update.sku}</Text>
                             </Text>
                             <Text variant="bodySecondary" fontSize={12}>
-                              Price:{' '}
+                              {t('price')}:{' '}
                               <Text fontWeight="bold">
-                                K{update.unit_price?.toLocaleString()}
+                                {t('priceFormatted').replace(
+                                  '{price}',
+                                  update.unit_price?.toLocaleString() || '0',
+                                )}
                               </Text>
                             </Text>
                             <Text variant="bodySecondary" fontSize={12}>
-                              Qty:{' '}
+                              {t('qty')}:{' '}
                               <Text fontWeight="bold">
                                 {update.quantity_delta}
                               </Text>
@@ -1064,7 +914,7 @@ export function IntakeScreen() {
                           </>
                         ) : (
                           <Text variant="bodySecondary" fontSize={12}>
-                            Delta:{' '}
+                            {t('delta')}{' '}
                             <Text
                               fontWeight="bold"
                               color={
@@ -1096,7 +946,10 @@ export function IntakeScreen() {
                               fontSize={11}
                               fontWeight="bold"
                             >
-                              🔒 Geofenced Lock (Go to {whName})
+                              {t('geofencedLockGoTo').replace(
+                                '{warehouse}',
+                                whName,
+                              )}
                             </Text>
                           )}
                         </Box>
@@ -1159,7 +1012,7 @@ export function IntakeScreen() {
                                   : '#94A3B8',
                               }}
                             >
-                              Approve
+                              {t('approve')}
                             </Text>
                           </TouchableOpacity>
                         </Box>
@@ -1191,7 +1044,7 @@ export function IntakeScreen() {
                   label={t('skuCode')}
                   value={sku}
                   onChangeText={setSku}
-                  placeholder="e.g. SKU-PB-500"
+                  placeholder={t('skuPlaceholder')}
                 />
               </Box>
 
@@ -1200,7 +1053,7 @@ export function IntakeScreen() {
                   label={t('productName')}
                   value={name}
                   onChangeText={setName}
-                  placeholder="e.g. Myanmar Premium 500ml"
+                  placeholder={t('productNamePlaceholder')}
                 />
               </Box>
 
@@ -1209,7 +1062,7 @@ export function IntakeScreen() {
                   label={t('priceMmk')}
                   value={unitPrice}
                   onChangeText={setUnitPrice}
-                  placeholder="e.g. 3000"
+                  placeholder={t('pricePlaceholder')}
                   keyboardType="numeric"
                 />
               </Box>
@@ -1219,7 +1072,7 @@ export function IntakeScreen() {
                   label={t('category')}
                   value={category}
                   onChangeText={setCategory}
-                  placeholder="e.g. Beverage"
+                  placeholder={t('categoryPlaceholder')}
                 />
               </Box>
 
@@ -1228,7 +1081,7 @@ export function IntakeScreen() {
                   label={t('initialStockQty')}
                   value={initialStock}
                   onChangeText={setInitialStock}
-                  placeholder="e.g. 100"
+                  placeholder={t('qtyPlaceholder')}
                   keyboardType="numeric"
                 />
               </Box>
@@ -1240,7 +1093,7 @@ export function IntakeScreen() {
                   isAdding
                     ? t('addingSku')
                     : geoLockingDisabled
-                      ? 'Submit SKU for Approval'
+                      ? t('submitSkuApproval')
                       : t('addSkuToCatalog')
                 }
                 onPress={handleAddItem}
@@ -1252,181 +1105,21 @@ export function IntakeScreen() {
         </Box>
 
         {/* Competitor Intelligence Capture Card */}
-        <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-          <Text variant="title" mb="m">
-            🕵️ Competitor Intelligence Capture
-          </Text>
-          <Text variant="bodySecondary" mb="m">
-            Capture observed competitor product street prices and snap evidence
-            photo.
-          </Text>
-
-          <Box
-            flexDirection="row"
-            flexWrap="wrap"
-            style={{ marginHorizontal: -8 }}
-          >
-            <Box width={isDesktop ? '50%' : '100%'} px="s">
-              <TextField
-                label="Competitor Product Name"
-                value={compName}
-                onChangeText={setCompName}
-                placeholder="e.g. Tiger Cement 50kg"
-              />
-            </Box>
-            <Box width={isDesktop ? '50%' : '100%'} px="s">
-              <TextField
-                label="Observed Street Price (MMK)"
-                value={compPrice}
-                onChangeText={setCompPrice}
-                placeholder="e.g. 18500"
-                keyboardType="numeric"
-              />
-            </Box>
-          </Box>
-
-          <Box flexDirection="row" alignItems="center" mt="m" mb="m" gap="s">
-            <Button
-              title="Snap Photo"
-              onPress={() => handlePickCompetitorImage(true)}
-              variant="secondary"
-            />
-            <Button
-              title="Choose Gallery"
-              onPress={() => handlePickCompetitorImage(false)}
-              variant="secondary"
-            />
-            {compPhotoUri && (
-              <Text
-                variant="bodySecondary"
-                color="successText"
-                fontWeight="bold"
-              >
-                Photo attached ✓
-              </Text>
-            )}
-          </Box>
-
-          <Box alignItems="flex-end">
-            <Button
-              title={isSavingComp ? 'Saving...' : 'Save Insight'}
-              onPress={handleSaveCompetitorInsight}
-              variant="primary"
-              disabled={isSavingComp}
-            />
-          </Box>
-        </Card>
+        <CompetitorInsightForm isDesktop={isDesktop} />
 
         {/* Master Catalog Table Grid */}
         <Text variant="title" mb="s">
           📦 {t('masterStockLevels')}
         </Text>
         {items.map((item) => {
-          const isLowStock = item.stockQty < 50;
           const controlsActive = geoLockingDisabled || isNearWarehouse;
           return (
-            <Card
+            <MasterCatalogItem
               key={item.id}
-              mb="s"
-              p="m"
-              flexDirection="row"
-              justifyContent="space-between"
-              alignItems="center"
-              borderLeftWidth={4}
-              borderLeftColor={isLowStock ? 'danger' : 'success'}
-            >
-              <Box flex={1} mr="m">
-                <Box flexDirection="row" alignItems="center" mb="xs">
-                  <Text variant="body" fontWeight="bold">
-                    {item.name}
-                  </Text>
-                  <Box
-                    bg="secondaryBackground"
-                    px="s"
-                    py="xs"
-                    borderRadius="s"
-                    ml="s"
-                  >
-                    <Text
-                      variant="bodySecondary"
-                      fontSize={11}
-                      fontWeight="bold"
-                    >
-                      {item.sku}
-                    </Text>
-                  </Box>
-                </Box>
-                <Box flexDirection="row" alignItems="center">
-                  <Tag size={12} stroke="#64748B" style={{ marginRight: 4 }} />
-                  <Text variant="bodySecondary" mr="m">
-                    {item.category}
-                  </Text>
-                  <Layers
-                    size={12}
-                    stroke="#64748B"
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text variant="bodySecondary">
-                    {t('price')}: K{item.unitPrice.toLocaleString()}
-                  </Text>
-                </Box>
-              </Box>
-
-              {/* Stock Quantity Controls */}
-              <Box
-                flexDirection="row"
-                alignItems="center"
-                style={{ opacity: controlsActive ? 1 : 0.5 }}
-              >
-                <TouchableOpacity
-                  onPress={() => handleUpdateStock(item, -10)}
-                  disabled={!controlsActive}
-                  style={{
-                    backgroundColor: controlsActive
-                      ? theme.colors.secondaryButton
-                      : '#CBD5E1',
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Minus size={14} stroke={theme.colors.secondaryButtonText} />
-                </TouchableOpacity>
-
-                <Box minWidth={60} alignItems="center" px="s">
-                  <Text
-                    variant="body"
-                    fontWeight="bold"
-                    fontSize={16}
-                    color={isLowStock ? 'danger' : 'primaryText'}
-                  >
-                    {item.stockQty}
-                  </Text>
-                  <Text variant="bodySecondary" fontSize={10}>
-                    {isLowStock ? t('lowStock') : t('inStock')}
-                  </Text>
-                </Box>
-
-                <TouchableOpacity
-                  onPress={() => handleUpdateStock(item, 10)}
-                  disabled={!controlsActive}
-                  style={{
-                    backgroundColor: controlsActive
-                      ? theme.colors.secondaryButton
-                      : '#CBD5E1',
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Plus size={14} stroke={theme.colors.secondaryButtonText} />
-                </TouchableOpacity>
-              </Box>
-            </Card>
+              item={item}
+              controlsActive={controlsActive}
+              onUpdateStock={handleUpdateStock}
+            />
           );
         })}
 
@@ -1436,19 +1129,6 @@ export function IntakeScreen() {
           </Box>
         )}
       </ScrollView>
-      <ImageAnnotationModal
-        visible={annotationModalVisible}
-        imageUri={pendingAnnotationUri}
-        onClose={() => {
-          setAnnotationModalVisible(false);
-          setPendingAnnotationUri(null);
-        }}
-        onAnnotated={(croppedUri) => {
-          setCompPhotoUri(croppedUri);
-          setAnnotationModalVisible(false);
-          setPendingAnnotationUri(null);
-        }}
-      />
     </Box>
   );
 }

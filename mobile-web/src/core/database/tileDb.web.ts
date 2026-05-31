@@ -1,7 +1,7 @@
 class TileDb {
-  private db: any = null;
+  private db: $Any = null;
 
-  private async init(): Promise<any> {
+  private async init(): Promise<$Any> {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return null;
     }

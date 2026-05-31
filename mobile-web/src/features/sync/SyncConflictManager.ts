@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 export interface SyncConflict {
   id: string;
   table: string;
-  localRecord: any;
-  remoteRecord: any;
-  resolve: (resolvedRecord: any) => void;
+  localRecord: $Any;
+  remoteRecord: $Any;
+  resolve: (resolvedRecord: $Any) => void;
 }
 
 // Simple event-emitter/subscriber pattern to avoid direct RxJS dependency if not installed
@@ -28,9 +28,9 @@ export const SyncConflictManager = {
 
   registerConflict(
     table: string,
-    localRecord: any,
-    remoteRecord: any,
-  ): Promise<any> {
+    localRecord: $Any,
+    remoteRecord: $Any,
+  ): Promise<$Any> {
     return new Promise((resolve) => {
       // Use crypto.randomUUID() for collision-free IDs, with a fallback if undefined
       const conflictId =
@@ -38,7 +38,7 @@ export const SyncConflictManager = {
           ? crypto.randomUUID()
           : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-      const resolveConflict = (resolved: any) => {
+      const resolveConflict = (resolved: $Any) => {
         activeConflicts = activeConflicts.filter((c) => c.id !== conflictId);
         listeners.forEach((l) => l([...activeConflicts]));
         resolve(resolved);

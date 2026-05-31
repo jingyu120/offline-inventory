@@ -53,7 +53,7 @@ export class AiQueueService implements OnModuleDestroy {
     }));
   }
 
-  async updateJobData(jobId: string, data: any) {
+  async updateJobData(jobId: string, data: $Any) {
     const job = await this.queue.getJob(jobId);
     if (!job) throw new Error(`Job ${jobId} not found`);
     await job.updateData(data);

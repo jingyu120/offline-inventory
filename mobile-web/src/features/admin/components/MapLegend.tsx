@@ -16,7 +16,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({ bottom = 12 }) => {
     <Box
       style={{
         position: 'absolute',
-        bottom: bottom as any,
+        bottom: bottom as $Any,
         left: 12,
         backgroundColor: theme.colors.cardBackground,
         padding: 10,

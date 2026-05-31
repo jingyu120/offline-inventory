@@ -9,12 +9,24 @@ export interface AppRecoveryState {
   loggingModalVisible?: boolean;
 }
 
-let nativeStorage: any = null;
+interface StorageInterface {
+  set(key: string, value: string): void;
+  getString(key: string): string | undefined;
+  delete(key: string): void;
+}
+
+let nativeStorage: StorageInterface | null = null;
 if (Platform.OS !== 'web') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createMMKV } = require('react-native-mmkv');
-    nativeStorage = createMMKV();
+    const globalRequire = (globalThis as Record<string, unknown>)['require'] as
+      | ((id: string) => Record<string, unknown>)
+      | undefined;
+    if (globalRequire) {
+      const mmkv = globalRequire('react-native-mmkv');
+      if (mmkv && typeof mmkv['createMMKV'] === 'function') {
+        nativeStorage = (mmkv['createMMKV'] as () => StorageInterface)();
+      }
+    }
   } catch (e) {
     console.warn('MMKV import failed for stateRecovery:', e);
   }

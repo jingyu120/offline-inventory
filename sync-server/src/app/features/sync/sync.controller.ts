@@ -33,14 +33,14 @@ import * as multer from 'multer';
 const configInstance = new AppConfig();
 
 const storage = multer.diskStorage({
-  destination: (req: any, file: any, cb: any) => {
+  destination: (req: $Any, file: $Any, cb: $Any) => {
     const uploadPath = join(process.cwd(), configInstance.uploadsDir);
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
     cb(null, uploadPath);
   },
-  filename: (req: any, file: any, cb: any) => {
+  filename: (req: $Any, file: $Any, cb: $Any) => {
     cb(
       null,
       `${configInstance.getUniqueSuffix()}${extname(file.originalname || '.jpg')}`,
@@ -73,6 +73,8 @@ export class SyncController {
     @Headers('x-idempotency-key') idempotencyKey: string | undefined,
     @Body(new ZodValidationPipe(PushChangesPayloadSchema))
     body: PushChangesBody & { device_id?: string; user_id?: string },
+    @Headers('x-actor-id') actorId?: string,
+    @Headers('x-trace-id') traceId?: string,
   ) {
     if (!body.changes) {
       return { success: false, error: 'No changes provided' };
@@ -90,7 +92,8 @@ export class SyncController {
     await this.syncService.pushChanges(
       body.changes,
       body.device_id,
-      body.user_id,
+      body.user_id || actorId,
+      traceId,
     );
 
     if (idempotencyKey) {
@@ -123,8 +126,8 @@ export class SyncController {
   @HttpCode(HttpStatus.ACCEPTED)
   @UseInterceptors(FileInterceptor('file', { storage }))
   async uploadFile(
-    @UploadedFile() file: any,
-    @Req() req: any,
+    @UploadedFile() file: $Any,
+    @Req() req: $Any,
     @Body('interactionLogId') interactionLogId?: string,
     @Body('competitorInsightId') competitorInsightId?: string,
   ) {
@@ -255,7 +258,7 @@ export class SyncController {
   @Post('viber-webhook')
   async viberWebhook(
     @Req() req: Request & { rawBody?: Buffer },
-    @Body() body: any,
+    @Body() body: $Any,
     @Headers('x-viber-content-signature') signature?: string,
   ) {
     const token = process.env.VIBER_BOT_TOKEN;
@@ -311,7 +314,7 @@ export class SyncController {
           }
           const ab = await fetchRes.arrayBuffer();
           buffer = Buffer.from(ab);
-        } catch (err: any) {
+        } catch (err: $Any) {
           throw new BadRequestException(
             `Failed to download media URL: ${err.message}`,
           );
@@ -325,7 +328,7 @@ export class SyncController {
           } else {
             buffer = Buffer.from(mediaStr, 'base64');
           }
-        } catch (err: any) {
+        } catch (err: $Any) {
           throw new BadRequestException(
             `Failed to decode base64 media: ${err.message}`,
           );

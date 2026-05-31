@@ -9,9 +9,11 @@ import {
 } from '../../../core/data/repositories';
 import { seedLocalDatabase } from '../../../core/data/mockSeeding';
 import { Shop, Contact } from '@burma-inventory/shared-types';
+import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 
 export const useShopsData = () => {
+  const { t } = useTranslation();
   const { activeRep } = useAuth();
   const [shops, setShops] = useState<ShopWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,13 +69,10 @@ export const useShopsData = () => {
       if (selectedShop) {
         await selectShop(selectedShop);
       }
-      Alert.alert(
-        'Data Seeded',
-        '8 rich demo shops with GPS, contacts, and interaction history created.',
-      );
+      Alert.alert(t('dataSeeded'), t('dataSeededDesc'));
     } catch (e) {
       console.error('Failed to seed database:', e);
-      Alert.alert('Seeding Error', 'Could not seed local database tables.');
+      Alert.alert(t('seedingError'), t('seedingErrorDesc'));
     }
   };
 

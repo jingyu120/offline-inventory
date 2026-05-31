@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { TextInput, TextInputProps, Platform } from 'react-native';
+import {
+  TextInput,
+  TextInputProps,
+  Platform,
+  StyleProp,
+  TextStyle,
+} from 'react-native';
 import { Box, Text } from './Primitives';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from './theme';
@@ -150,7 +156,7 @@ export function TextField({
                   shadowOpacity: isFocused ? 0.1 : 0,
                   shadowRadius: 2,
                 }),
-          } as any,
+          } as Record<string, unknown> as StyleProp<TextStyle>,
           style,
         ]}
         placeholderTextColor={theme.colors.secondaryText}
@@ -169,7 +175,7 @@ export function TextField({
           id: resolvedName,
           name: resolvedName,
           nativeID: resolvedName,
-        } as any)}
+        } as Record<string, unknown>)}
         {...rest}
       />
       {error && (

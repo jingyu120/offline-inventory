@@ -78,7 +78,7 @@ export const MapHeaderFloating: React.FC<MapHeaderFloatingProps> = ({
             color: filterVisible ? '#fff' : theme.colors.primaryText,
           }}
         >
-          {filterVisible ? '✕ Close' : '⚙️ Filter'}
+          {filterVisible ? `✕ ${t('close')}` : `⚙️ ${t('filter')}`}
         </Text>
       </TouchableOpacity>
     </Box>

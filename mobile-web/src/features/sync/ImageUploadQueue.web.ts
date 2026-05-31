@@ -188,8 +188,8 @@ export class ImageUploadQueue {
             {
               headers: {
                 'Content-Type': 'multipart/form-data',
-                'x-trace-id': (task as any).trace_id || '',
-                'x-actor-id': (task as any).actor_id || '',
+                'x-trace-id': (task as $Any).trace_id || '',
+                'x-actor-id': (task as $Any).actor_id || '',
               },
             },
           );

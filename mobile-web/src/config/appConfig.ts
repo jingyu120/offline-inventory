@@ -186,3 +186,79 @@ export const SCANNER_THROTTLE_CONFIG: ScannerThrottleConfig = {
 export const SYNC_CONFIG: SyncConfig = {
   dbChunkSize: 100,
 };
+
+// 7. Inventory and Viber simulator config
+export const LOW_STOCK_THRESHOLD = 50;
+export const STOCK_ADJUSTMENT_INCREMENT = 10;
+
+export const VIBER_BRAND_TOKENS = [
+  'shera',
+  'gator',
+  'karat',
+  'vrh',
+  'scg',
+  'knauf',
+];
+export const VIBER_SPEC_TOKENS = [
+  '6mm',
+  '8mm',
+  '9mm',
+  '1/2',
+  'cement',
+  'gypsum',
+  'pvc',
+];
+export const VIBER_SCORING_WEIGHTS = {
+  BRAND: 10,
+  SPEC: 5,
+  GENERIC: 1,
+};
+export const VIBER_KNOWN_UNITS = [
+  'pcs',
+  'pc',
+  'pk',
+  'bags',
+  'bag',
+  'pal',
+  'units',
+  'unit',
+];
+
+// 8. Representative configuration list and mappers
+export interface RepresentativeConfig {
+  id: string;
+  name: string;
+  territory: string;
+}
+
+export const REPRESENTATIVES: RepresentativeConfig[] = [
+  { id: 'rep-1', name: 'Ko Min', territory: 'Yangon' },
+  { id: 'rep-2', name: 'Ko Hla', territory: 'Mandalay/Shan' },
+];
+
+export const getRepresentativeName = (repId: string): string => {
+  const rep = REPRESENTATIVES.find((r) => r.id === repId);
+  return rep ? rep.name : repId;
+};
+
+export const getLogTypeLabel = (
+  logType: string,
+  t: (key: $Any) => string,
+): string => {
+  const config = INTERACTION_TYPES.find((it) => it.value === logType);
+  if (config) {
+    return config.labelKey === 'Viber' ? 'Viber' : t(config.labelKey);
+  }
+  return logType.replaceAll('_', ' ');
+};
+
+// 9. Unified Inventory Status configuration
+export const INVENTORY_STATUS = {
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  AVAILABLE: 'AVAILABLE',
+  COMMITTED: 'COMMITTED',
+  SOLD: 'SOLD',
+} as const;
+
+export type InventoryStatus =
+  (typeof INVENTORY_STATUS)[keyof typeof INVENTORY_STATUS];

@@ -80,7 +80,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
 
         setRegions(regs.map(mapRegion));
         setTownships(
-          ts.map((t: any) => ({
+          ts.map((t: $Any) => ({
             id: t.id,
             name: t.name,
             regionId: t.region_id,
@@ -89,7 +89,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
           })),
         );
         setWards(
-          ws.map((w: any) => ({
+          ws.map((w: $Any) => ({
             id: w.id,
             name: w.name,
             address: w.address,
@@ -251,9 +251,9 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
       );
       onRegister(newShopId);
       onClose();
-    } catch (e: any) {
+    } catch (e: $Any) {
       console.error('[RegisterShopModal] Failed to register client:', e);
-      Alert.alert(t('error'), 'Could not register client account.');
+      Alert.alert(t('error'), t('couldNotRegisterClient'));
     } finally {
       setLoading(false);
     }
@@ -295,7 +295,9 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 🏢 {t('registerClient')}
               </Text>
               <Text variant="caption" mt="xs">
-                Step {step} of 3
+                {t('stepOf')
+                  .replace('{step}', step.toString())
+                  .replace('{total}', '3')}
               </Text>
             </Box>
             <Box flexDirection="row" bg="borderColor" borderRadius="m" p="xs">
@@ -326,11 +328,11 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
             {step === 1 && (
               <Box mb="m">
                 <Text variant="body" fontWeight="bold" mb="m">
-                  Enter Client Profile & Contact Information:
+                  {t('enterClientProfileInfo')}
                 </Text>
                 <TextField
-                  label="Client Name / Shop Name"
-                  placeholder="e.g. Aung Wholesale Store"
+                  label={t('clientShopName')}
+                  placeholder={t('clientNamePlaceholder')}
                   value={name}
                   onChangeText={setName}
                 />
@@ -338,8 +340,8 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 <Box height={16} />
 
                 <TextField
-                  label="Contact Person Name"
-                  placeholder="e.g. U Hla"
+                  label={t('contactPersonName')}
+                  placeholder={t('contactNamePlaceholder')}
                   value={contactName}
                   onChangeText={setContactName}
                 />
@@ -347,8 +349,8 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 <Box height={16} />
 
                 <TextField
-                  label="Contact Phone Number"
-                  placeholder="e.g. +95998765432"
+                  label={t('contactPhoneNumber')}
+                  placeholder={t('phonePlaceholder')}
                   value={contactPhone}
                   onChangeText={setContactPhone}
                 />
@@ -356,8 +358,8 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 <Box height={16} />
 
                 <TextField
-                  label="Contact Email Address (Optional)"
-                  placeholder="e.g. contact@aungstore.com"
+                  label={t('emailOptional')}
+                  placeholder={t('emailPlaceholder')}
                   value={contactEmail}
                   onChangeText={setContactEmail}
                 />
@@ -367,7 +369,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
             {step === 2 && (
               <Box mb="m">
                 <Text variant="body" fontWeight="bold" mb="m">
-                  Configure Territory & Address Details:
+                  {t('configureTerritoryDetails')}
                 </Text>
 
                 <DropdownSelector
@@ -403,8 +405,8 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 <Box height={16} />
 
                 <TextField
-                  label="Street / Building Address Details"
-                  placeholder="e.g. No. 123, Bogyoke Road, Room 4"
+                  label={t('streetAddressDetails')}
+                  placeholder={t('streetAddressPlaceholder')}
                   value={streetAddress}
                   onChangeText={setStreetAddress}
                   editable={!!selectedWardId}
@@ -420,10 +422,10 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                   borderColor="borderColor"
                 >
                   <Text variant="caption" color="secondaryText">
-                    Address Preview:
+                    {t('addressPreview')}
                   </Text>
                   <Text variant="body" fontWeight="bold" color="brand" mt="xs">
-                    📍 {autoGeneratedAddress || 'Select territory above...'}
+                    📍 {autoGeneratedAddress || t('selectTerritoryAbove')}
                   </Text>
                 </Box>
               </Box>
@@ -439,11 +441,11 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 borderColor="borderColor"
               >
                 <Text variant="body" fontWeight="bold" mb="m">
-                  Review & Confirm Details:
+                  {t('reviewConfirmDetails')}
                 </Text>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Client Name
+                    {t('clientName')}
                   </Text>
                   <Text variant="body" fontWeight="bold" mt="xs">
                     {name}
@@ -451,7 +453,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Primary Contact
+                    {t('primaryContact')}
                   </Text>
                   <Text variant="body" mt="xs">
                     {contactName} ({contactPhone})
@@ -464,7 +466,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Assigned Region
+                    {t('assignedRegion')}
                   </Text>
                   <Text variant="body" mt="xs">
                     {currentRegion?.name}
@@ -472,7 +474,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Township
+                    {t('township')}
                   </Text>
                   <Text variant="body" mt="xs">
                     {currentTownship?.name}
@@ -480,7 +482,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Ward / Village Tract
+                    {t('ward')}
                   </Text>
                   <Text variant="body" mt="xs">
                     {currentWard?.name}
@@ -488,7 +490,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    Full Registered Address
+                    {t('fullRegisteredAddress')}
                   </Text>
                   <Text variant="body" fontWeight="bold" color="brand" mt="xs">
                     📍 {autoGeneratedAddress}
@@ -496,7 +498,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box mb="s">
                   <Text variant="caption" color="secondaryText">
-                    GPS Coordinates (Derived)
+                    {t('gpsCoordinatesDerived')}
                   </Text>
                   <Text variant="body" mt="xs">
                     {latitude || '16.7794'}, {longitude || '96.1518'}
@@ -504,7 +506,7 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                 </Box>
                 <Box>
                   <Text variant="caption" color="secondaryText">
-                    Default Price Book Tier
+                    {t('defaultPriceBookTier')}
                   </Text>
                   <Text
                     variant="body"
@@ -512,8 +514,8 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
                     style={{ textTransform: 'capitalize' }}
                   >
                     {selectedRegionId === 'region-yangon'
-                      ? 'Yangon Retail Book (pb-yangon)'
-                      : 'Mandalay Wholesale Book (pb-mandalay)'}
+                      ? t('yangonRetailBook')
+                      : t('mandalayWholesaleBook')}
                   </Text>
                 </Box>
               </Box>
@@ -534,10 +536,14 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
               onPress={step === 1 ? onClose : handleBack}
             />
             {step < 3 ? (
-              <Button title="Next" variant="primary" onPress={handleNext} />
+              <Button
+                title={t('nextBtn')}
+                variant="primary"
+                onPress={handleNext}
+              />
             ) : (
               <Button
-                title="Register"
+                title={t('registerBtn')}
                 variant="primary"
                 onPress={handleRegister}
                 isLoading={loading}

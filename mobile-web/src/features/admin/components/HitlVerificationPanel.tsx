@@ -29,24 +29,26 @@ import {
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react-native';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 interface HitlVerificationPanelProps {
-  shops: any[];
+  shops: $Any[];
 }
 
 export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
   shops,
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<$Any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [allItems, setAllItems] = useState<any[]>([]);
+  const [allItems, setAllItems] = useState<$Any[]>([]);
 
   // Selection state
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [selectedLog, setSelectedLog] = useState<$Any | null>(null);
 
   // Form states for selected log resolution
   const [shopId, setShopId] = useState('');
@@ -89,13 +91,13 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
     loadItems();
   }, []);
 
-  const handleSelectLog = (log: any) => {
+  const handleSelectLog = (log: $Any) => {
     setSelectedLog(log);
     setShopId(log.shop_id || '');
     setNotes(log.notes || '');
 
     // Map existing items
-    const mapped = (log.items || []).map((ii: any) => ({
+    const mapped = (log.items || []).map((ii: $Any) => ({
       itemId: ii.item_id,
       quantity: ii.quantity || 1,
       unitPrice: ii.unit_price_at_sale || ii.unit_price || 0,
@@ -123,7 +125,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
     setItems(items.filter((_, idx) => idx !== index));
   };
 
-  const handleItemChange = (index: number, key: string, val: any) => {
+  const handleItemChange = (index: number, key: string, val: $Any) => {
     const updated = [...items];
     const item = { ...updated[index], [key]: val };
 
@@ -142,7 +144,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
   const handleSubmitResolution = async () => {
     if (!selectedLog) return;
     if (!shopId) {
-      alert('Please select a shop account.');
+      alert(t('selectShopAccountAlert'));
       return;
     }
 
@@ -156,9 +158,9 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
       });
       setSelectedLog(null);
       await fetchLogs();
-    } catch (e: any) {
+    } catch (e: $Any) {
       console.error('[HITL] Failed to resolve log:', e);
-      alert(`Error resolving mismatch: ${e.message || e}`);
+      alert(t('errorResolvingMismatch', { error: e.message || e }));
     } finally {
       setSubmitting(false);
     }
@@ -175,16 +177,16 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
   }));
 
   const unitOptions = [
-    { label: 'PCS', value: 'PCS' },
-    { label: 'BOX', value: 'BOX' },
-    { label: 'PACK', value: 'PACK' },
-    { label: 'ROLL', value: 'ROLL' },
+    { label: t('unitPcs'), value: 'PCS' },
+    { label: t('unitBox'), value: 'BOX' },
+    { label: t('unitPack'), value: 'PACK' },
+    { label: t('unitRoll'), value: 'ROLL' },
   ];
 
   const conditionOptions = [
-    { label: 'GOOD', value: 'GOOD' },
-    { label: 'DAMAGED', value: 'DAMAGED' },
-    { label: 'EXPIRED', value: 'EXPIRED' },
+    { label: t('conditionGood'), value: 'GOOD' },
+    { label: t('conditionDamaged'), value: 'DAMAGED' },
+    { label: t('conditionExpired'), value: 'EXPIRED' },
   ];
 
   if (selectedLog) {
@@ -198,9 +200,9 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
           alignItems="center"
           mb="m"
         >
-          <Text variant="title">Resolve Document Verification Mismatch</Text>
+          <Text variant="title">{t('resolveDocMismatch')}</Text>
           <Button
-            title="Back to List"
+            title={t('backToList')}
             onPress={() => setSelectedLog(null)}
             variant="outline"
             size="small"
@@ -226,7 +228,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
               mb="s"
             >
               <Text variant="body" fontWeight="bold">
-                Original Viber Document Screenshot
+                {t('viberDocScreenshot')}
               </Text>
               <TouchableOpacity onPress={() => Linking.openURL(imageUrl)}>
                 <Box flexDirection="row" alignItems="center" gap="xs">
@@ -235,7 +237,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                     color="brand"
                     style={{ fontSize: 13 }}
                   >
-                    Open Full Resolution
+                    {t('openFullResolution')}
                   </Text>
                   <ExternalLink size={14} color={theme.colors.brand} />
                 </Box>
@@ -263,8 +265,10 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
 
             <Box mt="s">
               <Text variant="bodySecondary">
-                Log ID: {selectedLog.id} | Timestamp:{' '}
-                {new Date(selectedLog.created_at).toLocaleString()}
+                {t('logIdTimestamp', {
+                  id: selectedLog.id,
+                  date: new Date(selectedLog.created_at).toLocaleString(),
+                })}
               </Text>
             </Box>
           </Box>
@@ -279,27 +283,27 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
             borderColor="borderColor"
           >
             <Text variant="body" fontWeight="bold" mb="m" color="brand">
-              Editable Order Parameters
+              {t('editableOrderParams')}
             </Text>
 
             <Box mb="m">
               <DropdownSelector
-                label="Assigned Shop Account"
+                label={t('assignedShopAccount')}
                 selectedValue={shopId}
                 onValueChange={(val) => setShopId(val)}
                 options={shopOptions}
-                placeholder="Choose Shop Account..."
+                placeholder={t('chooseShopAccount')}
               />
             </Box>
 
             <Box mb="m">
               <Text variant="body" fontWeight="bold" mb="xs">
-                Operator Review Notes
+                {t('operatorReviewNotes')}
               </Text>
               <ThemedTextInput
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Enter corrections, reasons, or verification notes..."
+                placeholder={t('enterCorrectionsPlaceholder')}
                 multiline
                 numberOfLines={3}
                 minHeight={80}
@@ -323,7 +327,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                 mb="s"
               >
                 <Text variant="body" fontWeight="bold">
-                  Order Line Items
+                  {t('orderLineItems')}
                 </Text>
                 <TouchableOpacity onPress={handleAddItem}>
                   <Box
@@ -342,7 +346,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                       color="pureWhite"
                       style={{ fontSize: 13 }}
                     >
-                      Add Item
+                      {t('addItem')}
                     </Text>
                   </Box>
                 </TouchableOpacity>
@@ -357,9 +361,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                   borderRadius="s"
                   alignItems="center"
                 >
-                  <Text variant="bodySecondary">
-                    No items parsed. Click "Add Item" to add items manually.
-                  </Text>
+                  <Text variant="bodySecondary">{t('noItemsParsed')}</Text>
                 </Box>
               ) : (
                 <ScrollView style={{ maxHeight: 300 }}>
@@ -379,7 +381,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                           mb="s"
                         >
                           <Text variant="body" fontWeight="bold">
-                            Item #{idx + 1}
+                            {t('itemNum', { num: idx + 1 })}
                           </Text>
                           <TouchableOpacity
                             onPress={() => handleRemoveItem(idx)}
@@ -390,13 +392,13 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
 
                         <Box mb="s">
                           <DropdownSelector
-                            label="Select Item"
+                            label={t('selectItem')}
                             selectedValue={item.itemId}
                             onValueChange={(val) =>
                               handleItemChange(idx, 'itemId', val)
                             }
                             options={itemOptions}
-                            placeholder="Choose catalog item..."
+                            placeholder={t('chooseCatalogItem')}
                           />
                         </Box>
 
@@ -407,7 +409,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                               mb="xs"
                               style={{ fontSize: 12 }}
                             >
-                              Quantity
+                              {t('quantity')}
                             </Text>
                             <ThemedTextInput
                               keyboardType="numeric"
@@ -434,7 +436,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                               mb="xs"
                               style={{ fontSize: 12 }}
                             >
-                              Unit Price (MMK)
+                              {t('unitPriceMmk')}
                             </Text>
                             <ThemedTextInput
                               keyboardType="numeric"
@@ -457,25 +459,25 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
 
                           <Box flex={1}>
                             <DropdownSelector
-                              label="Unit"
+                              label={t('unit')}
                               selectedValue={item.selectedUnit}
                               onValueChange={(val) =>
                                 handleItemChange(idx, 'selectedUnit', val)
                               }
                               options={unitOptions}
-                              placeholder="Unit"
+                              placeholder={t('unit')}
                             />
                           </Box>
 
                           <Box flex={1.2}>
                             <DropdownSelector
-                              label="Condition"
+                              label={t('condition')}
                               selectedValue={item.stockCondition}
                               onValueChange={(val) =>
                                 handleItemChange(idx, 'stockCondition', val)
                               }
                               options={conditionOptions}
-                              placeholder="Condition"
+                              placeholder={t('condition')}
                             />
                           </Box>
                         </Box>
@@ -491,8 +493,8 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                 <Button
                   title={
                     submitting
-                      ? 'Applying Resolution...'
-                      : 'Approve & Save Resolution'
+                      ? t('applyingResolution')
+                      : t('approveSaveResolution')
                   }
                   onPress={handleSubmitResolution}
                   variant="primary"
@@ -501,7 +503,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
               </Box>
               <Box flex={0.4}>
                 <Button
-                  title="Cancel"
+                  title={t('cancel')}
                   onPress={() => setSelectedLog(null)}
                   variant="outline"
                   disabled={submitting}
@@ -524,14 +526,11 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
           mb="m"
         >
           <Box flex={1} mr="s">
-            <Text variant="title">Human-in-the-Loop Resolutions</Text>
-            <Text variant="bodySecondary">
-              Manage and resolve Viber message order OCR ingestion mismatches
-              manually.
-            </Text>
+            <Text variant="title">{t('hitlTitle')}</Text>
+            <Text variant="bodySecondary">{t('hitlDesc')}</Text>
           </Box>
           <Button
-            title={loading ? 'Refreshing...' : 'Refresh'}
+            title={loading ? t('refreshing') : t('refresh')}
             onPress={fetchLogs}
             variant="outline"
             size="small"
@@ -560,11 +559,9 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
               <Check size={32} color={theme.colors.successText} />
             </Box>
             <Text variant="body" fontWeight="bold" color="successText" mb="xs">
-              All Caught Up!
+              {t('allCaughtUp')}
             </Text>
-            <Text variant="bodySecondary">
-              No unresolved image mismatch logs require attention right now.
-            </Text>
+            <Text variant="bodySecondary">{t('noUnresolvedMismatch')}</Text>
           </Box>
         ) : (
           <ScrollView style={{ maxHeight: 600 }}>
@@ -608,7 +605,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                           color="errorText"
                           style={{ fontSize: 11 }}
                         >
-                          MISMATCH
+                          {t('mismatch')}
                         </Text>
                       </Box>
                       <Text variant="body" fontWeight="bold">
@@ -616,17 +613,20 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                       </Text>
                     </Box>
                     <Text variant="bodySecondary" mb="s">
-                      Notes: {log.notes || 'None'}
+                      {t('notes')}: {log.notes || t('none')}
                     </Text>
                     <Text variant="bodySecondary" style={{ fontSize: 12 }}>
-                      Log ID: {log.id} | Items Count: {log.items?.length || 0} |
-                      Created: {new Date(log.created_at).toLocaleString()}
+                      {t('logIdItemsCreated', {
+                        id: log.id,
+                        count: log.items?.length || 0,
+                        date: new Date(log.created_at).toLocaleString(),
+                      })}
                     </Text>
                   </Box>
 
                   <Box alignSelf={isDesktop ? 'center' : 'flex-end'}>
                     <Button
-                      title="Inspect & Resolve"
+                      title={t('inspectResolve')}
                       onPress={() => handleSelectLog(log)}
                       variant="primary"
                       size="small"

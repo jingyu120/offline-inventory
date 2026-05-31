@@ -12,9 +12,9 @@ import { eq } from 'drizzle-orm';
 
 interface PredictionAnalyticsCardProps {
   shop: Shop;
-  predictionLog: any;
-  recommendedOrder: any;
-  recommendedItem: any;
+  predictionLog: $Any;
+  recommendedOrder: $Any;
+  recommendedItem: $Any;
   onLogInteraction?: (shop: Shop) => void;
   historicalNotes?: string[];
 }
@@ -41,13 +41,13 @@ export const PredictionAnalyticsCard: React.FC<
   const [loadingSentiment, setLoadingSentiment] = React.useState(false);
 
   const [modalVisible, setModalVisible] = React.useState(false);
-  const [projectsList, setProjectsList] = React.useState<any[]>([]);
+  const [projectsList, setProjectsList] = React.useState<$Any[]>([]);
 
   const loadProjects = React.useCallback(async () => {
     try {
       const allProjects = await database.select().from(sqliteSchema.projects);
       const filtered = allProjects.filter(
-        (p: any) => p.name === 'Galaxy Tower-3' || p.name === 'Zaw Residence',
+        (p: $Any) => p.name === 'Galaxy Tower-3' || p.name === 'Zaw Residence',
       );
       setProjectsList(filtered);
     } catch (e) {

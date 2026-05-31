@@ -25,15 +25,19 @@ import {
   CheckCircle,
   Terminal,
 } from 'lucide-react-native';
+import { useTranslation } from '../../../core/i18n/i18n';
+
+const PLATFORM_IOS = 'ios';
 
 export const DlqDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<$Any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [selectedJob, setSelectedJob] = useState<$Any | null>(null);
 
   // JSON Editor state
   const [payloadText, setPayloadText] = useState('');
@@ -58,7 +62,7 @@ export const DlqDashboard: React.FC = () => {
     fetchJobs();
   }, []);
 
-  const handleSelectJob = (job: any) => {
+  const handleSelectJob = (job: $Any) => {
     setSelectedJob(job);
     setPayloadText(JSON.stringify(job.data, null, 2));
     setJsonError(null);
@@ -70,7 +74,7 @@ export const DlqDashboard: React.FC = () => {
     try {
       JSON.parse(text);
       setJsonError(null);
-    } catch (e: any) {
+    } catch (e: $Any) {
       setJsonError(`Invalid JSON: ${e.message}`);
     }
   };
@@ -78,7 +82,7 @@ export const DlqDashboard: React.FC = () => {
   const handleUpdateJobData = async () => {
     if (!selectedJob) return;
     if (jsonError) {
-      alert('Please fix the JSON errors before updating.');
+      alert(t('fixJsonErrors'));
       return;
     }
 
@@ -100,11 +104,11 @@ export const DlqDashboard: React.FC = () => {
       setJobs(updatedJobs);
       setSelectedJob({ ...selectedJob, data: parsedData });
 
-      setSuccessMessage('Job payload updated successfully!');
+      setSuccessMessage(t('jobPayloadUpdated'));
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e: any) {
+    } catch (e: $Any) {
       console.error('[DLQ] Failed to update job data:', e);
-      alert(`Failed to update job: ${e.message || e}`);
+      alert(t('failedUpdateJob', { error: e.message || e }));
     } finally {
       setActionLoading(false);
     }
@@ -116,30 +120,29 @@ export const DlqDashboard: React.FC = () => {
       await trpcClient.retryJob.mutate({ jobId });
       setSelectedJob(null);
       await fetchJobs();
-      setSuccessMessage('Job successfully re-queued for execution!');
+      setSuccessMessage(t('jobRequeuedSuccess'));
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e: any) {
+    } catch (e: $Any) {
       console.error('[DLQ] Failed to retry job:', e);
-      alert(`Failed to retry job: ${e.message || e}`);
+      alert(t('failedRetryJob', { error: e.message || e }));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleRemoveJob = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this job from the queue?'))
-      return;
+    if (!confirm(t('deleteJobConfirm'))) return;
 
     setActionLoading(true);
     try {
       await trpcClient.removeJob.mutate({ jobId });
       setSelectedJob(null);
       await fetchJobs();
-      setSuccessMessage('Job removed from the queue.');
+      setSuccessMessage(t('jobDeletedSuccess'));
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (e: any) {
+    } catch (e: $Any) {
       console.error('[DLQ] Failed to remove job:', e);
-      alert(`Failed to delete job: ${e.message || e}`);
+      alert(t('failedDeleteJob', { error: e.message || e }));
     } finally {
       setActionLoading(false);
     }
@@ -155,14 +158,11 @@ export const DlqDashboard: React.FC = () => {
           mb="m"
         >
           <Box flex={1} mr="s">
-            <Text variant="title">Dead Letter Queue (DLQ) Manager</Text>
-            <Text variant="bodySecondary">
-              Monitor, debug, edit, and retry failed background asynchronous
-              task queue jobs.
-            </Text>
+            <Text variant="title">{t('dlqTitle')}</Text>
+            <Text variant="bodySecondary">{t('dlqDesc')}</Text>
           </Box>
           <Button
-            title={loading ? 'Refreshing...' : 'Refresh'}
+            title={loading ? t('refreshing') : t('refresh')}
             onPress={fetchJobs}
             variant="outline"
             size="small"
@@ -197,11 +197,13 @@ export const DlqDashboard: React.FC = () => {
             >
               <Box>
                 <Text variant="body" fontWeight="bold">
-                  Job ID: {selectedJob.id}
+                  {t('jobId', { id: selectedJob.id })}
                 </Text>
                 <Text variant="bodySecondary">
-                  Name: {selectedJob.name} | Failed:{' '}
-                  {new Date(selectedJob.timestamp).toLocaleString()}
+                  {t('jobNameFailed', {
+                    name: selectedJob.name,
+                    date: new Date(selectedJob.timestamp).toLocaleString(),
+                  })}
                 </Text>
               </Box>
               <TouchableOpacity onPress={() => setSelectedJob(null)}>
@@ -228,7 +230,7 @@ export const DlqDashboard: React.FC = () => {
                       fontWeight: 'bold',
                     }}
                   >
-                    Trace Output
+                    {t('traceOutput')}
                   </Text>
                 </Box>
 
@@ -241,7 +243,7 @@ export const DlqDashboard: React.FC = () => {
                     marginBottom: 12,
                   }}
                 >
-                  Reason: {selectedJob.failedReason}
+                  {t('reason', { reason: selectedJob.failedReason })}
                 </Text>
 
                 <ScrollView style={{ flex: 1, maxHeight: 300 }}>
@@ -257,7 +259,7 @@ export const DlqDashboard: React.FC = () => {
                     {Array.isArray(selectedJob.stacktrace) &&
                     selectedJob.stacktrace.length > 0
                       ? selectedJob.stacktrace.join('\n')
-                      : selectedJob.stacktrace || 'No stack trace available.'}
+                      : selectedJob.stacktrace || t('noStacktrace')}
                   </Text>
                 </ScrollView>
               </Box>
@@ -278,7 +280,7 @@ export const DlqDashboard: React.FC = () => {
                   mb="s"
                 >
                   <Text variant="body" fontWeight="bold">
-                    Payload Parameters (JSON)
+                    {t('payloadParamsJson')}
                   </Text>
                   {jsonError && (
                     <Text
@@ -302,7 +304,8 @@ export const DlqDashboard: React.FC = () => {
                   bg="cardBackground"
                   minHeight={250}
                   style={{
-                    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                    fontFamily:
+                      Platform.OS === PLATFORM_IOS ? 'Courier' : 'monospace',
                     fontSize: 12,
                     textAlignVertical: 'top',
                     color: theme.colors.primaryText,
@@ -312,7 +315,7 @@ export const DlqDashboard: React.FC = () => {
                 <Box mt="m" flexDirection="row" gap="s">
                   <Box flex={1}>
                     <Button
-                      title="Update Payload"
+                      title={t('updatePayload')}
                       onPress={handleUpdateJobData}
                       variant="outline"
                       disabled={actionLoading || !!jsonError}
@@ -321,7 +324,7 @@ export const DlqDashboard: React.FC = () => {
                   </Box>
                   <Box flex={1}>
                     <Button
-                      title="Retry Job Now"
+                      title={t('retryJobNow')}
                       onPress={() => handleRetryJob(selectedJob.id)}
                       variant="primary"
                       disabled={actionLoading}
@@ -330,7 +333,7 @@ export const DlqDashboard: React.FC = () => {
                   </Box>
                   <Box flex={0.8}>
                     <Button
-                      title="Delete Job"
+                      title={t('deleteJob')}
                       onPress={() => handleRemoveJob(selectedJob.id)}
                       variant="outline"
                       disabled={actionLoading}
@@ -369,11 +372,9 @@ export const DlqDashboard: React.FC = () => {
                   mt="s"
                   mb="xs"
                 >
-                  Queue is Healthy!
+                  {t('queueHealthy')}
                 </Text>
-                <Text variant="bodySecondary">
-                  No failed background jobs found in the DLQ.
-                </Text>
+                <Text variant="bodySecondary">{t('noFailedJobs')}</Text>
               </Box>
             ) : (
               <ScrollView style={{ maxHeight: 600 }}>
@@ -417,7 +418,7 @@ export const DlqDashboard: React.FC = () => {
                               color="errorText"
                               style={{ fontSize: 11 }}
                             >
-                              FAILED
+                              {t('failed')}
                             </Text>
                           </Box>
                           <Text variant="body" fontWeight="bold">
@@ -432,11 +433,13 @@ export const DlqDashboard: React.FC = () => {
                             marginBottom: 4,
                           }}
                         >
-                          Reason: {job.failedReason}
+                          {t('reason', { reason: job.failedReason })}
                         </Text>
                         <Text variant="bodySecondary" style={{ fontSize: 12 }}>
-                          Job ID: {job.id} | Failed at:{' '}
-                          {new Date(job.timestamp).toLocaleString()}
+                          {t('jobIdFailedAt', {
+                            id: job.id,
+                            date: new Date(job.timestamp).toLocaleString(),
+                          })}
                         </Text>
                       </Box>
 
@@ -446,13 +449,13 @@ export const DlqDashboard: React.FC = () => {
                         alignSelf={isDesktop ? 'center' : 'flex-end'}
                       >
                         <Button
-                          title="Inspect & Edit"
+                          title={t('inspectEdit')}
                           onPress={() => handleSelectJob(job)}
                           variant="primary"
                           size="small"
                         />
                         <Button
-                          title="Retry"
+                          title={t('retry')}
                           onPress={() => handleRetryJob(job.id)}
                           variant="outline"
                           size="small"

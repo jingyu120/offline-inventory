@@ -1,0 +1,280 @@
+Scanning 55 files for hardcoded strings...
+
+❌ File: mobile-web/src/features/admin/components/DlqDashboard.tsx
+  Line 158:35 - Hardcoded JSX text: "Dead Letter Queue (DLQ) Manager"
+  Line 160:15 - Hardcoded JSX text: "Monitor, debug, edit, and retry failed background asynchronous
+              task queue jobs."
+  Line 165:30 - Hardcoded string literal in JSX attribute "title": "Refreshing..."
+  Line 165:48 - Hardcoded string literal in JSX attribute "title": "Refresh"
+  Line 200:19 - Hardcoded JSX text: "Job ID:"
+  Line 203:19 - Hardcoded JSX text: "Name:"
+  Line 203:44 - Hardcoded JSX text: "| Failed:"
+  Line 231:21 - Hardcoded JSX text: "Trace Output"
+  Line 244:19 - Hardcoded JSX text: "Reason:"
+  Line 260:51 - Hardcoded string literal in JSX Expression child: "No stack trace available."
+  Line 281:21 - Hardcoded JSX text: "Payload Parameters (JSON)"
+  Line 315:29 - Hardcoded string literal in JSX attribute "title": "Update Payload"
+  Line 324:29 - Hardcoded string literal in JSX attribute "title": "Retry Job Now"
+  Line 333:29 - Hardcoded string literal in JSX attribute "title": "Delete Job"
+  Line 372:19 - Hardcoded JSX text: "Queue is Healthy!"
+  Line 375:19 - Hardcoded JSX text: "No failed background jobs found in the DLQ."
+  Line 420:31 - Hardcoded JSX text: "FAILED"
+  Line 435:27 - Hardcoded JSX text: "Reason:"
+  Line 438:27 - Hardcoded JSX text: "Job ID:"
+  Line 438:44 - Hardcoded JSX text: "| Failed at:"
+  Line 449:33 - Hardcoded string literal in JSX attribute "title": "Inspect & Edit"
+  Line 455:33 - Hardcoded string literal in JSX attribute "title": "Retry"
+
+❌ File: mobile-web/src/features/admin/components/HitlVerificationPanel.tsx
+  Line 201:33 - Hardcoded JSX text: "Resolve Document Verification Mismatch"
+  Line 203:19 - Hardcoded string literal in JSX attribute "title": "Back to List"
+  Line 229:17 - Hardcoded JSX text: "Original Viber Document Screenshot"
+  Line 238:21 - Hardcoded JSX text: "Open Full Resolution"
+  Line 266:17 - Hardcoded JSX text: "Log ID:"
+  Line 266:42 - Hardcoded JSX text: "| Timestamp:"
+  Line 282:15 - Hardcoded JSX text: "Editable Order Parameters"
+  Line 287:23 - Hardcoded string literal in JSX attribute "label": "Assigned Shop Account"
+  Line 291:29 - Hardcoded string literal in JSX attribute "placeholder": "Choose Shop Account..."
+  Line 297:17 - Hardcoded JSX text: "Operator Review Notes"
+  Line 302:29 - Hardcoded string literal in JSX attribute "placeholder": "Enter corrections, reasons, or verification notes..."
+  Line 326:19 - Hardcoded JSX text: "Order Line Items"
+  Line 345:23 - Hardcoded JSX text: "Add Item"
+  Line 361:21 - Hardcoded JSX text: "No items parsed. Click "Add Item" to add items manually."
+  Line 382:29 - Hardcoded JSX text: "Item #"
+  Line 393:35 - Hardcoded string literal in JSX attribute "label": "Select Item"
+  Line 399:41 - Hardcoded string literal in JSX attribute "placeholder": "Choose catalog item..."
+  Line 410:31 - Hardcoded JSX text: "Quantity"
+  Line 437:31 - Hardcoded JSX text: "Unit Price (MMK)"
+  Line 460:37 - Hardcoded string literal in JSX attribute "label": "Unit"
+  Line 466:43 - Hardcoded string literal in JSX attribute "placeholder": "Unit"
+  Line 472:37 - Hardcoded string literal in JSX attribute "label": "Condition"
+  Line 478:43 - Hardcoded string literal in JSX attribute "placeholder": "Condition"
+  Line 494:25 - Hardcoded string literal in JSX attribute "title": "Applying Resolution..."
+  Line 495:25 - Hardcoded string literal in JSX attribute "title": "Approve & Save Resolution"
+  Line 504:25 - Hardcoded string literal in JSX attribute "title": "Cancel"
+  Line 527:35 - Hardcoded JSX text: "Human-in-the-Loop Resolutions"
+  Line 529:15 - Hardcoded JSX text: "Manage and resolve Viber message order OCR ingestion mismatches
+              manually."
+  Line 534:30 - Hardcoded string literal in JSX attribute "title": "Refreshing..."
+  Line 534:48 - Hardcoded string literal in JSX attribute "title": "Refresh"
+  Line 563:15 - Hardcoded JSX text: "All Caught Up!"
+  Line 566:15 - Hardcoded JSX text: "No unresolved image mismatch logs require attention right now."
+  Line 611:27 - Hardcoded JSX text: "MISMATCH"
+  Line 619:23 - Hardcoded JSX text: "Notes:"
+  Line 619:44 - Hardcoded string literal in JSX Expression child: "None"
+  Line 622:23 - Hardcoded JSX text: "Log ID:"
+  Line 622:40 - Hardcoded JSX text: "| Items Count:"
+  Line 622:80 - Hardcoded JSX text: "|
+                      Created:"
+  Line 629:29 - Hardcoded string literal in JSX attribute "title": "Inspect & Resolve"
+
+❌ File: mobile-web/src/features/admin/components/MapDetailPane.tsx
+  Line 186:50 - Hardcoded string literal in JSX Expression child: "Value"
+  Line 186:58 - Hardcoded JSX text: ": K"
+  Line 244:15 - Hardcoded JSX text: "K"
+
+❌ File: mobile-web/src/features/admin/components/MapFilterPanel.tsx
+  Line 173:38 - Hardcoded string literal in JSX Expression child: "Route Line"
+  Line 177:45 - Hardcoded string literal in JSX Expression child: "Select a region first"
+  Line 178:45 - Hardcoded string literal in JSX Expression child: "Optimal visit order"
+  Line 191:26 - Hardcoded string literal in JSX Expression child: "web"
+
+❌ File: mobile-web/src/features/admin/components/MapHeaderFloating.tsx
+  Line 81:28 - Hardcoded string literal in JSX Expression child: "✕ Close"
+  Line 81:40 - Hardcoded string literal in JSX Expression child: "⚙️ Filter"
+
+❌ File: mobile-web/src/features/admin/components/PendingIntakeApproval.tsx
+  Line 104:9 - Hardcoded string literal in Alert argument: "Authorized"
+  Line 105:9 - Hardcoded template string head in Alert argument: "Successfully authorized SKU "
+  Line 105:48 - Hardcoded template string span in Alert argument: " into available stock."
+  Line 110:19 - Hardcoded string literal in Alert argument: "Error"
+  Line 110:28 - Hardcoded string literal in Alert argument: "Failed to authorize intake update."
+  Line 128:19 - Hardcoded string literal in Alert argument: "Rejected"
+  Line 128:31 - Hardcoded string literal in Alert argument: "Quarantined intake rejected and removed."
+  Line 156:11 - Hardcoded JSX text: "Pending Stock & SKU Authorizations"
+  Line 169:13 - Hardcoded JSX text: "No pending stock intake approvals in queue."
+  Line 203:27 - Hardcoded JSX text: "QUARANTINED"
+  Line 211:23 - Hardcoded JSX text: "SKU:"
+  Line 211:39 - Hardcoded JSX text: "| Category:"
+  Line 218:23 - Hardcoded JSX text: "Intake Quantity:"
+  Line 220:41 - Hardcoded JSX text: "PCS"
+  Line 228:23 - Hardcoded JSX text: "Logged on:"
+
+❌ File: mobile-web/src/features/admin/components/PendingSalesApproval.tsx
+  Line 122:19 - Hardcoded string literal in Alert argument: "Approved"
+  Line 122:31 - Hardcoded string literal in Alert argument: "Sale order approved successfully."
+  Line 126:19 - Hardcoded string literal in Alert argument: "Error"
+  Line 126:28 - Hardcoded string literal in Alert argument: "Failed to approve order."
+  Line 144:19 - Hardcoded string literal in Alert argument: "Rejected"
+  Line 144:31 - Hardcoded string literal in Alert argument: "Sale order rejected and marked as cancelled."
+  Line 172:11 - Hardcoded JSX text: "Pending Sales & Margin Approvals"
+  Line 185:13 - Hardcoded JSX text: "No pending sales order approvals in queue."
+  Line 249:23 - Hardcoded JSX text: "Warning: Margin Override Detected (Sale Price &lt;
+                      Wholesale Min)"
+  Line 278:27 - Hardcoded JSX text: "Qty:"
+  Line 289:29 - Hardcoded JSX text: "Wholesale price is"
+  Line 316:23 - Hardcoded JSX text: "Total Amount"
+  Line 324:71 - Hardcoded JSX text: "MMK"
+  Line 341:23 - Hardcoded JSX text: "Rep:"
+  Line 368:25 - Hardcoded JSX text: "Reject"
+  Line 393:25 - Hardcoded JSX text: "Approve"
+
+❌ File: mobile-web/src/features/admin/components/SyncLogsTable.tsx
+  Line 38:54 - Hardcoded string literal in JSX Expression child: "System/Odoo"
+  Line 143:56 - Hardcoded string literal in JSX Expression child: "System"
+  Line 147:41 - Hardcoded template string span in JSX Expression child: " updates"
+  Line 148:21 - Hardcoded string literal in JSX Expression child: "no updates"
+  Line 209:32 - Hardcoded string literal in JSX Expression child: "Loading..."
+  Line 209:47 - Hardcoded string literal in JSX Expression child: "Load More"
+
+❌ File: mobile-web/src/features/admin/hooks/useTeamPulseData.ts
+  Line 254:9 - Hardcoded string literal in Alert argument: "Quota Optimizations Applied"
+  Line 255:9 - Hardcoded string literal in Alert argument: "Gemma 4 suggested regional quotas have been written to local database and will propagate on sync."
+  Line 259:19 - Hardcoded string literal in Alert argument: "Error"
+  Line 259:28 - Hardcoded string literal in Alert argument: "Failed to save updated quotas in SQLite database."
+
+❌ File: mobile-web/src/features/admin/screens/TeamPulseScreen.tsx
+  Line 195:15 - Hardcoded JSX text: "Oversight Overview"
+  Line 212:15 - Hardcoded JSX text: "HITL Resolutions"
+  Line 229:15 - Hardcoded JSX text: "DLQ Monitor"
+  Line 248:15 - Hardcoded JSX text: "Approvals"
+  Line 254:22 - Hardcoded string literal in JSX Expression child: "hitl"
+  Line 256:22 - Hardcoded string literal in JSX Expression child: "dlq"
+  Line 258:22 - Hardcoded string literal in JSX Expression child: "approvals"
+  Line 269:22 - Hardcoded string literal in JSX Expression child: "oversight"
+  Line 331:21 - Hardcoded JSX text: "Date Filter"
+  Line 336:33 - Hardcoded string literal in JSX attribute "placeholder": "YYYY-MM-DD"
+  Line 590:15 - Hardcoded JSX text: "Odoo Shop Directory CSV Importer"
+  Line 593:15 - Hardcoded JSX text: "Paste Odoo CSV data below to import shops and contacts. Expected
+              columns: Name, Address, Region, Division, ContactName,
+              PhoneNumber, Email, PriceTier, LifetimeValue"
+  Line 603:28 - Hardcoded template literal in JSX attribute "placeholder": "Name,Address,Region,Division,ContactName,PhoneNumber,Email,PriceTier,LifetimeValue
+City Mart Hledan,Yangon,Yangon Division,U Hla,0912345678,hledan@citymart.com.mm,Retailer,5000"
+  Line 630:36 - Hardcoded string literal in JSX attribute "title": "Importing..."
+  Line 630:53 - Hardcoded string literal in JSX attribute "title": "Import CSV Data"
+  Line 664:23 - Hardcoded string literal in JSX attribute "title": "Clear"
+  Line 689:23 - Hardcoded JSX text: "Import Succeeded!"
+  Line 692:23 - Hardcoded JSX text: "Successfully imported"
+  Line 692:74 - Hardcoded JSX text: "shops."
+  Line 708:29 - Hardcoded JSX text: "Warnings:"
+  Line 736:23 - Hardcoded JSX text: "Import Failed"
+  Line 756:39 - Hardcoded JSX text: "Sync Audit Logs"
+  Line 758:19 - Hardcoded JSX text: "Real-time synchronization status audit log dashboard"
+  Line 762:42 - Hardcoded string literal in JSX attribute "title": "Refreshing..."
+  Line 762:60 - Hardcoded string literal in JSX attribute "title": "Refresh"
+  Line 787:47 - Hardcoded JSX text: "No sync logs recorded."
+
+❌ File: mobile-web/src/features/audit/components/InteractionsTimeline.tsx
+  Line 126:40 - Hardcoded JSX text: "x"
+
+❌ File: mobile-web/src/features/audit/components/RegisterShopModal.tsx
+  Line 256:31 - Hardcoded string literal in Alert argument: "Could not register client account."
+  Line 298:17 - Hardcoded JSX text: "Step"
+  Line 298:29 - Hardcoded JSX text: "of 3"
+  Line 329:19 - Hardcoded JSX text: "Enter Client Profile & Contact Information:"
+  Line 332:25 - Hardcoded string literal in JSX attribute "label": "Client Name / Shop Name"
+  Line 333:31 - Hardcoded string literal in JSX attribute "placeholder": "e.g. Aung Wholesale Store"
+  Line 341:25 - Hardcoded string literal in JSX attribute "label": "Contact Person Name"
+  Line 342:31 - Hardcoded string literal in JSX attribute "placeholder": "e.g. U Hla"
+  Line 350:25 - Hardcoded string literal in JSX attribute "label": "Contact Phone Number"
+  Line 351:31 - Hardcoded string literal in JSX attribute "placeholder": "e.g. +95998765432"
+  Line 359:25 - Hardcoded string literal in JSX attribute "label": "Contact Email Address (Optional)"
+  Line 360:31 - Hardcoded string literal in JSX attribute "placeholder": "e.g. contact@aungstore.com"
+  Line 370:19 - Hardcoded JSX text: "Configure Territory & Address Details:"
+  Line 406:25 - Hardcoded string literal in JSX attribute "label": "Street / Building Address Details"
+  Line 407:31 - Hardcoded string literal in JSX attribute "placeholder": "e.g. No. 123, Bogyoke Road, Room 4"
+  Line 423:21 - Hardcoded JSX text: "Address Preview:"
+  Line 426:49 - Hardcoded string literal in JSX Expression child: "Select territory above..."
+  Line 442:19 - Hardcoded JSX text: "Review & Confirm Details:"
+  Line 446:21 - Hardcoded JSX text: "Client Name"
+  Line 454:21 - Hardcoded JSX text: "Primary Contact"
+  Line 467:21 - Hardcoded JSX text: "Assigned Region"
+  Line 475:21 - Hardcoded JSX text: "Township"
+  Line 483:21 - Hardcoded JSX text: "Ward / Village Tract"
+  Line 491:21 - Hardcoded JSX text: "Full Registered Address"
+  Line 499:21 - Hardcoded JSX text: "GPS Coordinates (Derived)"
+  Line 507:21 - Hardcoded JSX text: "Default Price Book Tier"
+  Line 515:25 - Hardcoded string literal in JSX Expression child: "Yangon Retail Book (pb-yangon)"
+  Line 516:25 - Hardcoded string literal in JSX Expression child: "Mandalay Wholesale Book (pb-mandalay)"
+  Line 537:29 - Hardcoded string literal in JSX attribute "title": "Next"
+  Line 540:23 - Hardcoded string literal in JSX attribute "title": "Register"
+
+❌ File: mobile-web/src/features/audit/components/RepScorecardCard.tsx
+  Line 67:31 - Hardcoded JSX text: "PTS"
+  Line 112:11 - Hardcoded JSX text: "🎯 Offline Targets & Daily Performance"
+  Line 120:19 - Hardcoded JSX text: "Sales Volume Volume"
+  Line 128:19 - Hardcoded JSX text: "K"
+  Line 128:59 - Hardcoded JSX text: "/ K"
+  Line 153:19 - Hardcoded JSX text: "Store Visits completed"
+  Line 183:13 - Hardcoded JSX text: "No daily KPI targets cached offline."
+  Line 209:36 - Hardcoded JSX text: "PTS"
+
+❌ File: mobile-web/src/features/audit/components/SelectedItemsList.tsx
+  Line 169:58 - Hardcoded string literal in JSX attribute "label": "Project Allocation"
+  Line 170:25 - Hardcoded string literal in JSX attribute "placeholder": "Select project contract..."
+  Line 421:71 - Hardcoded string literal in JSX Expression child: "PCS"
+  Line 422:57 - Hardcoded JSX text: "% off"
+  Line 423:46 - Hardcoded string literal in JSX Expression child: " (Applied)"
+  Line 434:27 - Hardcoded JSX text: "Invalid brackets format"
+
+❌ File: mobile-web/src/features/audit/components/ShopDetailPane.tsx
+  Line 108:25 - Hardcoded string literal in Alert argument: "Error"
+  Line 109:11 - Hardcoded string literal in Alert argument: "Location permission is required to start an audit."
+  Line 126:11 - Hardcoded string literal in Alert argument: "Geofenced Lock Active"
+  Line 127:11 - Hardcoded template string head in Alert argument: "You must be within "
+  Line 127:61 - Hardcoded template string span in Alert argument: " meters of the shop to start an audit. Current distance: "
+  Line 127:137 - Hardcoded template string span in Alert argument: "m."
+  Line 135:23 - Hardcoded string literal in Alert argument: "Error"
+  Line 136:9 - Hardcoded string literal in Alert argument: "Failed to retrieve current device coordinates."
+  Line 542:23 - Hardcoded JSX text: "K"
+
+❌ File: mobile-web/src/features/audit/components/ShopSidebarList.tsx
+  Line 378:46 - Hardcoded string literal in JSX Expression child: "NEUTRAL"
+  Line 479:44 - Hardcoded string literal in JSX Expression child: "NEUTRAL"
+
+❌ File: mobile-web/src/features/audit/components/UpdateTerritoryModal.tsx
+  Line 154:33 - Hardcoded string literal in Alert argument: "Territory details updated successfully."
+  Line 160:31 - Hardcoded string literal in Alert argument: "Could not update shop territory."
+  Line 192:15 - Hardcoded JSX text: "Configure territory hierarchy for"
+  Line 241:21 - Hardcoded JSX text: "Auto-Generated Address"
+
+❌ File: mobile-web/src/features/sync/components/SyncConflictModal.tsx
+  Line 62:41 - Hardcoded string literal in JSX Expression child: "No record data available"
+
+❌ File: mobile-web/src/features/viber/components/ViberIntegration.tsx
+  Line 118:17 - Hardcoded string literal in JSX Expression child: "VIBER"
+
+❌ File: mobile-web/src/features/viber/components/ViberSimulator.tsx
+  Line 195:19 - Hardcoded string literal in Alert argument: "Error"
+  Line 195:28 - Hardcoded string literal in Alert argument: "Failed to duplicate last order."
+  Line 252:19 - Hardcoded string literal in Alert argument: "Info"
+  Line 397:19 - Hardcoded string literal in Alert argument: "Info"
+  Line 724:28 - Hardcoded template literal in JSX attribute "placeholder": "Shera 6mm 50 pcs
+Gator PVC 10 pk"
+
+❌ File: mobile-web/src/core/components/DesignPatternGallery.tsx
+  Line 152:9 - Hardcoded JSX text: "🎨 Visual Tile Design Gallery"
+  Line 155:9 - Hardcoded JSX text: "Showcase catalog options offline directly to dealers. Tap any card below
+        to view specs."
+  Line 256:45 - Hardcoded JSX text: "Specs & Stock"
+  Line 284:23 - Hardcoded JSX text: "Querying catalog items..."
+  Line 292:27 - Hardcoded JSX text: "No items found for this brand in database."
+  Line 333:33 - Hardcoded JSX text: "MMK"
+  Line 343:33 - Hardcoded JSX text: "SKU:"
+  Line 358:39 - Hardcoded template string head in JSX Expression child: "Stock: "
+  Line 359:39 - Hardcoded string literal in JSX Expression child: "Out of Stock"
+  Line 378:37 - Hardcoded JSX text: "📐 Thickness:"
+  Line 383:37 - Hardcoded JSX text: "⚖️ Weight:"
+  Line 411:23 - Hardcoded JSX text: "Close Catalog"
+
+❌ File: mobile-web/src/core/components/ErrorBoundaryFallback.tsx
+  Line 88:11 - Hardcoded JSX text: "⚠ Local Database Panic"
+  Line 91:11 - Hardcoded JSX text: "A critical database thread error or startup panic occurred. The local
+          storage might be corrupted."
+  Line 110:41 - Hardcoded string literal in JSX Expression child: "Unknown panic error"
+  Line 114:17 - Hardcoded string literal in JSX attribute "title": "Reset Local Cache & Reload"
+
+❌ File: mobile-web/src/core/components/NavBar.tsx
+  Line 226:42 - Hardcoded string literal in JSX Expression child: "No Region"
+
+Total translation violations found: 221

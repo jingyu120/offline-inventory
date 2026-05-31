@@ -30,9 +30,9 @@ interface SelectedItemsListProps {
   updateStockCondition: (itemId: string, condition: string) => void;
   isOverrideMarginAcknowledged?: boolean;
   setIsOverrideMarginAcknowledged?: (val: boolean) => void;
-  lastInteractionLog?: any;
+  lastInteractionLog?: $Any;
   onDuplicateLastOrder?: () => void;
-  projects?: any[];
+  projects?: $Any[];
   selectedProjectId?: string | null;
   setSelectedProjectId?: (id: string | null) => void;
 }
@@ -44,7 +44,7 @@ const webTransition =
         transitionProperty: 'transform, opacity',
         transitionDuration: '200ms',
         transitionTimingFunction: 'ease-in-out',
-      } as any)
+      } as $Any)
     : {};
 
 /** Resolve semantic colors for stock condition badges */
@@ -117,7 +117,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
               transform: [{ scale: hasHistory && pressed ? 0.98 : 1 }],
               ...webTransition,
               ...(Platform.OS === 'web' && !hasHistory
-                ? ({ cursor: 'not-allowed' } as any)
+                ? ({ cursor: 'not-allowed' } as $Any)
                 : {}),
             },
           ]}
@@ -166,8 +166,8 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
       {projects && projects.length > 0 && setSelectedProjectId && (
         <Box mb="m">
           <DropdownSelector
-            label={t('projectAllocationBulkContract') || 'Project Allocation'}
-            placeholder="Select project contract..."
+            label={t('projectAllocationBulkContract')}
+            placeholder={t('selectProjectContract')}
             selectedValue={selectedProjectId || ''}
             onValueChange={(val) => setSelectedProjectId(val ? val : null)}
             options={[
@@ -261,7 +261,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                       ...(Platform.OS === 'web'
                         ? ({
                             outlineStyle: 'none',
-                          } as any)
+                          } as $Any)
                         : {}),
                     }}
                   />
@@ -395,7 +395,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                           parseInt(si.quantity.toString() || '0', 10) || 0;
                         return (
                           <Box flexDirection="row" flexWrap="wrap">
-                            {brackets.map((b: any, index: number) => {
+                            {brackets.map((b: $Any, index: number) => {
                               const isMet = activeQty >= b.quantity;
                               return (
                                 <Box
@@ -418,9 +418,13 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                                     }
                                     fontWeight="bold"
                                   >
-                                    {b.quantity}+ {si.selectedUnit || 'PCS'}:{' '}
-                                    {b.discount_percent}% off
-                                    {isMet ? ' (Applied)' : ''}
+                                    {b.quantity}+{' '}
+                                    {si.selectedUnit || t('unitPcs')}:{' '}
+                                    {t('percentOff').replace(
+                                      '{pct}',
+                                      b.discount_percent.toString(),
+                                    )}
+                                    {isMet ? t('appliedSuffix') : ''}
                                   </Text>
                                 </Box>
                               );
@@ -431,7 +435,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                     } catch (e) {
                       return (
                         <Text variant="caption" color="danger">
-                          Invalid brackets format
+                          {t('invalidBracketsFormat')}
                         </Text>
                       );
                     }

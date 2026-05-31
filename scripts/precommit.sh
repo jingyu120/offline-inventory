@@ -26,6 +26,12 @@ npx nx format:write 2>&1 \
   && pass "Formatting completed and changes staged" \
   || fail "Formatting failed"
 
+# 0.5. Translation Check
+step "Translation Check"
+node scripts/check-translations.js 2>&1 \
+  && pass "Translation check passed" \
+  || fail "Translation check failed"
+
 # 1. TypeCheck
 step "TypeCheck (all projects)"
 npx nx run-many -t typecheck --skip-nx-cache --tui-auto-exit=true --nx-bail 2>&1 \

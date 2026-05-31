@@ -2,7 +2,6 @@ export interface SearchItem {
   id: string;
   name: string;
   sku: string;
-  [key: string]: any;
 }
 
 const SYNONYMS: Record<string, string[]> = {

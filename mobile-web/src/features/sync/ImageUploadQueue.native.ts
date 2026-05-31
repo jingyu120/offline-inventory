@@ -54,7 +54,7 @@ export class ImageUploadQueue {
     }
 
     try {
-      const fsAny = FileSystem as any;
+      const fsAny = FileSystem as $Any;
       const dir = fsAny.documentDirectory + 'viber_uploads/';
       const dirInfo = await FileSystem.getInfoAsync(dir);
       if (!dirInfo.exists) {
@@ -126,7 +126,7 @@ export class ImageUploadQueue {
     }
 
     try {
-      const fsAny = FileSystem as any;
+      const fsAny = FileSystem as $Any;
       const dir = fsAny.documentDirectory + 'competitor_uploads/';
       const dirInfo = await FileSystem.getInfoAsync(dir);
       if (!dirInfo.exists) {
@@ -182,7 +182,7 @@ export class ImageUploadQueue {
       const state = await NetInfo.fetch();
       const is2G =
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
-      const isMockDegraded = (global as any).__mockNetworkDegraded === true;
+      const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
       if (is2G || isMockDegraded) {
         console.log(
           '[ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Pausing image uploads.',
@@ -235,7 +235,7 @@ export class ImageUploadQueue {
         try {
           let serverUrl = '';
 
-          const uploadParams: Record<string, any> = {};
+          const uploadParams: Record<string, $Any> = {};
           if (task.competitor_insight_id) {
             uploadParams.competitorInsightId = task.competitor_insight_id;
           } else {
@@ -251,8 +251,8 @@ export class ImageUploadQueue {
               uploadType: FileSystem.FileSystemUploadType.MULTIPART,
               parameters: uploadParams,
               headers: {
-                'x-trace-id': (task as any).trace_id || '',
-                'x-actor-id': (task as any).actor_id || '',
+                'x-trace-id': (task as $Any).trace_id || '',
+                'x-actor-id': (task as $Any).actor_id || '',
               },
             },
           );

@@ -6,7 +6,10 @@ export type Language = 'en' | 'my';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: keyof (typeof translations)['en']) => string;
+  t: (
+    key: keyof (typeof translations)['en'],
+    options?: Record<string, string | number>,
+  ) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(
@@ -41,9 +44,21 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const t = (key: keyof (typeof translations)['en']) => {
-    const dict = translations[language];
-    return dict[key] || translations['en'][key] || String(key);
+  const t = (
+    key: keyof (typeof translations)['en'],
+    options?: Record<string, string | number>,
+  ) => {
+    const dict = translations[language] as Record<string, string>;
+    let val =
+      dict[key] ||
+      (translations['en'] as Record<string, string>)[key] ||
+      String(key);
+    if (options) {
+      Object.entries(options).forEach(([k, v]) => {
+        val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+      });
+    }
+    return val;
   };
 
   return (

@@ -9,21 +9,82 @@ import {
 } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { useTranslation } from '../../../core/i18n/i18n';
 
 // Safe dynamic imports for Skia to ensure 100% compilation on web platforms
-let Canvas: any = null;
-let SkiaImage: any = null;
-let SkiaRect: any = null;
-let useImage: any = null;
+let Canvas: React.ComponentType<{
+  style?: Record<string, unknown>;
+  children?: React.ReactNode;
+}> = null as unknown as React.ComponentType<{
+  style?: Record<string, unknown>;
+  children?: React.ReactNode;
+}>;
+let SkiaImage: React.ComponentType<{
+  image: unknown;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fit: string;
+}> = null as unknown as React.ComponentType<{
+  image: unknown;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fit: string;
+}>;
+let SkiaRect: React.ComponentType<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  style: string;
+  strokeWidth: number;
+}> = null as unknown as React.ComponentType<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  style: string;
+  strokeWidth: number;
+}>;
+let useImage: (uri: string | null) => unknown = null as unknown as (
+  uri: string | null,
+) => unknown;
 
 if (Platform.OS !== 'web') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const skiaPkg = require('@shopify/react-native-skia');
-    Canvas = skiaPkg.Canvas;
-    SkiaImage = skiaPkg.Image;
-    SkiaRect = skiaPkg.Rect;
-    useImage = skiaPkg.useImage;
+    const globalRequire = (globalThis as Record<string, unknown>)['require'] as
+      | ((id: string) => Record<string, unknown>)
+      | undefined;
+    if (globalRequire) {
+      const skiaPkg = globalRequire('@shopify/react-native-skia');
+      Canvas = skiaPkg['Canvas'] as React.ComponentType<{
+        style?: Record<string, unknown>;
+        children?: React.ReactNode;
+      }>;
+      SkiaImage = skiaPkg['Image'] as React.ComponentType<{
+        image: unknown;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        fit: string;
+      }>;
+      SkiaRect = skiaPkg['Rect'] as React.ComponentType<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        color: string;
+        style: string;
+        strokeWidth: number;
+      }>;
+      useImage = skiaPkg['useImage'] as (uri: string | null) => unknown;
+    }
   } catch (err) {
     console.warn(
       '[Skia] Failed to dynamically load @shopify/react-native-skia:',
@@ -45,6 +106,7 @@ export function ImageAnnotationModal({
   onClose,
   onAnnotated,
 }: ImageAnnotationModalProps) {
+  const { t } = useTranslation();
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(
     null,
   );
@@ -58,7 +120,8 @@ export function ImageAnnotationModal({
   } | null>(null);
 
   // Load the image inside Skia if on mobile
-  const skiaImageObject = useImage && imageUri ? useImage(imageUri) : null;
+  const skiaImageObject =
+    (useImage as unknown) && imageUri ? useImage(imageUri) : null;
 
   // Retrieve original image size to scale the crop coordinates correctly
   useEffect(() => {
@@ -82,13 +145,13 @@ export function ImageAnnotationModal({
   const canvasHeight = 400;
 
   // Touch handlers to track box selection coordinates
-  const handleTouchStart = (e: any) => {
+  const handleTouchStart = (e: $Any) => {
     const { locationX, locationY } = e.nativeEvent;
     setStartPoint({ x: locationX, y: locationY });
     setCurrentPoint({ x: locationX, y: locationY });
   };
 
-  const handleTouchMove = (e: any) => {
+  const handleTouchMove = (e: $Any) => {
     const { locationX, locationY } = e.nativeEvent;
     setCurrentPoint({ x: locationX, y: locationY });
   };
@@ -194,10 +257,10 @@ export function ImageAnnotationModal({
           maxWidth={500}
         >
           <Text variant="title" mb="s" textAlign="center">
-            Crop & Annotate OCR Region
+            {t('cropAnnotateTitle')}
           </Text>
           <Text variant="bodySecondary" mb="m" textAlign="center">
-            Drag to draw a bounding box highlighting the SKU grid/invoice.
+            {t('cropAnnotateDesc')}
           </Text>
 
           {/* Draw Container */}
@@ -276,14 +339,14 @@ export function ImageAnnotationModal({
             <TouchableOpacity onPress={onClose}>
               <Box py="s" px="m" borderRadius="s" bg="secondaryButton">
                 <Text variant="body" color="primaryText">
-                  Cancel
+                  {t('cancel')}
                 </Text>
               </Box>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSave}>
               <Box py="s" px="m" borderRadius="s" bg="primaryButton">
                 <Text variant="body" color="pureWhite">
-                  Crop & Save
+                  {t('cropAndSave')}
                 </Text>
               </Box>
             </TouchableOpacity>

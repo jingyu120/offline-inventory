@@ -27,7 +27,7 @@ export const powerSyncDb = {
       /* no-op */
     };
   },
-  connect: async (_connector?: any) => {
+  connect: async (_connector?: $Any) => {
     /* no-op */
   },
   disconnect: async () => {

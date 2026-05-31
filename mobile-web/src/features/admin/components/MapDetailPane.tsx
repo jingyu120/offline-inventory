@@ -5,6 +5,10 @@ import { useTheme } from '@shopify/restyle';
 import { ProcessedShop } from '../hooks/useGeographicHeatmapData';
 import { Contact } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
+import {
+  getRepresentativeName,
+  getLogTypeLabel,
+} from '../../../config/appConfig';
 
 interface MapDetailPaneProps {
   selectedShop: ProcessedShop;
@@ -17,8 +21,8 @@ interface MapDetailPaneProps {
   } | null;
   allShops: ProcessedShop[];
   onShopSelect: (shop: ProcessedShop) => void;
-  mapInstance: any;
-  maxHeight?: any;
+  mapInstance: $Any;
+  maxHeight?: $Any;
 }
 
 const getBubbleRadius = (ltv: number) => {
@@ -63,7 +67,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   // Compute overlapping shops sharing screen pixel boundaries
   const overlappingShops = React.useMemo(() => {
     if (!selectedShop || !mapInstance || !allShops.length) return [];
-    const L = (window as any).L;
+    const L = (window as $Any).L;
     if (!L) return [];
 
     try {
@@ -122,15 +126,6 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
     return trend || '';
   };
 
-  const getLogTypeLabel = (logType: string) => {
-    if (logType === 'PHONE_CALL') return t('phone');
-    if (logType === 'VIBER') return 'Viber';
-    if (logType === 'SHOP_VISIT') return t('typeVisit');
-    if (logType === 'STOCK_DELIVERY') return t('typeOrder');
-    if (logType === 'PAYMENT_COLLECTION') return t('typeCollection');
-    return logType.replaceAll('_', ' ');
-  };
-
   const getCommercialStatusLabel = (status: string) => {
     if (status === 'FOLLOWED_UP') return t('statusFollowedUp');
     if (status === 'INTERESTED') return t('statusInterested');
@@ -175,7 +170,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
               onPress={() => {
                 setViewingShop(shop);
               }}
-              style={{ cursor: 'pointer' } as any}
+              style={{ cursor: 'pointer' } as $Any}
             >
               <Card p="m" mb="s" bg="secondaryBackground">
                 <Box
@@ -188,8 +183,10 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
                       {shop.name}
                     </Text>
                     <Text variant="bodySecondary">
-                      {t('totalAccountValue') || 'Value'}: K
-                      {shop.lifetimeValue.toLocaleString()}
+                      {t('totalAccountValue')}:{' '}
+                      {t('priceFormatted', {
+                        price: shop.lifetimeValue.toLocaleString(),
+                      })}
                     </Text>
                   </Box>
                   <Text color="secondaryText">▶</Text>
@@ -246,13 +243,15 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
           <Text variant="bodySecondary">
             {t('totalAccountValue')}:{' '}
             <Text variant="body" fontWeight="bold">
-              K{activeShop.lifetimeValue.toLocaleString()}
+              {t('priceFormatted', {
+                price: activeShop.lifetimeValue.toLocaleString(),
+              })}
             </Text>
           </Text>
           <Text variant="bodySecondary">
             {t('assignedRep')}:{' '}
             <Text variant="body" fontWeight="bold">
-              {activeShop.assignedRepId === 'rep-1' ? 'Ko Min' : 'Ko Hla'}
+              {getRepresentativeName(activeShop.assignedRepId || '')}
             </Text>
           </Text>
         </Box>
@@ -346,7 +345,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
           >
             <Box flexDirection="row" justifyContent="space-between" mb="xs">
               <Text variant="body" fontWeight="bold">
-                {getLogTypeLabel(l.type)}
+                {getLogTypeLabel(l.type, t)}
               </Text>
               <Text variant="bodySecondary">
                 {new Date(l.createdAtLocal).toLocaleDateString()}

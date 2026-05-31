@@ -4,9 +4,9 @@ import { useTheme } from '@shopify/restyle';
 import { useTranslation } from '../../../core/i18n/i18n';
 
 interface RepScorecardCardProps {
-  repScore: any;
-  pointsLogs: any[];
-  repKpis?: any;
+  repScore: $Any;
+  pointsLogs: $Any[];
+  repKpis?: $Any;
 }
 
 export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
@@ -64,7 +64,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
             {t('totalPoints')}
           </Text>
           <Text variant="header" fontSize={28} color="brand">
-            {repScore.points} PTS
+            {t('ptsSuffix').replace('{points}', repScore.points.toString())}
           </Text>
         </Box>
 
@@ -109,7 +109,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
       {/* Offline KPI Targets Card */}
       <Box borderTopWidth={1} borderTopColor="borderColor" py="m">
         <Text variant="bodySecondary" fontWeight="bold" mb="s">
-          🎯 Offline Targets & Daily Performance
+          {t('offlineTargetsTitle')}
         </Text>
         {repKpis ? (
           <Box style={{ gap: 12 }}>
@@ -117,7 +117,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
             <Box>
               <Box flexDirection="row" justifyContent="space-between" mb="xs">
                 <Text variant="body" fontSize={13}>
-                  Sales Volume Volume
+                  {t('salesVolumeTarget')}
                 </Text>
                 <Text
                   variant="body"
@@ -125,9 +125,16 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
                   fontWeight="bold"
                   color="brand"
                 >
-                  K{repKpis.salesVolume.toLocaleString()} / K
-                  {repKpis.salesTarget.toLocaleString()} ({Math.round(salesPct)}
-                  %)
+                  {t('priceFormatted').replace(
+                    '{price}',
+                    repKpis.salesVolume.toLocaleString(),
+                  )}{' '}
+                  /{' '}
+                  {t('priceFormatted').replace(
+                    '{price}',
+                    repKpis.salesTarget.toLocaleString(),
+                  )}{' '}
+                  ({Math.round(salesPct)}%)
                 </Text>
               </Box>
               <Box
@@ -150,7 +157,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
             <Box>
               <Box flexDirection="row" justifyContent="space-between" mb="xs">
                 <Text variant="body" fontSize={13}>
-                  Store Visits completed
+                  {t('storeVisitsCompleted')}
                 </Text>
                 <Text
                   variant="body"
@@ -180,7 +187,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
           </Box>
         ) : (
           <Text variant="bodySecondary" style={{ fontStyle: 'italic' }}>
-            No daily KPI targets cached offline.
+            {t('noDailyKpiOffline')}
           </Text>
         )}
       </Box>
@@ -190,7 +197,7 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
           <Text variant="bodySecondary" fontWeight="bold" mb="s">
             {t('recentPointsLog')}
           </Text>
-          {pointsLogs.map((log: any) => (
+          {pointsLogs.map((log: $Any) => (
             <Box
               key={log.id}
               flexDirection="row"
@@ -206,7 +213,8 @@ export const RepScorecardCard: React.FC<RepScorecardCardProps> = ({
                 fontWeight="bold"
                 style={{ color: '#10B981' }}
               >
-                +{log.pointsAdded} PTS
+                +
+                {t('ptsSuffix').replace('{points}', log.pointsAdded.toString())}
               </Text>
             </Box>
           ))}

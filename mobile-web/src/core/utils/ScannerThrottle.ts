@@ -37,7 +37,7 @@ class ScannerThrottle {
     try {
       if (typeof window !== 'undefined' && window.AudioContext) {
         const audioCtx = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+          (window as $Any).webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
 

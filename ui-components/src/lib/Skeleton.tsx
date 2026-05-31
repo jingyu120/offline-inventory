@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
+import { Animated, Platform } from 'react-native';
 import { Box } from './Primitives';
 
 export function SkeletonRow({
@@ -8,8 +8,8 @@ export function SkeletonRow({
   borderRadius = 's',
 }: {
   height?: number;
-  width?: any;
-  borderRadius?: any;
+  width?: number | 'auto' | `${number}%`;
+  borderRadius?: 'none' | 's' | 'm' | 'l' | 'xl';
 }) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -19,12 +19,12 @@ export function SkeletonRow({
         Animated.timing(opacity, {
           toValue: 0.7,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacity, {
           toValue: 0.3,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     ).start();

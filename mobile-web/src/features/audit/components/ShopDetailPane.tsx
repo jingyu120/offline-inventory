@@ -19,29 +19,10 @@ import {
   TrendingDown,
   DollarSign,
 } from 'lucide-react-native';
-
-const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-) => {
-  const R = 6371e3; // metres
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) *
-      Math.cos(phi2) *
-      Math.sin(deltaLambda / 2) *
-      Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in metres
-};
+import {
+  calculateDistance,
+  GEOFENCE_RADIUS_AUDIT_METERS,
+} from '../../../core/utils/geo';
 
 import { GPSCheckInCard } from './GPSCheckInCard';
 import { PredictionAnalyticsCard } from './PredictionAnalyticsCard';
@@ -126,10 +107,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          t('error') || 'Error',
-          'Location permission is required to start an audit.',
-        );
+        Alert.alert(t('error'), t('locationPermissionRequired'));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({
@@ -143,36 +121,35 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         loc.coords.latitude,
         loc.coords.longitude,
       );
-      if (dist > 100) {
+      if (dist > GEOFENCE_RADIUS_AUDIT_METERS) {
         Alert.alert(
-          'Geofenced Lock Active',
-          `You must be within 100 meters of the shop to start an audit. Current distance: ${Math.round(dist)}m.`,
+          t('geofencedLockActive'),
+          t('geofenceDistanceShopMsg')
+            .replace('{meters}', GEOFENCE_RADIUS_AUDIT_METERS.toString())
+            .replace('{distance}', Math.round(dist).toString()),
         );
         return;
       }
       onLogInteraction?.(shop);
-    } catch (err: any) {
+    } catch (err: $Any) {
       console.error(err);
-      Alert.alert(
-        t('error') || 'Error',
-        'Failed to retrieve current device coordinates.',
-      );
+      Alert.alert(t('error'), t('failedGetCoordinates'));
     }
   };
 
   const [hasPlannedRoute, setHasPlannedRoute] = React.useState(false);
-  const [todayCheckIn, setTodayCheckIn] = React.useState<any>(null);
-  const [predictionLog, setPredictionLog] = React.useState<any>(null);
-  const [recommendedOrder, setRecommendedOrder] = React.useState<any>(null);
-  const [recommendedItem, setRecommendedItem] = React.useState<any>(null);
-  const [repScore, setRepScore] = React.useState<any>(null);
-  const [pointsLogs, setPointsLogs] = React.useState<any[]>([]);
-  const [repKpis, setRepKpis] = React.useState<any>(null);
+  const [todayCheckIn, setTodayCheckIn] = React.useState<$Any>(null);
+  const [predictionLog, setPredictionLog] = React.useState<$Any>(null);
+  const [recommendedOrder, setRecommendedOrder] = React.useState<$Any>(null);
+  const [recommendedItem, setRecommendedItem] = React.useState<$Any>(null);
+  const [repScore, setRepScore] = React.useState<$Any>(null);
+  const [pointsLogs, setPointsLogs] = React.useState<$Any[]>([]);
+  const [repKpis, setRepKpis] = React.useState<$Any>(null);
   const [activeMobileTab, setActiveMobileTab] = React.useState<
     'checkin' | 'history' | 'ai_insights' | 'scorecard'
   >('checkin');
 
-  const mapRepScore = (s: any) => ({
+  const mapRepScore = (s: $Any) => ({
     id: s.id,
     repId: s.rep_id,
     points: s.points,
@@ -182,7 +159,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     updatedAt: s.updated_at,
   });
 
-  const mapPointsLog = (l: any) => ({
+  const mapPointsLog = (l: $Any) => ({
     id: l.id,
     repId: l.rep_id,
     pointsAdded: l.points_added,
@@ -190,7 +167,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     createdAt: l.created_at,
   });
 
-  const mapPredictionLog = (p: any) => ({
+  const mapPredictionLog = (p: $Any) => ({
     id: p.id,
     shopId: p.shop_id,
     predictedLtv: p.predicted_ltv,
@@ -200,7 +177,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     updatedAt: p.updated_at,
   });
 
-  const mapRecommendedOrder = (r: any) => ({
+  const mapRecommendedOrder = (r: $Any) => ({
     id: r.id,
     shopId: r.shop_id,
     itemId: r.item_id,
@@ -210,7 +187,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
     updatedAt: r.updated_at,
   });
 
-  const mapCheckInLog = (cil: any) => ({
+  const mapCheckInLog = (cil: $Any) => ({
     id: cil.id,
     shopId: cil.shop_id,
     repId: cil.rep_id,
@@ -228,7 +205,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
       const prs = await database.select().from(sqliteSchema.planned_routes);
       const todayStr = new Date().toISOString().split('T')[0];
       const activeRoute = prs.find(
-        (pr: any) => pr.rep_id === activeRep.id && pr.date === todayStr,
+        (pr: $Any) => pr.rep_id === activeRep.id && pr.date === todayStr,
       );
       if (activeRoute) {
         try {
@@ -243,7 +220,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 
       // 2. Check-in logs
       const cils = await database.select().from(sqliteSchema.check_in_logs);
-      const todayCi = cils.find((cil: any) => {
+      const todayCi = cils.find((cil: $Any) => {
         const cilDate = new Date(cil.check_in_time).toISOString().split('T')[0];
         return (
           cil.shop_id === shop.id &&
@@ -255,14 +232,14 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 
       // 3. Predictions
       const preds = await database.select().from(sqliteSchema.prediction_logs);
-      const pred = preds.find((p: any) => p.shop_id === shop.id);
+      const pred = preds.find((p: $Any) => p.shop_id === shop.id);
       setPredictionLog(pred ? mapPredictionLog(pred) : null);
 
       // 4. Recommendations
       const recs = await database
         .select()
         .from(sqliteSchema.recommended_orders);
-      const rec = recs.find((r: any) => r.shop_id === shop.id);
+      const rec = recs.find((r: $Any) => r.shop_id === shop.id);
       setRecommendedOrder(rec ? mapRecommendedOrder(rec) : null);
       if (rec) {
         try {
@@ -281,20 +258,20 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 
       // 5. Rep Scores
       const scores = await database.select().from(sqliteSchema.rep_scores);
-      const score = scores.find((s: any) => s.rep_id === activeRep.id);
+      const score = scores.find((s: $Any) => s.rep_id === activeRep.id);
       setRepScore(score ? mapRepScore(score) : null);
 
       // 6. Points Logs
       const logs = await database.select().from(sqliteSchema.points_logs);
       const filteredLogs = logs
-        .filter((l: any) => l.rep_id === activeRep.id)
-        .sort((a: any, b: any) => b.created_at - a.created_at);
+        .filter((l: $Any) => l.rep_id === activeRep.id)
+        .sort((a: $Any, b: $Any) => b.created_at - a.created_at);
       setPointsLogs(filteredLogs.slice(0, 5).map(mapPointsLog));
 
       // 7. Rep KPIs
       const kpis = await database.select().from(sqliteSchema.rep_kpis);
       const kpi = kpis.find(
-        (k: any) => k.rep_id === activeRep.id && k.date === todayStr,
+        (k: $Any) => k.rep_id === activeRep.id && k.date === todayStr,
       );
       setRepKpis(
         kpi
@@ -528,7 +505,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                     <Box mt="xs" alignItems="flex-start">
                       <Pressable
                         onPress={() => setIsUpdateTerritoryOpen(true)}
-                        style={({ pressed }: any) => ({
+                        style={({ pressed }: $Any) => ({
                           opacity: pressed ? 0.6 : 1,
                           paddingVertical: 4,
                           paddingHorizontal: 8,
@@ -561,7 +538,10 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                   <Box flex={1}>
                     <Text variant="bodySecondary">{t('lifetimeValue')}</Text>
                     <Text variant="body" fontWeight="bold">
-                      K{shop.lifetimeValue?.toLocaleString() || '0.00'}
+                      {t('priceFormatted').replace(
+                        '{price}',
+                        (shop.lifetimeValue || 0).toLocaleString(),
+                      )}
                     </Text>
                   </Box>
                 </Card>

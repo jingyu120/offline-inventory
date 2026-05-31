@@ -34,25 +34,32 @@ import {
 import { SelectedItemsList } from '../../audit/components/SelectedItemsList';
 import { useAuth } from '../../../core/auth/auth';
 import { useTranslation } from '../../../core/i18n/i18n';
+import {
+  CURRENCIES,
+  VIBER_BRAND_TOKENS,
+  VIBER_SPEC_TOKENS,
+  VIBER_SCORING_WEIGHTS,
+  VIBER_KNOWN_UNITS,
+} from '../../../config/appConfig';
 
 export function ViberSimulator() {
   const theme = useTheme<Theme>();
   const { activeRep } = useAuth();
   const { t } = useTranslation();
 
-  const [shops, setShops] = useState<any[]>([]);
-  const [items, setItems] = useState<any[]>([]);
+  const [shops, setShops] = useState<$Any[]>([]);
+  const [items, setItems] = useState<$Any[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<string>('');
   const [rawText, setRawText] = useState<string>('');
-  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<$Any[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('MMK');
-  const [priceBookItems, setPriceBookItems] = useState<any[]>([]);
-  const [exchangeRates, setExchangeRates] = useState<any[]>([]);
+  const [priceBookItems, setPriceBookItems] = useState<$Any[]>([]);
+  const [exchangeRates, setExchangeRates] = useState<$Any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isOverrideMarginAcknowledged, setIsOverrideMarginAcknowledged] =
     useState(false);
-  const [lastInteractionLog, setLastInteractionLog] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [lastInteractionLog, setLastInteractionLog] = useState<$Any>(null);
+  const [projects, setProjects] = useState<$Any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -72,7 +79,7 @@ export function ViberSimulator() {
           transitionProperty: 'transform, opacity',
           transitionDuration: '200ms',
           transitionTimingFunction: 'ease-in-out',
-        } as any)
+        } as $Any)
       : {};
 
   const loadData = async () => {
@@ -162,8 +169,8 @@ export function ViberSimulator() {
       if (itemsList.length > 0) {
         const { items: allItems } = await fetchItemsAndStockLevel();
         const mapped = itemsList
-          .map((ii: any) => {
-            const itemDetail = allItems.find((i: any) => i.id === ii.item_id);
+          .map((ii: $Any) => {
+            const itemDetail = allItems.find((i: $Any) => i.id === ii.item_id);
             if (!itemDetail) return null;
             const unitPriceVal =
               ii.unit_price !== undefined && ii.unit_price !== null
@@ -180,12 +187,12 @@ export function ViberSimulator() {
               stockCondition: ii.stock_condition || 'GOOD',
             };
           })
-          .filter(Boolean) as any[];
+          .filter(Boolean) as $Any[];
         setSelectedItems(mapped);
       }
     } catch (e) {
       console.error('Failed to duplicate last order in ViberSimulator:', e);
-      Alert.alert('Error', 'Failed to duplicate last order.');
+      Alert.alert(t('error'), t('failedToDuplicateLastOrder'));
     }
   };
 
@@ -194,7 +201,7 @@ export function ViberSimulator() {
     loadLastInteractionLog();
   }, [selectedShopId, shops]);
 
-  const getItemPrice = (item: any) => {
+  const getItemPrice = (item: $Any) => {
     const pbItem = priceBookItems.find((pbi) => pbi.item_id === item.id);
     let basePrice = item.unitPrice; // standard MMK price
     let baseCurrency = 'MMK';
@@ -232,20 +239,22 @@ export function ViberSimulator() {
     }
 
     // Default rate falls back if rates are not loaded yet
-    if (selectedCurrency === 'USD') return priceInMmk / 2100;
-    if (selectedCurrency === 'THB') return priceInMmk / 58.5;
+    const matchedConfig = CURRENCIES.find((c) => c.value === selectedCurrency);
+    if (matchedConfig && matchedConfig.defaultRateToMmk > 0) {
+      return priceInMmk / matchedConfig.defaultRateToMmk;
+    }
 
     return priceInMmk;
   };
 
   const handleParse = () => {
     if (!rawText.trim()) {
-      Alert.alert('Info', t('enterRawOrderTextInfo'));
+      Alert.alert(t('info'), t('enterRawOrderTextInfo'));
       return;
     }
 
     const lines = rawText.split('\n');
-    const parsedItems: any[] = [];
+    const parsedItems: $Any[] = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -272,17 +281,7 @@ export function ViberSimulator() {
         itemSearchText = lower.replace(parenRegex, '');
 
         // Extract unit from the remaining text
-        const knownUnits = [
-          'pcs',
-          'pc',
-          'pk',
-          'bags',
-          'bag',
-          'pal',
-          'units',
-          'unit',
-        ];
-        for (const u of knownUnits) {
+        for (const u of VIBER_KNOWN_UNITS) {
           if (itemSearchText.includes(u)) {
             if (u.startsWith('pc')) unit = 'PCS';
             else if (u.startsWith('pk')) unit = 'PK';
@@ -322,18 +321,8 @@ export function ViberSimulator() {
           }
         }
 
-        const knownUnits = [
-          'pcs',
-          'pc',
-          'pk',
-          'bags',
-          'bag',
-          'pal',
-          'units',
-          'unit',
-        ];
         let qtyCandidate = candidates.find((c) =>
-          knownUnits.includes(c.unitStr),
+          VIBER_KNOWN_UNITS.includes(c.unitStr),
         );
         if (!qtyCandidate && candidates.length > 0) {
           qtyCandidate = candidates[0];
@@ -359,7 +348,7 @@ export function ViberSimulator() {
       }
 
       // Score items
-      let bestItem: any = null;
+      let bestItem: $Any = null;
       let maxScore = 0;
 
       for (const item of items) {
@@ -372,27 +361,12 @@ export function ViberSimulator() {
         let score = 0;
         for (const token of allTokens) {
           if (itemSearchText.includes(token)) {
-            if (
-              token === 'shera' ||
-              token === 'gator' ||
-              token === 'karat' ||
-              token === 'vrh' ||
-              token === 'scg' ||
-              token === 'knauf'
-            ) {
-              score += 10;
-            } else if (
-              token === '6mm' ||
-              token === '8mm' ||
-              token === '9mm' ||
-              token === '1/2' ||
-              token === 'cement' ||
-              token === 'gypsum' ||
-              token === 'pvc'
-            ) {
-              score += 5;
+            if (VIBER_BRAND_TOKENS.includes(token)) {
+              score += VIBER_SCORING_WEIGHTS.BRAND;
+            } else if (VIBER_SPEC_TOKENS.includes(token)) {
+              score += VIBER_SCORING_WEIGHTS.SPEC;
             } else {
-              score += 1;
+              score += VIBER_SCORING_WEIGHTS.GENERIC;
             }
           }
         }
@@ -420,7 +394,7 @@ export function ViberSimulator() {
     }
 
     if (parsedItems.length === 0) {
-      Alert.alert('Info', t('couldNotIdentifyItems'));
+      Alert.alert(t('info'), t('couldNotIdentifyItems'));
     } else {
       setSelectedItems(parsedItems);
     }
@@ -670,7 +644,7 @@ export function ViberSimulator() {
                       fontSize: 14,
                       color: theme.colors.primaryText,
                       ...(Platform.OS === 'web'
-                        ? ({ outlineStyle: 'none' } as any)
+                        ? ({ outlineStyle: 'none' } as $Any)
                         : {}),
                     }}
                   />
@@ -690,7 +664,7 @@ export function ViberSimulator() {
                           setShowShopList(false);
                           setShopSearch('');
                         }}
-                        style={({ pressed, hovered }: any) => [
+                        style={({ pressed, hovered }: $Any) => [
                           {
                             backgroundColor:
                               selectedShopId === s.id
@@ -747,7 +721,7 @@ export function ViberSimulator() {
               numberOfLines={4}
               value={rawText}
               onChangeText={setRawText}
-              placeholder={`Shera 6mm 50 pcs\nGator PVC 10 pk`}
+              placeholder={t('viberPlaceholder')}
               placeholderTextColor={theme.colors.secondaryText}
               onFocus={() => setTextAreaFocused(true)}
               onBlur={() => setTextAreaFocused(false)}
@@ -761,7 +735,7 @@ export function ViberSimulator() {
                 fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
                 textAlignVertical: 'top',
                 ...(Platform.OS === 'web'
-                  ? ({ outlineStyle: 'none' } as any)
+                  ? ({ outlineStyle: 'none' } as $Any)
                   : {}),
               }}
             />
@@ -789,7 +763,8 @@ export function ViberSimulator() {
               {t('orderCurrency')}
             </Text>
             <Box flexDirection="row">
-              {['MMK', 'USD', 'THB'].map((curr) => {
+              {CURRENCIES.map((c) => {
+                const curr = c.value;
                 const isSelected = selectedCurrency === curr;
                 return (
                   <Box key={curr} mr="s" style={{ flex: 1 }}>
@@ -831,10 +806,16 @@ export function ViberSimulator() {
                               if (rateFromMmk && rateFromMmk.rate > 0) {
                                 finalPrice = priceInMmk / rateFromMmk.rate;
                               } else {
-                                if (curr === 'USD')
-                                  finalPrice = priceInMmk / 2100;
-                                if (curr === 'THB')
-                                  finalPrice = priceInMmk / 58.5;
+                                const matchedConfig = CURRENCIES.find(
+                                  (cc) => cc.value === curr,
+                                );
+                                if (
+                                  matchedConfig &&
+                                  matchedConfig.defaultRateToMmk > 0
+                                ) {
+                                  finalPrice =
+                                    priceInMmk / matchedConfig.defaultRateToMmk;
+                                }
                               }
                             }
 
