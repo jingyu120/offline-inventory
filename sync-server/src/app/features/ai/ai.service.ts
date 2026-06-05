@@ -192,13 +192,13 @@ Return ONLY raw JSON. No markdown formatting, no explanation.`;
     let commercialStatus = 'FOLLOWED_UP';
     if (lowerNote.includes('order') || lowerNote.includes('bought')) {
       commercialStatus = 'ORDER_PLACED';
-    } else if (lowerNote.includes('interest')) {
-      commercialStatus = 'INTERESTED';
     } else if (
       lowerNote.includes('not interest') ||
       lowerNote.includes('reject')
     ) {
       commercialStatus = 'NOT_INTERESTED';
+    } else if (lowerNote.includes('interest')) {
+      commercialStatus = 'INTERESTED';
     }
 
     const items = [];
@@ -376,14 +376,16 @@ Return ONLY raw JSON.`;
       const lower = note.toLowerCase();
       if (
         lower.includes('delighted') ||
-        lower.includes('happy') ||
+        (lower.includes('happy') && !lower.includes('unhappy')) ||
         lower.includes('great') ||
         lower.includes('placed') ||
         lower.includes('improving') ||
         lower.includes('love') ||
         lower.includes('increased') ||
         lower.includes('good') ||
-        lower.includes('satisfied')
+        (lower.includes('satisfied') &&
+          !lower.includes('dissatisfied') &&
+          !lower.includes('unsatisfied'))
       ) {
         positiveScore++;
       }

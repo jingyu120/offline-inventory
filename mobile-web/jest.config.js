@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   displayName: 'mobile-web',
   preset: 'react-native',
   testEnvironment: 'node',
@@ -10,4 +10,7 @@ export default {
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|expo|@shopify|lucide-react-native|@react-native-community)/)',
   ],
+  collectCoverage: true,
+  coverageReporters: ['text', 'lcov', 'json', 'html'],
+  coverageProvider: 'v8',
 };
