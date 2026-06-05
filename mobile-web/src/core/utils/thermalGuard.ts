@@ -33,3 +33,5 @@ export const ThermalGuard = {
     };
   },
 };
+
+(globalThis as Record<string, unknown>).ThermalGuard = ThermalGuard;

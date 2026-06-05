@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { StateRecovery, AppRecoveryState } from '../utils/stateRecovery';
 
 export interface CartItem {
   item: $Any;
@@ -19,6 +20,7 @@ export interface CartSession {
   isOverrideMarginAcknowledged: boolean;
   screenshotUri: string | null;
   hasDiscrepancy: boolean;
+  traceId?: string | null;
 }
 
 export const defaultSession: CartSession = {
@@ -31,9 +33,8 @@ export const defaultSession: CartSession = {
   isOverrideMarginAcknowledged: false,
   screenshotUri: null,
   hasDiscrepancy: false,
+  traceId: null,
 };
-
-import { StateRecovery, AppRecoveryState } from '../utils/stateRecovery';
 
 interface CartState {
   sessions: Record<string, CartSession>; // keyed by shopId
@@ -47,6 +48,8 @@ interface CartState {
   clearSession: (shopId: string) => void;
   recoveryState: AppRecoveryState | null;
   setRecoveryState: (updates: Partial<AppRecoveryState>) => void;
+  activeTabId: string | null;
+  setActiveTabId: (tabId: string | null) => void;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -56,7 +59,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     selectedShopId: null,
     activeRowIndex: null,
     loggingModalVisible: false,
+    activeTabId: null,
   },
+  activeTabId: StateRecovery.loadState()?.activeTabId || null,
 
   getOrCreateSession: (shopId) => {
     const session = get().sessions[shopId];
@@ -96,6 +101,21 @@ export const useCartStore = create<CartState>((set, get) => ({
       } as AppRecoveryState;
       StateRecovery.saveState(newState);
       return { recoveryState: newState };
+    });
+  },
+
+  setActiveTabId: (tabId) => {
+    set((state) => {
+      const newRecovery = {
+        ...(state.recoveryState || {}),
+        activeTabId: tabId,
+        selectedShopId: tabId,
+      } as AppRecoveryState;
+      StateRecovery.saveState(newRecovery);
+      return {
+        activeTabId: tabId,
+        recoveryState: newRecovery,
+      };
     });
   },
 }));

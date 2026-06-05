@@ -62,6 +62,21 @@ describe('AiQueueService', () => {
     });
   });
 
+  it('adds corrupted transaction jobs correctly', async () => {
+    await service.addCorruptedTransactionJob(
+      'Invalid format',
+      { data: 'payload' },
+      'trace-1',
+      'actor-1',
+    );
+    expect(mockQueueMethods.add).toHaveBeenCalledWith('corrupted-transaction', {
+      reason: 'Invalid format',
+      payload: { data: 'payload' },
+      traceId: 'trace-1',
+      actorId: 'actor-1',
+    });
+  });
+
   it('retrieves failed jobs mapped correctly', async () => {
     const failed = await service.getFailedJobs();
     expect(mockQueueMethods.getFailed).toHaveBeenCalled();

@@ -7,6 +7,7 @@ export interface AppRecoveryState {
   selectedShopId?: string | null;
   activeRowIndex?: number | null;
   loggingModalVisible?: boolean;
+  activeTabId?: string | null;
 }
 
 interface StorageInterface {

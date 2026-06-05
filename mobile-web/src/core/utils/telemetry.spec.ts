@@ -15,6 +15,30 @@ jest.mock('../database/database', () => ({
   },
 }));
 
+jest.mock('./thermalGuard', () => ({
+  ThermalGuard: {
+    subscribe: jest.fn((cb) => {
+      cb('NOMINAL');
+      return jest.fn();
+    }),
+    getThermalState: jest.fn(() => 'NOMINAL'),
+  },
+}));
+
+jest.mock('../../features/sync/hooks/useNetworkQuality', () => ({
+  NetworkQualityObserver: {
+    subscribe: jest.fn((cb) => {
+      cb({ isConnected: true, type: 'wifi', isDegraded: false });
+      return jest.fn();
+    }),
+  },
+  getActiveNetworkQuality: jest.fn(() => ({
+    isConnected: true,
+    type: 'wifi',
+    isDegraded: false,
+  })),
+}));
+
 import { TelemetryLogger } from './telemetry';
 
 describe('TelemetryLogger', () => {

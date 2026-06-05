@@ -442,6 +442,8 @@ export const telemetry_logs = pgTable('telemetry_logs', {
   message: text('message').notNull(),
   timestamp: bigint('timestamp', { mode: 'number' }).notNull(),
   synced_at_server: bigint('synced_at_server', { mode: 'number' }),
+  thermal_status: text('thermal_status'),
+  network_generation_2G_EDGE: text('network_generation_2G_EDGE'),
   created_at: bigint('created_at', { mode: 'number' }).notNull(),
   updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
 });

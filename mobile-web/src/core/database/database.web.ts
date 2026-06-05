@@ -365,6 +365,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         message TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         synced_at_server INTEGER,
+        thermal_status TEXT,
+        network_generation_2G_EDGE TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -576,6 +578,8 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
     alterTable('draft_carts', 'executed_by_id', 'TEXT');
     alterTable('draft_carts', 'salesperson_id', 'TEXT');
     alterTable('draft_carts', 'approved_by_id', 'TEXT');
+    alterTable('telemetry_logs', 'thermal_status', 'TEXT');
+    alterTable('telemetry_logs', 'network_generation_2G_EDGE', 'TEXT');
 
     // Check if shops table is empty
     let isEmpty = true;

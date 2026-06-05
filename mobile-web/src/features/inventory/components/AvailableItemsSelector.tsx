@@ -9,6 +9,7 @@ import { Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { INVENTORY_STATUS } from '../../../config/appConfig';
+import { ThermalGuard } from '../../../core/utils/thermalGuard';
 
 interface AvailableItemsSelectorProps {
   skuSearch: string;
@@ -40,6 +41,38 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const swipeableRefs = useRef<Record<string, SwipeableMethods>>({});
+
+  const [localSearch, setLocalSearch] = React.useState(skuSearch);
+  const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    setLocalSearch(skuSearch);
+  }, [skuSearch]);
+
+  const handleTextChange = (text: string) => {
+    setLocalSearch(text);
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    const thermalState = ThermalGuard.getThermalState();
+    const isHighThermal =
+      thermalState === 'SERIOUS' || thermalState === 'CRITICAL';
+    if (isHighThermal) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        setSkuSearch(text);
+      }, 500);
+    } else {
+      setSkuSearch(text);
+    }
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const renderLeftActions = () => {
     return (
@@ -100,8 +133,8 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
         }}
         placeholder={t('searchSkusPlaceholder')}
         placeholderTextColor={theme.colors.secondaryText}
-        value={skuSearch}
-        onChangeText={setSkuSearch}
+        value={localSearch}
+        onChangeText={handleTextChange}
       />
       <Box style={{ height: 180 }} mb="m">
         {filteredAvailableItems.length === 0 ? (

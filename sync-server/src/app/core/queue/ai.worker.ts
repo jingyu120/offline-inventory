@@ -27,6 +27,11 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
           } else if (name === 'eod-digest') {
             const { dateStr } = data;
             await this.aiService.generateEodDigest(dateStr);
+          } else if (name === 'corrupted-transaction') {
+            const { reason, payload } = data;
+            throw new Error(
+              `Corrupted Transaction Frame: ${reason}. Payload: ${JSON.stringify(payload)}`,
+            );
           } else {
             console.warn(`[AiWorker] Unknown job name: ${name}`);
           }

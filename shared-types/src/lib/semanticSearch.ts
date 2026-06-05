@@ -57,8 +57,32 @@ export function semanticSearch<T extends SearchItem>(
     return [exactNameMatch];
   }
 
+  // Check global thermal state if available
+  const thermalGuard = (globalThis as Record<string, unknown>).ThermalGuard as
+    | { getThermalState: () => string }
+    | undefined;
+  const thermalState = thermalGuard
+    ? thermalGuard.getThermalState()
+    : 'NOMINAL';
+
+  if (thermalState === 'CRITICAL') {
+    // High-speed indexed substring regex fallback
+    const escapedQuery = cleanQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'i');
+    return items.filter(
+      (item) => regex.test(item.name) || regex.test(item.sku),
+    );
+  }
+
+  let searchItems = items;
+  if (thermalState === 'SERIOUS') {
+    // Step down comparisons by 50%
+    const limit = Math.ceil(items.length / 2);
+    searchItems = items.slice(0, limit);
+  }
+
   const queryTokens = tokenize(query);
-  if (queryTokens.length === 0) return items;
+  if (queryTokens.length === 0) return searchItems;
 
   // Semantic query expansion
   const expandedQueryTokens = [...queryTokens];
@@ -72,11 +96,11 @@ export function semanticSearch<T extends SearchItem>(
     }
   }
 
-  const N = items.length;
+  const N = searchItems.length;
   if (N === 0) return [];
 
   // 1. Tokenize all items and compute Document Frequency (DF)
-  const itemTokensList = items.map((item) => {
+  const itemTokensList = searchItems.map((item) => {
     const text = `${item.name} ${item.sku}`;
     return tokenize(text);
   });
@@ -157,7 +181,7 @@ export function semanticSearch<T extends SearchItem>(
       }
     }
 
-    const item = items[index];
+    const item = searchItems[index];
     const itemNameLower = item.name.toLowerCase();
     const itemSkuLower = item.sku.toLowerCase();
     let exactBoost = 0;

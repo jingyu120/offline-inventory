@@ -70,16 +70,15 @@ export function ShopLedgerScreen() {
     let active = true;
     const restoreRecoveryState = async () => {
       const recoveryState = useCartStore.getState().recoveryState;
-      if (recoveryState?.selectedShopId) {
-        console.log(
-          '[Recovery] Restoring last selected shop:',
-          recoveryState.selectedShopId,
-        );
+      const targetShopId =
+        recoveryState?.activeTabId || recoveryState?.selectedShopId;
+      if (targetShopId) {
+        console.log('[Recovery] Restoring last selected shop:', targetShopId);
         try {
           const shopDetails = await database
             .select()
             .from(sqliteSchema.shops)
-            .where(eq(sqliteSchema.shops.id, recoveryState.selectedShopId));
+            .where(eq(sqliteSchema.shops.id, targetShopId));
           if (shopDetails.length > 0 && active) {
             const mappedShop = mapShop(shopDetails[0]);
             await selectShop(mappedShop);
@@ -107,7 +106,15 @@ export function ShopLedgerScreen() {
     setRecoveryState({
       selectedShopId: selectedShop?.id || null,
       loggingModalVisible: loggingModalVisible,
+      activeTabId: selectedShop?.id || null,
     });
+
+    const activeTabId = useCartStore.getState().activeTabId;
+    if (selectedShop && selectedShop.id !== activeTabId) {
+      useCartStore.getState().setActiveTabId(selectedShop.id);
+    } else if (!selectedShop && activeTabId) {
+      useCartStore.getState().setActiveTabId(null);
+    }
   }, [selectedShop, loggingModalVisible, setRecoveryState]);
 
   const [stats, setStats] = useState({

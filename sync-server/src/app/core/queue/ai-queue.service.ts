@@ -41,6 +41,20 @@ export class AiQueueService implements OnModuleDestroy {
     });
   }
 
+  async addCorruptedTransactionJob(
+    reason: string,
+    payload: unknown,
+    traceId?: string,
+    actorId?: string,
+  ) {
+    await this.queue.add('corrupted-transaction', {
+      reason,
+      payload,
+      traceId,
+      actorId,
+    });
+  }
+
   async getFailedJobs() {
     const jobs = await this.queue.getFailed(0, 100);
     return jobs.map((j) => ({

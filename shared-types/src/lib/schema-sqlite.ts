@@ -424,6 +424,8 @@ export const telemetry_logs = sqliteTable('telemetry_logs', {
   message: text('message').notNull(),
   timestamp: integer('timestamp').notNull(),
   synced_at_server: integer('synced_at_server'),
+  thermal_status: text('thermal_status'),
+  network_generation_2G_EDGE: text('network_generation_2G_EDGE'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });

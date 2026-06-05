@@ -2,6 +2,16 @@ import { sqliteSchema } from '@burma-inventory/shared-types';
 import { desc } from 'drizzle-orm';
 import { sha256 } from './crypto';
 
+let latestAuditHash = 'genesis';
+
+export function getLatestAuditHash(): string {
+  return latestAuditHash;
+}
+
+export function setLatestAuditHash(hash: string) {
+  latestAuditHash = hash;
+}
+
 export interface AuditEventPayload {
   event_id: string;
   trace_id: string | null;
@@ -53,6 +63,7 @@ export async function writeAuditEvent(
     prevHash;
 
   const currentHash = sha256(dataToHash);
+  setLatestAuditHash(currentHash);
 
   await tx.insert(sqliteSchema.audit_events).values({
     ...event,

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from '@burma-inventory/shared-types/server';
 import { TrpcRouter } from './trpc.router';
+import { requestStorage } from './request-context';
 
 @Controller('trpc')
 export class TrpcController {
@@ -12,7 +13,7 @@ export class TrpcController {
 
   private trpcMiddleware = createExpressMiddleware({
     router: appRouter,
-    createContext: () => ({}),
+    createContext: ({ req, res }) => ({ req, res }),
   });
 
   @All('*')
@@ -24,8 +25,10 @@ export class TrpcController {
     if (req.url === '') {
       req.url = '/';
     }
-    this.trpcMiddleware(req, res, () => {
-      req.url = originalUrl;
+    requestStorage.run(req, () => {
+      this.trpcMiddleware(req, res, () => {
+        req.url = originalUrl;
+      });
     });
   }
 }
