@@ -4,6 +4,7 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Box,
@@ -21,15 +22,13 @@ import { VelocityTimeline } from '../components/VelocityTimeline';
 import { SVGAnalyticsDashboard } from '../components/SVGAnalyticsDashboard';
 import { useTranslation } from '../../../core/i18n/i18n';
 import axios from 'axios';
-import { API_BASE_URL } from '../../../config/appConfig';
+import { API_BASE_URL, SKU_METRICS } from '../../../config/appConfig';
 import { SyncLogsTable } from '../components/SyncLogsTable';
 import { trpcClient } from '../../../core/trpc/trpcClient';
-import { SKU_METRICS } from '../../../config/appConfig';
 import { HitlVerificationPanel } from '../components/HitlVerificationPanel';
 import { DlqDashboard } from '../components/DlqDashboard';
 import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
 import { PendingSalesApproval } from '../components/PendingSalesApproval';
-import { TouchableOpacity } from 'react-native';
 
 const TAB_OVERSIGHT = 'oversight';
 const TAB_HITL = 'hitl';

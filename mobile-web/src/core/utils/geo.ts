@@ -1,6 +1,12 @@
-export const GEOFENCE_RADIUS_AUDIT_METERS = 100;
-export const GEOFENCE_RADIUS_INTAKE_METERS = 100;
-export const GEOFENCE_RADIUS_CHECKIN_METERS = 500;
+import {
+  GEOFENCE_RADIUS_AUDIT_METERS as CONFIG_AUDIT,
+  GEOFENCE_RADIUS_INTAKE_METERS as CONFIG_INTAKE,
+  GEOFENCE_RADIUS_CHECKIN_METERS as CONFIG_CHECKIN,
+} from '../../config/appConfig';
+
+export const GEOFENCE_RADIUS_AUDIT_METERS = CONFIG_AUDIT;
+export const GEOFENCE_RADIUS_INTAKE_METERS = CONFIG_INTAKE;
+export const GEOFENCE_RADIUS_CHECKIN_METERS = CONFIG_CHECKIN;
 
 /**
  * Calculates the geodetic distance between two coordinates using the Haversine formula.

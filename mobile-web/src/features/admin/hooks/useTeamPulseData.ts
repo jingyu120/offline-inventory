@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
-import axios from 'axios';
 import { trpcClient } from '../../../core/trpc/trpcClient';
-import {
-  AI_EOD_DIGEST_URL,
-  AI_QUOTAS_OPTIMIZATIONS_URL,
-  REPRESENTATIVES,
-} from '../../../config/appConfig';
+import { REPRESENTATIVES } from '../../../config/appConfig';
 import {
   fetchShops,
   fetchRegions,

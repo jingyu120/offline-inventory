@@ -19,8 +19,6 @@ import { trpcClient } from '../../../core/trpc/trpcClient';
 import {
   AlertCircle,
   Trash2,
-  RefreshCw,
-  Edit3,
   X,
   CheckCircle,
   Terminal,

@@ -1,7 +1,7 @@
 import { database } from '../database/database';
-import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq, like, inArray, desc, isNull, and } from 'drizzle-orm';
 import {
+  sqliteSchema,
   Shop,
   Region,
   Contact,

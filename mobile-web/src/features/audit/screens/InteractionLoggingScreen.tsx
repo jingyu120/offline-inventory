@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   ScrollView,
@@ -8,7 +8,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
+import { Box, Text, Button, Card, Theme } from '@burma-inventory/ui-components';
 import {
   Shop,
   Item,
@@ -22,7 +22,6 @@ import {
   createInteractionLog,
   SelectedItemPayload,
   getConversionMultiplier,
-  mapItem,
 } from '../../../core/data/repositories';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
@@ -30,13 +29,15 @@ import { scannerThrottle } from '../../../core/utils/ScannerThrottle';
 import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
 import { ActorService } from '../../../core/auth/ActorService';
 import { useCartStore, defaultSession } from '../../../core/store/cartStore';
-import { API_BASE_URL } from '../../../config/appConfig';
+import {
+  API_BASE_URL,
+  COMMERCIAL_STATUSES,
+  CURRENCIES,
+} from '../../../config/appConfig';
 import { AlertTriangle } from 'lucide-react-native';
 import { useTheme } from '@shopify/restyle';
-import { Theme } from '@burma-inventory/ui-components';
 import { checkDiscrepancy } from '../../../core/utils/ocr';
 import { getItemPrice as getPriceHelper } from '../../../core/utils/pricing';
-import { COMMERCIAL_STATUSES, CURRENCIES } from '../../../config/appConfig';
 import { TelemetryLogger } from '../../../core/utils/telemetry';
 
 // Import subcomponents
@@ -104,7 +105,6 @@ export function InteractionLoggingScreen({
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
   const [projects, setProjects] = useState<$Any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [ocrVerifying, setOcrVerifying] = useState(false);
   const [lastInteractionLog, setLastInteractionLog] = useState<$Any>(null);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [traceId, setTraceId] = useState('');
@@ -175,7 +175,6 @@ export function InteractionLoggingScreen({
         return;
       }
 
-      setOcrVerifying(true);
       try {
         let base64 = '';
         if (screenshotUri.startsWith('data:image/')) {
@@ -226,8 +225,6 @@ export function InteractionLoggingScreen({
         }
       } catch (err) {
         console.error('Failed to verify screenshot OCR:', err);
-      } finally {
-        setOcrVerifying(false);
       }
     };
 
@@ -384,7 +381,7 @@ export function InteractionLoggingScreen({
           (i) => i.sku.toLowerCase() === skuSearch.trim().toLowerCase(),
         );
         if (perfectMatch) {
-          const isAllowed = scannerThrottle.processScan(perfectMatch.sku);
+          const isAllowed = scannerThrottle.processScan(perfectMatch.sku, t);
           if (isAllowed) {
             const exists = selectedItems.find(
               (si) => si.item.id === perfectMatch.id,

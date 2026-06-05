@@ -97,8 +97,6 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
 
-  // Track which price input is focused for the emerald focus ring
-  const [focusedPriceId, setFocusedPriceId] = useState<string | null>(null);
   const [focusedQtyId, setFocusedQtyId] = useState<string | null>(null);
 
   /** Duplicate order CTA — shown when basket is empty */
@@ -192,7 +190,6 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
           const totalVal = price * (isNaN(qty) ? 0 : qty);
           const baseFloor = getItemPrice(si.item);
           const isBelowFloor = price < baseFloor * 0.85;
-          const priceFocused = focusedPriceId === si.item.id;
           const qtyFocused = focusedQtyId === si.item.id;
 
           const formattedPrice =
@@ -432,7 +429,7 @@ export const SelectedItemsList: React.FC<SelectedItemsListProps> = ({
                           </Box>
                         );
                       }
-                    } catch (e) {
+                    } catch {
                       return (
                         <Text variant="caption" color="danger">
                           {t('invalidBracketsFormat')}

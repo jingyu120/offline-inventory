@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
   ScrollView,
 } from 'react-native';
-import { Box, Text, Card, Theme, Button } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { database } from '../../../core/database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq } from 'drizzle-orm';
-import { Check, X, ShieldAlert, Layers } from 'lucide-react-native';
+import { Check, X, Layers } from 'lucide-react-native';
 import { INVENTORY_STATUS } from '../../../config/appConfig';
 import { useTranslation } from '../../../core/i18n/i18n';
 
@@ -123,7 +123,6 @@ export function PendingIntakeApproval() {
 
   const handleReject = async (item: $Any) => {
     try {
-      const now = Date.now();
       // Delete stock update or mark as rejected/deleted
       if (item.stockId) {
         await database

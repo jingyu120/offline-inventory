@@ -16,17 +16,18 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { SyncService } from './sync.service';
-import { PushChangesPayloadSchema } from '@burma-inventory/shared-types';
-import type { PushChangesBody } from '@burma-inventory/shared-types';
+import {
+  PushChangesPayloadSchema,
+  type PushChangesBody,
+} from '@burma-inventory/shared-types';
 import { AiQueueService } from '../../core/queue/ai-queue.service';
 import { ZodValidationPipe } from '../../core/pipes/zod-validation.pipe';
 import { AppConfig } from '../../core/config/app-config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname, join } from 'path';
-import { Response } from 'express';
 import * as fs from 'fs';
 import * as multer from 'multer';
 

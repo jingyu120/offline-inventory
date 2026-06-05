@@ -5,7 +5,11 @@ import { useAuth, REPS } from '../auth/auth';
 import { useToast } from './ToastProvider';
 import { useTranslation } from '../i18n/i18n';
 import { ChevronDown, RefreshCw } from 'lucide-react-native';
-import { ROLE_SCREENS, SCREENS } from '../../config/appConfig';
+import {
+  ROLE_SCREENS,
+  SCREENS,
+  THERMAL_CRITICAL_COLOR,
+} from '../../config/appConfig';
 import { ThermalGuard, ThermalState } from '../utils/thermalGuard';
 export { ROLE_SCREENS };
 
@@ -411,15 +415,15 @@ export const NavBar: React.FC<NavBarProps> = ({
                 setIsRepDropdownOpen(false);
                 setIsNavDropdownOpen(false);
               }}
-              style={({ pressed, hovered }: $Any) => {
+              style={({ pressed }: $Any) => {
                 let bg = activeTheme.colors.borderColor;
-                if (thermalState === 'NOMINAL')
-                  bg = '#10B981'; // green
+                if (thermalState === 'NOMINAL') bg = activeTheme.colors.success;
                 else if (thermalState === 'FAIR')
-                  bg = '#F59E0B'; // yellow
+                  bg = activeTheme.colors.warning;
                 else if (thermalState === 'SERIOUS')
-                  bg = '#EF4444'; // orange
-                else if (thermalState === 'CRITICAL') bg = '#7F1D1D'; // red/maroon
+                  bg = activeTheme.colors.danger;
+                else if (thermalState === 'CRITICAL')
+                  bg = THERMAL_CRITICAL_COLOR;
                 return {
                   paddingVertical: 6,
                   paddingHorizontal: 10,
@@ -476,7 +480,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                             : 'success',
                         );
                       }}
-                      style={({ pressed, hovered }: $Any) => ({
+                      style={({ hovered }: $Any) => ({
                         paddingVertical: 8,
                         paddingHorizontal: 12,
                         backgroundColor: isSelected

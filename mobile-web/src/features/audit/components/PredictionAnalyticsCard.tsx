@@ -6,9 +6,8 @@ import { Shop, sqliteSchema } from '@burma-inventory/shared-types';
 import { Zap, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useToast } from '../../../core/components/ToastProvider';
 import { useTranslation } from '../../../core/i18n/i18n';
-import { API_BASE_URL } from '../../../config/appConfig';
+import { API_BASE_URL, MOCK_PROJECT_CAPITALS } from '../../../config/appConfig';
 import { database } from '../../../core/database/database';
-import { eq } from 'drizzle-orm';
 
 interface PredictionAnalyticsCardProps {
   shop: Shop;
@@ -46,8 +45,9 @@ export const PredictionAnalyticsCard: React.FC<
   const loadProjects = React.useCallback(async () => {
     try {
       const allProjects = await database.select().from(sqliteSchema.projects);
-      const filtered = allProjects.filter(
-        (p: $Any) => p.name === 'Galaxy Tower-3' || p.name === 'Zaw Residence',
+      const targetNames = MOCK_PROJECT_CAPITALS.map((pc) => pc.projectName);
+      const filtered = allProjects.filter((p: $Any) =>
+        targetNames.includes(p.name),
       );
       setProjectsList(filtered);
     } catch (e) {
@@ -339,8 +339,10 @@ export const PredictionAnalyticsCard: React.FC<
             </Text>
 
             {projectsList.map((proj) => {
-              const capital =
-                proj.name === 'Galaxy Tower-3' ? 'K150,000,000' : 'K85,000,000';
+              const projConfig = MOCK_PROJECT_CAPITALS.find(
+                (pc) => pc.projectName === proj.name,
+              );
+              const capital = projConfig ? projConfig.capitalValue : 'K0';
               return (
                 <Card
                   key={proj.id}

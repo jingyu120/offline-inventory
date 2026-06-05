@@ -313,6 +313,9 @@ export const translations = {
     negotiatedPrice: 'Negotiated Price',
     belowWholesaleFloorWarning: 'Below wholesale floor (–15%)',
     acknowledgeOverrideMargin: 'Confirm Overridden Margin',
+    duplicateScanBlocked: 'Duplicate Scan Blocked',
+    duplicateScanBlockedDesc:
+      'Please wait a moment before scanning the same barcode again.',
 
     permissionRequired: 'Permission required',
     cameraRollPermissionDesc:
@@ -1055,6 +1058,9 @@ export const translations = {
       'အနိမ့်ဆုံး သတ်မှတ်ဈေးနှုန်းအောက် ရောက်နေပါသည် (–၁၅%)',
     acknowledgeOverrideMargin:
       'အနိမ့်ဆုံးသတ်မှတ်ဈေးနှုန်းအောက် ရောင်းချခြင်းကို အတည်ပြုသည်',
+    duplicateScanBlocked: 'ထပ်ခါတလဲလဲ စကင်န်ဖတ်ခြင်းကို တားဆီးထားသည်',
+    duplicateScanBlockedDesc:
+      'တူညီသော ဘားကုဒ်ကို ထပ်မံစကင်န်မဖတ်မီ ခေတ္တစောင့်ဆိုင်းပေးပါ။',
     permissionRequired: 'ခွင့်ပြုချက် လိုအပ်သည်',
     cameraRollPermissionDesc:
       'ဖန်သားပြင်ဓာတ်ပုံ တင်ရန်အတွက် ဓာတ်ပုံပြခန်း ခွင့်ပြုချက် လိုအပ်ပါသည်။',

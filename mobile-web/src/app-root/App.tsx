@@ -27,7 +27,6 @@ import { powerSyncDb, database } from '../core/database/database';
 import {
   useWindowDimensions,
   Platform,
-  Alert,
   AppState,
   AppStateStatus,
 } from 'react-native';
@@ -305,8 +304,6 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
       setCurrentScreen(allowed[0]);
     }
   }, [activeRep, currentScreen]);
-
-  const { language } = useTranslation();
 
   return (
     <SafeAreaView

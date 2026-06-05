@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Platform } from 'react-native';
 import { Box } from './Primitives';
 

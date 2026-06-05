@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, ScrollView, Alert, Platform } from 'react-native';
+import { Modal, ScrollView, Alert } from 'react-native';
 import {
   Box,
   Text,
   Button,
   DropdownSelector,
-  Theme,
 } from '@burma-inventory/ui-components';
-import { useTheme } from '@shopify/restyle';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { database } from '../../../core/database/database';
 import {
@@ -34,7 +32,6 @@ export const UpdateTerritoryModal: React.FC<UpdateTerritoryModalProps> = ({
   onUpdateSuccess,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme<Theme>();
 
   const [regions, setRegions] = useState<Region[]>([]);
   const [townships, setTownships] = useState<Township[]>([]);

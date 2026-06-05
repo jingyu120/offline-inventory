@@ -63,11 +63,14 @@ export default tseslint.config(
       ],
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      eqeqeq: ['error', 'always'],
+      'no-duplicate-imports': 'error',
     },
   },
   {

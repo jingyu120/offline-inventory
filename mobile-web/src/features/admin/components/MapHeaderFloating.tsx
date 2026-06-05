@@ -1,9 +1,8 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import { Box, Text, Theme } from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useTheme } from '@shopify/restyle';
-import { Theme } from '@burma-inventory/ui-components';
 
 interface MapHeaderFloatingProps {
   filteredShopsCount: number;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import {
   Box,
@@ -14,6 +14,7 @@ import { useTranslation } from '../../../core/i18n/i18n';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
+import { IMAGE_UPLOAD_CONFIG } from '../../../config/appConfig';
 
 interface CompetitorInsightFormProps {
   isDesktop: boolean;
@@ -76,8 +77,14 @@ export function CompetitorInsightForm({
       try {
         const manipResult = await ImageManipulator.manipulateAsync(
           uri,
-          [{ resize: { width: 1080 } }],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          [{ resize: { width: IMAGE_UPLOAD_CONFIG.resizeWidth } }],
+          {
+            compress: IMAGE_UPLOAD_CONFIG.quality,
+            format:
+              IMAGE_UPLOAD_CONFIG.format === 'png'
+                ? ImageManipulator.SaveFormat.PNG
+                : ImageManipulator.SaveFormat.JPEG,
+          },
         );
         handleInterceptPhoto(manipResult.uri);
       } catch (err) {

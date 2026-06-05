@@ -14,66 +14,16 @@ import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq } from 'drizzle-orm';
 import { X, Boxes } from 'lucide-react-native';
 import { useTranslation } from '../i18n/i18n';
-
-interface DesignPattern {
-  id: string;
-  name: string;
-  brand: string;
-  brandId: string;
-  description: string;
-  gradient: string[];
-}
-
-const DEFAULT_PATTERNS: DesignPattern[] = [
-  {
-    id: 'shera-wood-classic',
-    name: 'Shera Wood Classic',
-    brand: 'Shera',
-    brandId: 'brand-shera',
-    description:
-      'Vibrant, durable teak woodgrain texture for natural rustic siding.',
-    gradient: ['#F59E0B', '#B45309'],
-  },
-  {
-    id: 'scg-smart-board-modern',
-    name: 'SCG Plank Modern',
-    brand: 'SCG Smart Board',
-    brandId: 'brand-scg',
-    description:
-      'Sleek, minimalist smooth fiber cement surface for clean siding.',
-    gradient: ['#6366F1', '#4F46E5'],
-  },
-  {
-    id: 'knauf-gypsum-standard',
-    name: 'Knauf Ceiling Standard',
-    brand: 'Knauf',
-    brandId: 'brand-knauf',
-    description: 'High-performance gypsum panel for ceiling sound dampening.',
-    gradient: ['#3B82F6', '#1D4ED8'],
-  },
-  {
-    id: 'karat-ceramic-elegance',
-    name: 'Karat Ceramic Elegance',
-    brand: 'Karat',
-    brandId: 'brand-karat',
-    description:
-      'Stunning premium glazed ceramic tiles for walls and bathroom interiors.',
-    gradient: ['#10B981', '#047857'],
-  },
-  {
-    id: 'gator-heavy-board',
-    name: 'Gator Heavy Board',
-    brand: 'Gator',
-    brandId: 'brand-gator',
-    description: 'Ultra-tough impact-resistant fiber cement sheeting.',
-    gradient: ['#EC4899', '#BE185D'],
-  },
-];
+import {
+  LOW_STOCK_THRESHOLD,
+  DEFAULT_PATTERNS,
+  DesignPatternConfig as DesignPattern,
+} from '../../config/appConfig';
 
 export const DesignPatternGallery: React.FC = () => {
-  const theme = useTheme<Theme>();
   const { width } = useWindowDimensions();
   const { t } = useTranslation();
+  const theme = useTheme<Theme>();
   const [patterns, setPatterns] = useState<DesignPattern[]>([]);
 
   // State for active interactive catalog modal
@@ -307,11 +257,11 @@ export const DesignPatternGallery: React.FC = () => {
                       brandItems.map((item) => {
                         const hasSpec = item.thickness || item.weight;
                         const stockColor =
-                          item.stock > 50
-                            ? '#10B981'
+                          item.stock > LOW_STOCK_THRESHOLD
+                            ? theme.colors.success
                             : item.stock > 0
-                              ? '#F59E0B'
-                              : '#EF4444';
+                              ? theme.colors.warning
+                              : theme.colors.danger;
 
                         return (
                           <Box
@@ -422,7 +372,7 @@ export const DesignPatternGallery: React.FC = () => {
                   <TouchableOpacity
                     onPress={() => setSelectedPattern(null)}
                     style={{
-                      backgroundColor: '#5A31F4',
+                      backgroundColor: theme.colors.brand,
                       paddingVertical: 10,
                       borderRadius: 8,
                       alignItems: 'center',

@@ -9,13 +9,12 @@ import {
   Theme,
 } from '@burma-inventory/ui-components';
 import { ShopWithDetails } from '../../../core/data/repositories';
-import { Shop } from '@burma-inventory/shared-types';
+import { Shop, sqliteSchema } from '@burma-inventory/shared-types';
 import { useTheme } from '@shopify/restyle';
 import { Clock, MapPin, Zap } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { DesignPatternGallery } from '../../../core/components/DesignPatternGallery';
 import { database } from '../../../core/database/database';
-import { sqliteSchema } from '@burma-inventory/shared-types';
 
 interface ShopSidebarListProps {
   shops: ShopWithDetails[];

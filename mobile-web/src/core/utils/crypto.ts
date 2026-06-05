@@ -3,12 +3,8 @@ export function sha256(ascii: string): string {
     return (value >>> amount) | (value << (32 - amount));
   }
 
-  const mathPow = Math.pow;
-  const maxWord = mathPow(2, 32);
   const lengthProperty = 'length';
   let i, j; // Used as a temporary index for the loops
-
-  const result = '';
 
   const words: number[] = [];
   const asciiLength = ascii[lengthProperty] * 8;

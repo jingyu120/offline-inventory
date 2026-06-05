@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ScrollView,
   TouchableOpacity,
@@ -14,10 +14,10 @@ import {
   Button,
   TextField,
   DropdownSelector,
+  Theme,
 } from '@burma-inventory/ui-components';
 import { InboundForecastList } from '../components/InboundForecastList';
 import { useTheme } from '@shopify/restyle';
-import { Theme } from '@burma-inventory/ui-components';
 import { database } from '../../../core/database/database';
 import {
   Item,
@@ -27,15 +27,7 @@ import {
 } from '@burma-inventory/shared-types';
 import { mapItem, mapItemStock } from '../../../core/data/repositories';
 import { eq } from 'drizzle-orm';
-import {
-  Package,
-  RefreshCw,
-  Check,
-  X,
-  Edit2,
-  Lock,
-  Unlock,
-} from 'lucide-react-native';
+import { RefreshCw, Check, X, Edit2, Lock, Unlock } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
@@ -45,15 +37,7 @@ import {
 } from '../../../core/utils/geo';
 import { CompetitorInsightForm } from '../components/CompetitorInsightForm';
 import { MasterCatalogItem } from '../components/MasterCatalogItem';
-import { INVENTORY_STATUS } from '../../../config/appConfig';
-
-const WAREHOUSE_COORDS: Record<
-  string,
-  { latitude: number; longitude: number }
-> = {
-  'loc-yangon-wh': { latitude: 16.8661, longitude: 96.1951 },
-  'loc-mandalay-wh': { latitude: 21.9754, longitude: 96.0838 },
-};
+import { INVENTORY_STATUS, WAREHOUSE_COORDS } from '../../../config/appConfig';
 
 interface ExtendedItem extends Item {
   stockQty: number;

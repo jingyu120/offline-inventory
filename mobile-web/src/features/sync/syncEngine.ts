@@ -1,8 +1,11 @@
-import { SYNC_CONFIG, INVENTORY_STATUS } from '../../config/appConfig';
+import {
+  SYNC_CONFIG,
+  INVENTORY_STATUS,
+  SYNC_API_URL,
+} from '../../config/appConfig';
 import { database } from '../../core/database/database';
 import { sqliteSchema, RECORD_SCHEMAS } from '@burma-inventory/shared-types';
 import axios from 'axios';
-import { SYNC_API_URL } from '../../config/appConfig';
 import { eq, inArray, isNull, gt, sql, getTableColumns } from 'drizzle-orm';
 import { TelemetryLogger } from '../../core/utils/telemetry';
 

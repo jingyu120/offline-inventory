@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ScrollView,
-  ActivityIndicator,
   Pressable,
   useWindowDimensions,
   Platform,

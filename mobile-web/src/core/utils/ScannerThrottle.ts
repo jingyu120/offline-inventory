@@ -10,7 +10,7 @@ class ScannerThrottle {
    * Process a barcode scan.
    * Returns true if the scan is allowed, false if it is throttled.
    */
-  public processScan(barcode: string): boolean {
+  public processScan(barcode: string, t?: (key: $Any) => string): boolean {
     const now = Date.now();
     const cleanBarcode = barcode.trim();
 
@@ -23,7 +23,7 @@ class ScannerThrottle {
       console.warn(
         `ScannerThrottle: Blocked duplicate scan for barcode: "${cleanBarcode}"`,
       );
-      this.triggerAlert();
+      this.triggerAlert(t);
       return false;
     }
 
@@ -32,7 +32,7 @@ class ScannerThrottle {
     return true;
   }
 
-  private triggerAlert() {
+  private triggerAlert(t?: (key: $Any) => string) {
     // Audio alert
     try {
       if (typeof window !== 'undefined' && window.AudioContext) {
@@ -63,10 +63,11 @@ class ScannerThrottle {
     }
 
     // Visual Alert using Alert
-    Alert.alert(
-      'Duplicate Scan Blocked',
-      'Please wait a moment before scanning the same barcode again.',
-    );
+    const alertTitle = t ? t('duplicateScanBlocked') : 'Duplicate Scan Blocked';
+    const alertDesc = t
+      ? t('duplicateScanBlockedDesc')
+      : 'Please wait a moment before scanning the same barcode again.';
+    Alert.alert(alertTitle, alertDesc);
   }
 }
 

@@ -1,17 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DrizzleService } from '../../core/drizzle';
-import { guardAsync } from '@burma-inventory/shared-types';
 import { AiService } from '../ai/ai.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as schema from '@burma-inventory/shared-types';
 import { eq, and, gt, lte, isNull, inArray, ne, gte, desc } from 'drizzle-orm';
-import type {
-  PullChangesResponse,
-  PushChangesBody,
-  WatermelonChangeSet,
-} from '@burma-inventory/shared-types';
 
 interface TableSyncConfig<TRecord = $Any> {
   delegate: string;
@@ -372,11 +366,11 @@ export class SyncService {
     lastPulledAt: number,
     deviceId?: string,
     userId?: string,
-  ): Promise<PullChangesResponse> {
+  ): Promise<schema.PullChangesResponse> {
     const pullOne = async (
       tableName: string,
       cfg: TableSyncConfig,
-    ): Promise<WatermelonChangeSet<unknown>> => {
+    ): Promise<schema.WatermelonChangeSet<unknown>> => {
       const table = (schema.pgSchema as $Any)[cfg.delegate];
       if (!table) {
         throw new Error(`Drizzle table for ${cfg.delegate} is not defined`);
@@ -452,7 +446,7 @@ export class SyncService {
       entries.map(([tableName, cfg]) => pullOne(tableName, cfg)),
     );
 
-    const changes: Record<string, WatermelonChangeSet<unknown>> = {};
+    const changes: Record<string, schema.WatermelonChangeSet<unknown>> = {};
     let totalPulled = 0;
     entries.forEach(([tableName], i) => {
       changes[tableName] = results[i];
@@ -486,7 +480,7 @@ export class SyncService {
   // ── Push ──────────────────────────────────────────────────────────
 
   async pushChanges(
-    changes: PushChangesBody['changes'],
+    changes: schema.PushChangesBody['changes'],
     deviceId?: string,
     userId?: string,
     traceId?: string,
@@ -537,11 +531,11 @@ export class SyncService {
       }
     }
 
-    const [, error] = await guardAsync(
+    const [, error] = await schema.guardAsync(
       this.drizzle.db.transaction(async (tx) => {
         for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
           const changeset = (changes as Record<string, unknown>)[tableName] as
-            | WatermelonChangeSet<{ id: string }>
+            | schema.WatermelonChangeSet<{ id: string }>
             | undefined;
           if (!changeset) continue;
 
@@ -757,7 +751,7 @@ export class SyncService {
   }
 
   private async runAnomalyDetection(
-    itemChangeset: WatermelonChangeSet<$Any> | undefined,
+    itemChangeset: schema.WatermelonChangeSet<$Any> | undefined,
   ) {
     if (!itemChangeset) return;
     const records = [
@@ -830,7 +824,7 @@ export class SyncService {
   }
 
   private async triggerAuditForPushedLogs(
-    logChangeset: WatermelonChangeSet<$Any> | undefined,
+    logChangeset: schema.WatermelonChangeSet<$Any> | undefined,
     actorId: string,
     traceId?: string,
   ) {

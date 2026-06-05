@@ -20,7 +20,6 @@ interface MapDetailPaneProps {
     explanation: string;
   } | null;
   allShops: ProcessedShop[];
-  onShopSelect: (shop: ProcessedShop) => void;
   mapInstance: $Any;
   maxHeight?: $Any;
 }
@@ -38,7 +37,6 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
   loadingSentiment,
   sentimentResult,
   allShops,
-  onShopSelect,
   mapInstance,
   maxHeight,
 }) => {

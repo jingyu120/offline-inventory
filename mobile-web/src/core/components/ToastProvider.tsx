@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  Animated,
   useWindowDimensions,
 } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';

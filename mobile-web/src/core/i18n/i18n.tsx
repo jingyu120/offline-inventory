@@ -30,7 +30,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setLanguageState('my');
       }
-    } catch (_) {
+    } catch {
       setLanguageState('my');
     }
   }, []);
@@ -39,7 +39,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
     setLanguageState(lang);
     try {
       localStorage.setItem('app_lang', lang);
-    } catch (_) {
+    } catch {
       // Ignore for native platforms
     }
   };

@@ -81,3 +81,16 @@ Autonomous structural modifications to schemas (`shared-types/src/lib/schema.ts`
 
 - **Forbid `any` Type Usage:** The use of the `any` type is strictly forbidden across all application code, packages, interfaces, and services. Cast values to `unknown`, `Record<string, unknown>`, or concrete interfaces/types instead. The only exception is inside test specification files (`*.spec.ts`, `*.spec.tsx`, `*.test.ts`, `*.test.tsx`).
 - **Prohibit ESLint Disable Comments:** You must never write inline comments to disable, ignore, or bypass ESLint rules (e.g., `/* eslint-disable */`, `// eslint-disable-next-line`). Code must be refactored cleanly to naturally resolve warnings (such as using a leading underscore `_` prefix for declared but unused method arguments).
+
+---
+
+## 🧪 9. Unit & Integration Testing Guidelines
+
+All new codebase features, services, and UI components must be accompanied by comprehensive tests conforming to these guidelines:
+
+- **Test File Naming & Location:** Place specification files immediately adjacent to the source code file they are testing. Use the exact source filename with the `.spec.ts` (for business logic) or `.spec.tsx` (for components) extension.
+- **Readable & Structured Organization:** Group tests using hierarchical `describe` blocks. The top-level `describe` must match the class, helper, or component name (e.g., `describe('SyncService', ...)`). Nest sub-blocks for specific methods or user interaction pathways (e.g., `describe('pullChanges', ...)`).
+- **Test DRYness & Object Factories:** Avoid inline mock data clutter. Create reusable factory helpers (e.g., `createMockShop()`, `createMockItem()`) in test setup files or local test blocks to generate mock entities, ensuring schemas remain unified and easy to maintain.
+- **Isolation & Mocking Bounds:** Tests must never make actual network requests or write to live databases. Mock Drizzle/Postgres calls, HTTP APIs, and local services (such as Ollama or secure storage) using Jest mocks.
+- **UI Component Testing (React Native):** Wrap components under test with the Restyle `ThemeProvider` to ensure theme-based styles compile during assertion. Use `@testing-library/react-native` to query components by test IDs or accessible roles, and assert on interaction states (like press events).
+- **NestJS Testing Modules:** Server-side unit tests must construct dependencies using the `@nestjs/testing` `Test.createTestingModule()` compiler. Mock database and queue dependencies explicitly using provider overrides.

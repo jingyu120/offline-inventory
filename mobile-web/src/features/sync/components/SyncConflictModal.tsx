@@ -1,10 +1,9 @@
 import React from 'react';
 import { Modal, ScrollView } from 'react-native';
-import { Box, Text, Button } from '@burma-inventory/ui-components';
+import { Box, Text, Button, Theme } from '@burma-inventory/ui-components';
 import { useSyncConflicts } from '../SyncConflictManager';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useTheme } from '@shopify/restyle';
-import { Theme } from '@burma-inventory/ui-components';
 
 // Error Boundary to prevent any render crash from crashing the whole app
 class SyncConflictErrorBoundary extends React.Component<
@@ -74,7 +73,7 @@ const SyncConflictModalContent: React.FC = () => {
           if (typeof value === 'object') {
             try {
               valStr = JSON.stringify(value);
-            } catch (_) {
+            } catch {
               valStr = String(value);
             }
           } else {

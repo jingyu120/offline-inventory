@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ScrollView,
   Pressable,
@@ -40,6 +40,7 @@ import {
   VIBER_SPEC_TOKENS,
   VIBER_SCORING_WEIGHTS,
   VIBER_KNOWN_UNITS,
+  OVERRIDE_MARGIN_LIMIT_FACTOR,
 } from '../../../config/appConfig';
 
 export function ViberSimulator() {
@@ -466,7 +467,9 @@ export function ViberSimulator() {
     }
 
     const hasBelowFloor = selectedItems.some(
-      (si) => Number(si.unitPrice || 0) < getItemPrice(si.item) * 0.85,
+      (si) =>
+        Number(si.unitPrice || 0) <
+        getItemPrice(si.item) * OVERRIDE_MARGIN_LIMIT_FACTOR,
     );
     if (hasBelowFloor && !isOverrideMarginAcknowledged) {
       Alert.alert(t('validationError'), t('checkOverrideMarginError'));

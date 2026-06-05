@@ -1,11 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
-import axios from 'axios';
 import { trpcClient } from '../../../core/trpc/trpcClient';
-import {
-  AI_ANALYZE_SENTIMENT_URL,
-  SYNC_API_URL,
-} from '../../../config/appConfig';
+import { SYNC_API_URL } from '../../../config/appConfig';
 import { tileDb } from '../../../core/database/tileDb';
 import {
   fetchRegions,

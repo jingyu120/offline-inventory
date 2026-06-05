@@ -12,6 +12,7 @@ import {
   calculateDistance,
   GEOFENCE_RADIUS_CHECKIN_METERS,
 } from '../../../core/utils/geo';
+import { GPS_CHECK_IN_CONFIG } from '../../../config/appConfig';
 
 interface GPSCheckInCardProps {
   shop: Shop;
@@ -33,12 +34,16 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
 
   const handleCheckIn = async (simulateNearby: boolean) => {
     try {
-      const shopLat = shop.latitude || 16.8661;
-      const shopLon = shop.longitude || 96.1951;
+      const shopLat = shop.latitude || GPS_CHECK_IN_CONFIG.fallbackLatitude;
+      const shopLon = shop.longitude || GPS_CHECK_IN_CONFIG.fallbackLongitude;
 
       // Simulated user position
-      const userLat = simulateNearby ? shopLat + 0.001 : shopLat + 0.03;
-      const userLon = simulateNearby ? shopLon + 0.001 : shopLon + 0.03;
+      const userLat = simulateNearby
+        ? shopLat + GPS_CHECK_IN_CONFIG.simulatedNearbyOffset
+        : shopLat + GPS_CHECK_IN_CONFIG.simulatedFarOffset;
+      const userLon = simulateNearby
+        ? shopLon + GPS_CHECK_IN_CONFIG.simulatedNearbyOffset
+        : shopLon + GPS_CHECK_IN_CONFIG.simulatedFarOffset;
 
       const dist = calculateDistance(shopLat, shopLon, userLat, userLon);
       const verified = dist <= GEOFENCE_RADIUS_CHECKIN_METERS;
@@ -61,7 +66,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
           });
 
           if (verified) {
-            // Award +50 points
+            // Award points
             const existingScores = await database
               .select()
               .from(sqliteSchema.rep_scores)
@@ -72,8 +77,12 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
               await database
                 .update(sqliteSchema.rep_scores)
                 .set({
-                  points: activeScore.points + 50,
-                  streak_days: activeScore.streak_days + 1,
+                  points:
+                    activeScore.points +
+                    GPS_CHECK_IN_CONFIG.verifiedRewardPoints,
+                  streak_days:
+                    activeScore.streak_days +
+                    GPS_CHECK_IN_CONFIG.streakDaysIncrement,
                   updated_at: now,
                 })
                 .where(eq(sqliteSchema.rep_scores.id, activeScore.id));
@@ -82,9 +91,9 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
               await database.insert(sqliteSchema.rep_scores).values({
                 id: scoreId,
                 rep_id: activeRep.id,
-                points: 50,
-                streak_days: 1,
-                badges: JSON.stringify(['First Check-in']),
+                points: GPS_CHECK_IN_CONFIG.verifiedRewardPoints,
+                streak_days: GPS_CHECK_IN_CONFIG.streakDaysIncrement,
+                badges: JSON.stringify([GPS_CHECK_IN_CONFIG.firstTimeBadge]),
                 created_at: now,
                 updated_at: now,
               });
@@ -95,7 +104,7 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
             await database.insert(sqliteSchema.points_logs).values({
               id: pointsLogId,
               rep_id: activeRep.id,
-              points_added: 50,
+              points_added: GPS_CHECK_IN_CONFIG.verifiedRewardPoints,
               reason: `Verified check-in at ${shop.name}`,
               created_at: now,
             });
@@ -188,8 +197,18 @@ export const GPSCheckInCard: React.FC<GPSCheckInCardProps> = ({
         <Box>
           <Text variant="bodySecondary" mb="m">
             {t('verifyPresenceDesc')
-              .replace('{lat}', (shop.latitude || 16.8661).toString())
-              .replace('{lng}', (shop.longitude || 96.1951).toString())}
+              .replace(
+                '{lat}',
+                (
+                  shop.latitude || GPS_CHECK_IN_CONFIG.fallbackLatitude
+                ).toString(),
+              )
+              .replace(
+                '{lng}',
+                (
+                  shop.longitude || GPS_CHECK_IN_CONFIG.fallbackLongitude
+                ).toString(),
+              )}
           </Text>
           <Box flexDirection="row" justifyContent="space-between">
             <TouchableOpacity

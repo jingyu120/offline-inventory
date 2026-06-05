@@ -15,6 +15,7 @@
     }
   },
   "dependencies": {
+    "@trpc/server": "^11.17.0",
     "drizzle-orm": "^0.45.2",
     "tslib": "^2.3.0",
     "zod": "^4.4.3"

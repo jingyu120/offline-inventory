@@ -7,7 +7,11 @@ import { eq } from 'drizzle-orm';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../../../core/i18n/i18n';
-import { INTERACTION_TYPES } from '../../../config/appConfig';
+import {
+  INTERACTION_TYPES,
+  IMAGE_UPLOAD_CONFIG,
+  VIBER_SIMULATOR_LOG_TYPES,
+} from '../../../config/appConfig';
 
 interface ViberIntegrationProps {
   type: string;
@@ -76,8 +80,14 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
       try {
         const manipResult = await ImageManipulator.manipulateAsync(
           uri,
-          [{ resize: { width: 1080 } }],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          [{ resize: { width: IMAGE_UPLOAD_CONFIG.resizeWidth } }],
+          {
+            compress: IMAGE_UPLOAD_CONFIG.quality,
+            format:
+              IMAGE_UPLOAD_CONFIG.format === 'png'
+                ? ImageManipulator.SaveFormat.PNG
+                : ImageManipulator.SaveFormat.JPEG,
+          },
         );
         setScreenshotUri(manipResult.uri);
       } catch (err) {
@@ -102,7 +112,7 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
       </Text>
       <Box flexDirection="row" flexWrap="wrap" mb="m">
         {INTERACTION_TYPES.filter((itConfig) =>
-          ['PHONE_CALL', 'VIBER', 'SHOP_VISIT'].includes(itConfig.value),
+          VIBER_SIMULATOR_LOG_TYPES.includes(itConfig.value),
         ).map((itConfig) => {
           const tVal = itConfig.value;
           return (

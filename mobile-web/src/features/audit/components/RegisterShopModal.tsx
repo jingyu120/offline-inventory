@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, ScrollView, Alert, Platform } from 'react-native';
+import { Modal, ScrollView, Alert } from 'react-native';
 import {
   Box,
   Text,
   Button,
   TextField,
   DropdownSelector,
-  Theme,
 } from '@burma-inventory/ui-components';
-import { useTheme } from '@shopify/restyle';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { database } from '../../../core/database/database';
 import {
@@ -32,7 +30,6 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
   onRegister,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme<Theme>();
   const { activeRep } = useAuth();
 
   const [step, setStep] = useState(1);

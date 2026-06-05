@@ -26,7 +26,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeTheme,
 }) => {
   const { activeRep } = useAuth();
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
 
   return (
     <Box

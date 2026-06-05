@@ -6,7 +6,7 @@ import { TrpcRouter } from './trpc.router';
 
 @Controller('trpc')
 export class TrpcController {
-  constructor(private readonly trpcRouter: TrpcRouter) {
+  constructor(_trpcRouter: TrpcRouter) {
     console.log('[TrpcController] Initialized and dependencies injected');
   }
 

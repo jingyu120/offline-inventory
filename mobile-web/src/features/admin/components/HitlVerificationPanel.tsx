@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
-  Platform,
   useWindowDimensions,
   Image,
   TouchableOpacity,
@@ -27,7 +26,6 @@ import {
   Check,
   ExternalLink,
   AlertTriangle,
-  RefreshCw,
 } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 

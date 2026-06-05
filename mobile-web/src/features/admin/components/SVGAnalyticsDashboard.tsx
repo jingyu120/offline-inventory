@@ -1,10 +1,9 @@
 import React from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
-import { Box, Text, Card } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { InteractionLog } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useTheme } from '@shopify/restyle';
-import { Theme } from '@burma-inventory/ui-components';
 
 interface SVGAnalyticsDashboardProps {
   stats: {

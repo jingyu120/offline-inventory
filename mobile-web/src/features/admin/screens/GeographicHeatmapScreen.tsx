@@ -11,8 +11,7 @@ import { MapFilterPanel } from '../components/MapFilterPanel';
 import { MapDetailPane } from '../components/MapDetailPane';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { tileDb } from '../../../core/database/tileDb';
-import { SYNC_API_URL } from '../../../config/appConfig';
-import { RECENCY_CONFIGS } from '../../../config/appConfig';
+import { SYNC_API_URL, RECENCY_CONFIGS } from '../../../config/appConfig';
 
 // Import subcomponents
 import { MapLegend } from '../components/MapLegend';
@@ -89,11 +88,15 @@ const solveTSP = (shops: $Any[]) => {
 
     for (let i = 0; i < unvisited.length; i++) {
       const candidate = unvisited[i];
+      const currentLat = current.latitude ?? 0;
+      const currentLng = current.longitude ?? 0;
+      const candidateLat = candidate.latitude ?? 0;
+      const candidateLng = candidate.longitude ?? 0;
       const dist = getDistance(
-        current.latitude!,
-        current.longitude!,
-        candidate.latitude!,
-        candidate.longitude!,
+        currentLat,
+        currentLng,
+        candidateLat,
+        candidateLng,
       );
       if (dist < minDistance) {
         minDistance = dist;
@@ -110,6 +113,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 768;
+  const isWebMobile = Platform.OS === 'web' && !isDesktop;
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const mapContainerRef = useRef<$Any>(null);
@@ -278,14 +282,17 @@ export const GeographicHeatmapScreen: React.FC = () => {
         const color = getRecencyColor(shop.lastContactDate);
         const radius = getBubbleRadius(shop.lifetimeValue);
 
-        const marker = L.circleMarker([shop.latitude!, shop.longitude!], {
-          radius,
-          fillColor: color,
-          color: '#ffffff',
-          weight: 1.5,
-          opacity: 1,
-          fillOpacity: 0.85,
-        }).addTo(mapInstance);
+        const marker = L.circleMarker(
+          [shop.latitude ?? 0, shop.longitude ?? 0],
+          {
+            radius,
+            fillColor: color,
+            color: '#ffffff',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.85,
+          },
+        ).addTo(mapInstance);
 
         marker.on('click', () => {
           handleShopSelect(shop);
@@ -384,7 +391,10 @@ export const GeographicHeatmapScreen: React.FC = () => {
     const validShops = filteredShops.filter((s) => s.latitude && s.longitude);
     if (showRouteLine && selectedRegion && validShops.length > 1) {
       const tspPath = solveTSP(validShops);
-      const polylineCoords = tspPath.map((s) => [s.latitude!, s.longitude!]);
+      const polylineCoords = tspPath.map((s) => [
+        s.latitude ?? 0,
+        s.longitude ?? 0,
+      ]);
       const polyline = L.polyline(polylineCoords, {
         color: '#4F46E5',
         weight: 3,
@@ -519,7 +529,6 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 loadingSentiment={loadingSentiment}
                 sentimentResult={sentimentResult}
                 allShops={filteredShops}
-                onShopSelect={handleShopSelect}
                 mapInstance={mapInstance}
               />
             ) : (
@@ -548,6 +557,17 @@ export const GeographicHeatmapScreen: React.FC = () => {
   // ─── Sortly Mobile: Full-viewport map with floating filter & detail sheet ───
   return (
     <Box flex={1} style={{ position: 'relative' }}>
+      {isWebMobile && (
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              .leaflet-top.leaflet-left {
+                margin-top: 60px !important;
+              }
+            `,
+          }}
+        />
+      )}
       {/* Full-viewport Map */}
       {Platform.OS !== 'web' ? (
         <Box
@@ -659,7 +679,6 @@ export const GeographicHeatmapScreen: React.FC = () => {
             loadingSentiment={loadingSentiment}
             sentimentResult={sentimentResult}
             allShops={filteredShops}
-            onShopSelect={handleShopSelect}
             mapInstance={mapInstance}
             maxHeight={sheetMaxHeight}
           />

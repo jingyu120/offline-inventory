@@ -1,4 +1,5 @@
 import { Item } from '@burma-inventory/shared-types';
+import { CURRENCIES } from '../../config/appConfig';
 
 export const getItemPrice = (
   item: Item,
@@ -69,8 +70,10 @@ export const getItemPrice = (
   }
 
   // Default rate falls back if rates are not loaded yet
-  if (selectedCurrency === 'USD') return priceInMmk / 4200;
-  if (selectedCurrency === 'THB') return priceInMmk / 115;
+  const configRate = CURRENCIES.find((c) => c.value === selectedCurrency);
+  if (configRate && configRate.defaultRateToMmk > 0) {
+    return priceInMmk / configRate.defaultRateToMmk;
+  }
 
   return priceInMmk;
 };

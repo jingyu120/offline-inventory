@@ -1,18 +1,26 @@
+import { OCR_MOCK_HEURISTIC } from '../../config/appConfig';
+
 export const checkDiscrepancy = (ocrText: string, items: $Any[]): boolean => {
   const lowerOcr = ocrText.toLowerCase();
 
-  // Heuristic 1: If OCR text mentions "5 premium beers" (or similar), check if we selected exactly that.
-  if (lowerOcr.includes('5') && lowerOcr.includes('premium')) {
+  // Heuristic 1: Config-driven check if OCR text triggers rule
+  const triggersRule = OCR_MOCK_HEURISTIC.ocrTriggerWords.every((word) =>
+    lowerOcr.includes(word),
+  );
+  if (triggersRule) {
     if (items.length !== 1) return true;
     const si = items[0];
     const qty =
       typeof si.quantity === 'number'
         ? si.quantity
         : parseInt(si.quantity || '0', 10);
-    const isPremium =
-      si.item.name.toLowerCase().includes('premium') ||
-      si.item.sku.toLowerCase().includes('pb-640');
-    if (!isPremium || qty !== 5) {
+    const nameMatch = si.item.name
+      .toLowerCase()
+      .includes(OCR_MOCK_HEURISTIC.targetNameToken);
+    const skuMatch = si.item.sku
+      .toLowerCase()
+      .includes(OCR_MOCK_HEURISTIC.targetSkuToken);
+    if ((!nameMatch && !skuMatch) || qty !== OCR_MOCK_HEURISTIC.targetQty) {
       return true; // Discrepancy!
     }
     return false; // Match!
