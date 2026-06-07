@@ -60,3 +60,7 @@ cache/
 
 # Local uploads and map tile cache
 /uploads/
+
+# Compiled files in package source directories
+ui-components/src/**/*.js
+ui-components/src/**/*.js.map

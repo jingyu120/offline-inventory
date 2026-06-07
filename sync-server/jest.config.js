@@ -7,7 +7,15 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../coverage/sync-server',
-  collectCoverage: false,
+  collectCoverage: true,
   coverageReporters: ['text', 'lcov', 'json', 'html', 'json-summary'],
   coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      statements: 99.51,
+      branches: 88.16,
+      functions: 99.37,
+      lines: 99.51,
+    },
+  },
 };

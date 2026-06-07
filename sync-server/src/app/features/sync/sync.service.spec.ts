@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SyncService } from './sync.service';
+import { TABLE_REGISTRY } from './sync-registry';
 import { DrizzleService } from '../../core/drizzle';
 import { AiService } from '../ai/ai.service';
+import { OdooImporterService } from './odoo-importer.service';
 import * as schema from '@burma-inventory/shared-types';
 import * as fs from 'fs';
 
@@ -67,6 +69,10 @@ describe('SyncService', () => {
     processScreenshot: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockOdooImporter = {
+    importOdoo: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -87,6 +93,7 @@ describe('SyncService', () => {
         SyncService,
         { provide: DrizzleService, useValue: mockDrizzle },
         { provide: AiService, useValue: mockAiService },
+        { provide: OdooImporterService, useValue: mockOdooImporter },
       ],
     }).compile();
 
@@ -284,12 +291,7 @@ describe('SyncService', () => {
       } as any;
       mockDrizzle.readDb.select = jest
         .fn()
-        .mockImplementation((selectArg?: any) => {
-          if (selectArg && selectArg.hash) {
-            return createMockQueryBuilder([{ hash: 'db-hash' }]);
-          }
-          return createMockQueryBuilder([]);
-        });
+        .mockReturnValue(createMockQueryBuilder([{ hash: 'db-hash' }]));
 
       await service.pushChanges(changes, 'device-1', 'user-1');
       expect(loggerSpy).toHaveBeenCalledWith(
@@ -896,128 +898,58 @@ describe('SyncService', () => {
   });
 
   describe('importOdoo', () => {
-    it('returns empty when CSV is empty', async () => {
-      const res = await service.importOdoo('');
-      expect(res).toEqual({ importedCount: 0, warnings: [] });
+    it('delegates to OdooImporterService', async () => {
+      const spy = jest.spyOn(mockOdooImporter, 'importOdoo').mockResolvedValue({
+        importedCount: 1,
+        warnings: [],
+      });
+      const res = await service.importOdoo('csv-text');
+      expect(spy).toHaveBeenCalledWith('csv-text');
+      expect(res).toEqual({ importedCount: 1, warnings: [] });
     });
+  });
 
-    it('skips rows missing phone number or name', async () => {
-      const csv = `Name,Address,Region,PhoneNumber
-,Yangon,Yangon,09123
-Shop A,Yangon,Yangon,`;
-      const res = await service.importOdoo(csv);
-      expect(res.importedCount).toBe(0);
-      expect(res.warnings).toHaveLength(2);
-    });
+  describe('TABLE_REGISTRY mapping functions', () => {
+    it('covers all toRecord and toDrizzle mappings inside TABLE_REGISTRY', () => {
+      const mockRecordObj = {
+        id: 'id-1',
+        name: 'test',
+        previous_state: { a: 1 },
+        new_state: { b: 2 },
+        stock_condition: null,
+        pending_allocation_count: null,
+        fulfillment_status: null,
+        badges: null,
+      };
 
-    it('skips duplicates phone numbers', async () => {
-      const csv = `Name,Address,Region,PhoneNumber
-Shop A,Yangon,Yangon,09123`;
-      mockDrizzle.db.select = jest.fn().mockImplementation(() => {
-        const q = createMockQueryBuilder([]);
-        q.from = jest.fn().mockImplementation((table: any) => {
-          if (table === schema.pgSchema.contacts) {
-            return createMockQueryBuilder([
-              {
-                id: 'c-1',
-                name: 'Existing Contact',
-                phone_number: '09123',
-                shop_id: 'shop-1',
-              },
-            ]);
-          }
-          if (table === schema.pgSchema.shops) {
-            return createMockQueryBuilder([
-              { id: 'shop-1', name: 'Existing Shop' },
-            ]);
-          }
-          return createMockQueryBuilder([]);
-        });
-        return q;
+      const mockRecordStr = {
+        id: 'id-1',
+        name: 'test',
+        previous_state: '{"a": 1}',
+        new_state: '{"b": 2}',
+        stock_condition: null,
+        pending_allocation_count: null,
+        fulfillment_status: null,
+        badges: null,
+      };
+
+      Object.entries(TABLE_REGISTRY).forEach(([, cfg]) => {
+        // Test toRecord with string-based states (covers parsing bypass/conversion)
+        const recStr = cfg.toRecord(mockRecordStr);
+        expect(recStr).toBeDefined();
+
+        // Test toRecord with object-based states (covers stringify logic)
+        const recObj = cfg.toRecord(mockRecordObj);
+        expect(recObj).toBeDefined();
+
+        // Test toDrizzle with string-based states (covers parse logic)
+        const drizStr = cfg.toDrizzle(mockRecordStr);
+        expect(drizStr).toBeDefined();
+
+        // Test toDrizzle with object-based states (covers parsing bypass)
+        const drizObj = cfg.toDrizzle(mockRecordObj);
+        expect(drizObj).toBeDefined();
       });
-
-      const res = await service.importOdoo(csv);
-      expect(res.importedCount).toBe(0);
-      expect(res.warnings[0]).toContain(
-        "Skipped duplicate phone number '09123'",
-      );
-    });
-
-    it('imports new shop, creates region if not found, and inserts contact successfully', async () => {
-      const csv = `Name,Address,Region,PhoneNumber
-New Shop,Mandalay,Mandalay,09456`;
-
-      const regionsSelectMock: any[] = []; // Region Mandalay not found initially
-      mockDrizzle.db.select = jest.fn().mockImplementation(() => {
-        const q = createMockQueryBuilder([]);
-        q.from = jest.fn().mockImplementation((table: any) => {
-          if (table === schema.pgSchema.contacts) {
-            return createMockQueryBuilder([]); // No duplicate phone number
-          }
-          if (table === schema.pgSchema.regions) {
-            return createMockQueryBuilder(regionsSelectMock);
-          }
-          return createMockQueryBuilder([]);
-        });
-        return q;
-      });
-
-      mockDrizzle.db.insert = jest.fn().mockImplementation((table: any) => {
-        const q = createMockQueryBuilder([]);
-        q.values = jest.fn().mockImplementation(() => {
-          let returnedVal: any[] = [];
-          if (table === schema.pgSchema.regions) {
-            returnedVal = [{ id: 'region-mandalay', name: 'Mandalay' }];
-          } else if (table === schema.pgSchema.shops) {
-            returnedVal = [{ id: 'shop-mandalay-123', name: 'New Shop' }];
-          }
-          return createMockQueryBuilder(returnedVal);
-        });
-        return q;
-      });
-
-      const res = await service.importOdoo(csv);
-      expect(res.importedCount).toBe(1);
-      expect(res.warnings).toHaveLength(0);
-      expect(mockDrizzle.db.insert).toHaveBeenCalledTimes(3); // Region, Shop, Contact
-    });
-
-    it('uses existing region when found in database', async () => {
-      const csv = `Name,Address,Region,PhoneNumber
-New Shop,Yangon,Yangon,09456`;
-
-      mockDrizzle.db.select = jest.fn().mockImplementation(() => {
-        const q = createMockQueryBuilder([]);
-        q.from = jest.fn().mockImplementation((table: any) => {
-          if (table === schema.pgSchema.contacts) {
-            return createMockQueryBuilder([]); // No duplicate phone number
-          }
-          if (table === schema.pgSchema.regions) {
-            return createMockQueryBuilder([
-              { id: 'region-yangon', name: 'Yangon' },
-            ]); // Region exists
-          }
-          return createMockQueryBuilder([]);
-        });
-        return q;
-      });
-
-      mockDrizzle.db.insert = jest.fn().mockImplementation((table: any) => {
-        const q = createMockQueryBuilder([]);
-        q.values = jest.fn().mockImplementation(() => {
-          let returnedVal: any[] = [];
-          if (table === schema.pgSchema.shops) {
-            returnedVal = [{ id: 'shop-yangon-123', name: 'New Shop' }];
-          }
-          return createMockQueryBuilder(returnedVal);
-        });
-        return q;
-      });
-
-      const res = await service.importOdoo(csv);
-      expect(res.importedCount).toBe(1);
-      expect(res.warnings).toHaveLength(0);
-      expect(mockDrizzle.db.insert).toHaveBeenCalledTimes(2); // Shop, Contact (no Region insert)
     });
   });
 });

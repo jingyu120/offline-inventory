@@ -28,7 +28,7 @@
     "start:local": "npm run dev",
     "lint": "npx nx run-many -t lint --tui-auto-exit=true --nx-bail",
     "typecheck": "npx nx run-many -t typecheck --tui-auto-exit=true --nx-bail",
-    "test": "npx nx run-many -t test --tui-auto-exit=true --nx-bail",
+    "test": "npx nx run-many -t test --tui-auto-exit=true --nx-bail && node scripts/bump-thresholds.js",
     "format": "npx nx format:write",
     "format:check": "npx nx format:check",
     "check-translations": "node scripts/check-translations.js",

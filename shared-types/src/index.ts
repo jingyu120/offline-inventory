@@ -1,7 +1,7 @@
-import * as pgSchema from './lib/schema';
-import * as sqliteSchema from './lib/schema-sqlite';
+import * as pgSchema from './lib/db/schema';
+import * as sqliteSchema from './lib/db/schema-sqlite';
 
 export { pgSchema, sqliteSchema };
-export * from './lib/shared-types';
-export type { AppRouter } from './lib/trpc';
-export * from './lib/semanticSearch';
+export * from './lib/types/shared-types';
+export type { AppRouter } from './lib/api/trpc';
+export * from './lib/ai/semanticSearch';

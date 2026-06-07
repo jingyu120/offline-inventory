@@ -12,7 +12,7 @@ import {
   SENTIMENT_TRENDS,
   guardAsync,
 } from './shared-types';
-import { semanticSearch } from './semanticSearch';
+import { semanticSearch } from '../ai/semanticSearch';
 
 describe('shared-types', () => {
   describe('Domain constants', () => {

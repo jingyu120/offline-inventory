@@ -10,7 +10,15 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(jest-)?react-native|@react-native(-community)?)/',
   ],
-  collectCoverage: false,
+  collectCoverage: true,
   coverageReporters: ['text', 'lcov', 'json', 'html', 'json-summary'],
   coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      statements: 100,
+      branches: 99.38,
+      functions: 100,
+      lines: 100,
+    },
+  },
 };
