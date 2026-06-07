@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { ThemeProvider } from '@shopify/restyle';
 import { Table, ColumnDef } from './Table';
@@ -54,5 +54,40 @@ describe('Table', () => {
     // RenderCell custom renderer
     expect(getByText('ID-1')).toBeTruthy();
     expect(getByText('ID-2')).toBeTruthy();
+  });
+
+  it('renders web shadow styles when Platform.OS is web', () => {
+    const originalOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', {
+      value: 'web',
+      configurable: true,
+    });
+
+    const { getByText } = renderWithTheme(
+      <Table data={data} columns={columns} keyExtractor={(item) => item.id} />,
+    );
+
+    expect(getByText('Alice')).toBeTruthy();
+
+    Object.defineProperty(Platform, 'OS', {
+      value: originalOS,
+      configurable: true,
+    });
+  });
+
+  it('covers minWidth default, col.flex, col.width, and fallback values', () => {
+    const customColumns: ColumnDef<MockData>[] = [
+      { key: 'name', header: 'Name', width: 150 },
+      { key: 'age', header: 'Age', flex: 2 },
+      { key: 'missing', header: 'MissingVal' },
+    ];
+    const { getByText } = renderWithTheme(
+      <Table
+        data={[{ id: '1', name: 'Alice', age: 25 }]}
+        columns={customColumns}
+        keyExtractor={(item) => item.id}
+      />,
+    );
+    expect(getByText('Name')).toBeTruthy();
   });
 });

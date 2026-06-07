@@ -85,5 +85,29 @@ describe('checkDiscrepancy', () => {
     it('returns false when OCR has text but no items are selected', () => {
       expect(checkDiscrepancy('some invoice text', [])).toBe(false);
     });
+
+    it('supports string quantity parsing in Heuristic 1 and 2', () => {
+      // Heuristic 1
+      const itemsH1 = [
+        { quantity: '5', item: { name: 'Premium Beer', sku: 'pb-640' } },
+      ];
+      expect(checkDiscrepancy('premium 5 bottles', itemsH1 as any)).toBe(false);
+
+      // Heuristic 2
+      const itemsH2 = [
+        { quantity: '12', item: { name: 'Some Item', sku: 'sku-123' } },
+      ];
+      expect(checkDiscrepancy('invoice count is 12', itemsH2 as any)).toBe(
+        false,
+      );
+
+      // Empty string quantity fallback
+      const itemsH3 = [
+        { quantity: '', item: { name: 'Some Item', sku: 'sku-123' } },
+      ];
+      expect(checkDiscrepancy('invoice count is 0', itemsH3 as any)).toBe(
+        false,
+      );
+    });
   });
 });

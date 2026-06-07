@@ -9,6 +9,7 @@ import { database } from '../../../core/database/database';
 import { eq } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
+import { getCachedLocation } from '../../../core/utils/locationCache';
 import { UpdateTerritoryModal } from './UpdateTerritoryModal';
 import {
   MapPin,
@@ -110,7 +111,7 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         Alert.alert(t('error'), t('locationPermissionRequired'));
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({
+      const loc = await getCachedLocation({
         accuracy: Location.Accuracy.Balanced,
       });
       const shopLat = shop.latitude || 16.8661;

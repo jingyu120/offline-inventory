@@ -166,10 +166,13 @@ export const GemmaCopilot: React.FC<GemmaCopilotProps> = ({
       return;
     }
 
+    const thermalState = ThermalGuard.getThermalState();
+    const isThrottled =
+      thermalState === 'SERIOUS' || thermalState === 'CRITICAL';
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,
-      quality: 0.5,
+      quality: isThrottled ? 0.2 : 0.5,
     });
 
     if (pickerResult.canceled || !pickerResult.assets?.length) return;

@@ -184,4 +184,33 @@ describe('StateRecovery (native platform)', () => {
       consoleWarnSpy.mockRestore();
     });
   });
+
+  it('handles MMKV import throwing an error during initialization', () => {
+    const originalRequire = (globalThis as Record<string, unknown>)['require'];
+    (globalThis as Record<string, unknown>)['require'] = jest
+      .fn()
+      .mockImplementation(() => {
+        throw new Error('Require failed');
+      });
+
+    const consoleWarnSpy = jest
+      .spyOn(console, 'warn')
+      .mockImplementation((_msg, _err) => undefined);
+
+    jest.isolateModules(() => {
+      const requireFn = require;
+      const { StateRecovery: nativeStateRecovery } =
+        requireFn('./stateRecovery');
+      expect(() =>
+        nativeStateRecovery.saveState({ currentScreen: 'ledger' }),
+      ).not.toThrow();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'MMKV import failed for stateRecovery:',
+        expect.any(Error),
+      );
+    });
+
+    consoleWarnSpy.mockRestore();
+    (globalThis as Record<string, unknown>)['require'] = originalRequire;
+  });
 });

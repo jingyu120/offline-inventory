@@ -73,4 +73,70 @@ describe('cartStore', () => {
     });
     expect(StateRecovery.saveState).toHaveBeenCalled();
   });
+
+  it('updates activeTabId and saves to state recovery on setActiveTabId', () => {
+    useCartStore.getState().setActiveTabId('shop-xyz');
+
+    expect(useCartStore.getState().activeTabId).toBe('shop-xyz');
+    expect(useCartStore.getState().recoveryState?.activeTabId).toBe('shop-xyz');
+    expect(useCartStore.getState().recoveryState?.selectedShopId).toBe(
+      'shop-xyz',
+    );
+    expect(StateRecovery.saveState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeTabId: 'shop-xyz',
+        selectedShopId: 'shop-xyz',
+      }),
+    );
+  });
+
+  it('instantiates default recoveryState when loadState returns null', () => {
+    (StateRecovery.loadState as jest.Mock).mockReturnValueOnce(null);
+
+    jest.isolateModules(() => {
+      const { useCartStore: freshCartStore } = (require as any)('./cartStore');
+      expect(freshCartStore.getState().recoveryState).toEqual({
+        currentScreen: 'ledger',
+        selectedShopId: null,
+        activeRowIndex: null,
+        loggingModalVisible: false,
+        activeTabId: null,
+      });
+      expect(freshCartStore.getState().activeTabId).toBeNull();
+    });
+  });
+
+  it('loads activeTabId from recoveryState when loadState returns non-null with activeTabId', () => {
+    (StateRecovery.loadState as jest.Mock).mockReturnValue({
+      activeTabId: 'shop-recovered',
+    });
+
+    jest.isolateModules(() => {
+      const { useCartStore: freshCartStore } = (require as any)('./cartStore');
+      expect(freshCartStore.getState().activeTabId).toBe('shop-recovered');
+    });
+
+    // Restore original mock value
+    (StateRecovery.loadState as jest.Mock).mockReturnValue({
+      currentScreen: 'ledger',
+      selectedShopId: null,
+      activeRowIndex: null,
+      loggingModalVisible: false,
+    });
+  });
+
+  it('handles empty recoveryState when setting recovery state or active tab id', () => {
+    useCartStore.setState({ recoveryState: null as any });
+    useCartStore.getState().setRecoveryState({ currentScreen: 'ledger' });
+    expect(useCartStore.getState().recoveryState).toEqual({
+      currentScreen: 'ledger',
+    });
+
+    useCartStore.setState({ recoveryState: null as any });
+    useCartStore.getState().setActiveTabId('shop-xyz');
+    expect(useCartStore.getState().recoveryState).toEqual({
+      activeTabId: 'shop-xyz',
+      selectedShopId: 'shop-xyz',
+    });
+  });
 });

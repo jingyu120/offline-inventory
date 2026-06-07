@@ -95,4 +95,30 @@ describe('TelemetryLogger', () => {
     expect(capturedIds).toHaveLength(2);
     expect(capturedIds[0]).not.toBe(capturedIds[1]);
   });
+
+  it('appends thermal and network status on exceptions or sync failures', async () => {
+    await TelemetryLogger.logEvent(
+      'sync_dropout',
+      'Network disconnected',
+      'error',
+    );
+
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thermal_status: 'NOMINAL',
+        network_generation_2G_EDGE: 'NO',
+      }),
+    );
+  });
+
+  it('does not append thermal and network status on standard info logs', async () => {
+    await TelemetryLogger.logEvent('CLICK_BUTTON', 'User clicked log', 'info');
+
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thermal_status: null,
+        network_generation_2G_EDGE: null,
+      }),
+    );
+  });
 });

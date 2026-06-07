@@ -150,7 +150,6 @@
     "yaml": "^2.8.2",
     "@hono/node-server": "^1.19.13",
     "@babel/runtime": "^7.26.0",
-    "glob": "^13.0.6",
     "rimraf": "^5.0.0"
   }
 }

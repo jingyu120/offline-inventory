@@ -121,5 +121,41 @@ describe('getItemPrice', () => {
     it('returns MMK price when target currency is unknown and has no rates', () => {
       expect(getItemPrice(baseItem, [], 'EUR', [])).toBe(1000);
     });
+
+    it('converts baseCurrency to MMK using currency property fallback with rate', () => {
+      const item: Item = {
+        ...baseItem,
+        baseWholesalePrice: 2,
+        baseCurrency: 'USD',
+      };
+      const rates = [{ currency: 'USD', rate: 4100 }];
+      expect(getItemPrice(item, [], 'MMK', rates)).toBe(8200);
+    });
+
+    it('converts baseCurrency to MMK with rate multiplier <= 0 returning basePrice', () => {
+      const item: Item = {
+        ...baseItem,
+        baseWholesalePrice: 2,
+        baseCurrency: 'USD',
+      };
+      const rates = [{ currency: 'USD', rate: 0 }];
+      expect(getItemPrice(item, [], 'MMK', rates)).toBe(2);
+    });
+
+    it('converts MMK to target currency using from_currency property fallback with rate', () => {
+      const rates = [{ from_currency: 'USD', rate: 4100 }];
+      expect(getItemPrice(baseItem, [], 'USD', rates)).toBeCloseTo(
+        1000 / 4100,
+        3,
+      );
+    });
+
+    it('converts MMK to target currency with rate multiplier <= 0 falling back to default', () => {
+      const rates = [{ currency: 'USD', rate_to_kyat: 0 }];
+      expect(getItemPrice(baseItem, [], 'USD', rates)).toBeCloseTo(
+        1000 / 2100,
+        3,
+      );
+    });
   });
 });

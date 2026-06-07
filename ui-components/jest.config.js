@@ -10,7 +10,7 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(jest-)?react-native|@react-native(-community)?)/',
   ],
-  collectCoverage: true,
-  coverageReporters: ['text', 'lcov', 'json', 'html'],
+  collectCoverage: false,
+  coverageReporters: ['text', 'lcov', 'json', 'html', 'json-summary'],
   coverageProvider: 'v8',
 };

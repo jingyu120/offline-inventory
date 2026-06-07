@@ -721,6 +721,19 @@ export const translations = {
     invalidBracketsFormat: 'Invalid brackets format',
     geofenceDistanceShopMsg:
       'You must be within {meters} meters of the shop to start an audit. Current distance: {distance}m.',
+    thermalProtectionActive: '⚠️ Thermal Protection Active',
+    thermalProtectionDesc:
+      'Device temperature is critical. Leaflet map visualization has been disabled to defend processor resources and cool down the device.',
+    pendingUpload: 'Pending Upload',
+    uploading: 'Uploading...',
+    failedTapRetry: 'Failed (Tap to Retry)',
+    stagingReviewArea: 'Staging Review Area',
+    clearStaged: 'Clear Staged',
+    stagingReviewDesc:
+      'Verify and adjust the parsed items below before committing them to the Order Basket.',
+    unitPriceLabel: 'Unit Price',
+    commitToOrderBasket: 'Commit to Order Basket',
+    stagedItemsAdded: 'Staged items successfully added to the basket.',
   },
   my: {
     title: 'မြန်မာ ကုန်ပစ္စည်း စာရင်း',
@@ -1485,5 +1498,19 @@ export const translations = {
     invalidBracketsFormat: 'မှားယွင်းသော အဆင့်သတ်မှတ်ချက် ပုံစံ',
     geofenceDistanceShopMsg:
       'ဤဆိုင်သို့ သွားရောက်စစ်ဆေးရန်အတွက် ဆိုင်၏ မီတာ {meters} အတွင်း ရှိရပါမည်။ လက်ရှိအကွာအဝေး - {distance} မီတာ။',
+    thermalProtectionActive: '⚠️ အပူချိန် ကာကွယ်မှု စနစ် အလုပ်လုပ်နေသည်',
+    thermalProtectionDesc:
+      'စက်၏ အပူချိန် အလွန်မြင့်မားနေပါသည်။ စက်ပစ္စည်း အရင်းအမြစ်များကို ကာကွယ်ရန်နှင့် အပူချိန် လျှော့ချရန်အတွက် Leaflet မြေပုံ ပြသမှုကို ခေတ္တ ပိတ်ထားပါသည်။',
+    pendingUpload: 'တင်ရန် စောင့်ဆိုင်းနေသည်',
+    uploading: 'တင်နေသည်...',
+    failedTapRetry: 'မအောင်မြင်ပါ (ပြန်လည်ကြိုးစားရန် နှိပ်ပါ)',
+    stagingReviewArea: 'ယာယီ စစ်ဆေးရေး ဧရိယာ',
+    clearStaged: 'ယာယီ သိမ်းဆည်းထားသည်များကို ဖျက်ပါ',
+    stagingReviewDesc:
+      'မှာယူမှု ခြင်းတောင်းထဲသို့ မထည့်မီ အောက်ဖော်ပြပါ ပစ္စည်းများကို စစ်ဆေးပြီး လိုအပ်သလို ပြင်ဆင်ပါ။',
+    unitPriceLabel: 'ယူနစ် ဈေးနှုန်း',
+    commitToOrderBasket: 'မှာယူမှု ခြင်းတောင်းထဲသို့ ထည့်မည်',
+    stagedItemsAdded:
+      'ယာယီပစ္စည်းများကို မှာယူမှု ခြင်းတောင်းထဲသို့ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ။',
   },
 };

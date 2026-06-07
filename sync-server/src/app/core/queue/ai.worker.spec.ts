@@ -137,6 +137,111 @@ describe('AiWorker', () => {
       );
     });
 
+    it('should send Slack alert when SLACK_WEBHOOK_URL is configured', async () => {
+      const originalSlackUrl = process.env.SLACK_WEBHOOK_URL;
+      process.env.SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/test';
+
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: jest.fn().mockResolvedValue('ok'),
+      });
+      global.fetch = mockFetch;
+
+      const mockJob = {
+        id: 'job-3',
+        name: 'corrupted-transaction',
+        data: {
+          reason: 'Invalid trace format',
+          payload: { invalidHeader: true },
+        },
+      } as Job;
+
+      if (!workerConstructorCallback) {
+        throw new Error('workerConstructorCallback is not defined');
+      }
+
+      await expect(workerConstructorCallback(mockJob)).rejects.toThrow(
+        /Corrupted Transaction Frame: Invalid trace format/,
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/test',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: expect.stringContaining(
+            'Security Alert: Corrupted Transaction Detected',
+          ),
+        }),
+      );
+
+      process.env.SLACK_WEBHOOK_URL = originalSlackUrl;
+      delete (global as any).fetch;
+    });
+
+    it('should handle Slack alert fetch failure status', async () => {
+      const originalSlackUrl = process.env.SLACK_WEBHOOK_URL;
+      process.env.SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/test';
+
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: jest.fn().mockResolvedValue('Internal Server Error'),
+      });
+      global.fetch = mockFetch;
+
+      const mockJob = {
+        id: 'job-3',
+        name: 'corrupted-transaction',
+        data: {
+          reason: 'Invalid trace format',
+          payload: { invalidHeader: true },
+        },
+      } as Job;
+
+      if (!workerConstructorCallback) {
+        throw new Error('workerConstructorCallback is not defined');
+      }
+
+      await expect(workerConstructorCallback(mockJob)).rejects.toThrow(
+        /Corrupted Transaction Frame: Invalid trace format/,
+      );
+
+      expect(mockFetch).toHaveBeenCalled();
+      process.env.SLACK_WEBHOOK_URL = originalSlackUrl;
+      delete (global as any).fetch;
+    });
+
+    it('should handle fetch exceptions', async () => {
+      const originalSlackUrl = process.env.SLACK_WEBHOOK_URL;
+      process.env.SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/test';
+
+      const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = mockFetch;
+
+      const mockJob = {
+        id: 'job-3',
+        name: 'corrupted-transaction',
+        data: {
+          reason: 'Invalid trace format',
+          payload: { invalidHeader: true },
+        },
+      } as Job;
+
+      if (!workerConstructorCallback) {
+        throw new Error('workerConstructorCallback is not defined');
+      }
+
+      await expect(workerConstructorCallback(mockJob)).rejects.toThrow(
+        /Corrupted Transaction Frame: Invalid trace format/,
+      );
+
+      expect(mockFetch).toHaveBeenCalled();
+      process.env.SLACK_WEBHOOK_URL = originalSlackUrl;
+      delete (global as any).fetch;
+    });
+
     it('should log warning for unknown job name', async () => {
       const consoleWarnSpy = jest
         .spyOn(console, 'warn')

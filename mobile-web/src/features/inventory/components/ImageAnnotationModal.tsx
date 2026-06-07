@@ -10,6 +10,7 @@ import {
 import { Box, Text } from '@burma-inventory/ui-components';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { ThermalGuard } from '../../../core/utils/thermalGuard';
 
 // Safe dynamic imports for Skia to ensure 100% compilation on web platforms
 let Canvas: React.ComponentType<{
@@ -236,7 +237,10 @@ export function ImageAnnotationModal({
     }
   };
 
-  const hasSkia = Canvas && SkiaImage && SkiaRect && skiaImageObject;
+  const thermalState = ThermalGuard.getThermalState();
+  const isThrottled = thermalState === 'SERIOUS' || thermalState === 'CRITICAL';
+  const hasSkia =
+    Canvas && SkiaImage && SkiaRect && skiaImageObject && !isThrottled;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>

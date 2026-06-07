@@ -1,4 +1,9 @@
-import { writeAuditEvent, AuditEventPayload } from './audit';
+import {
+  writeAuditEvent,
+  AuditEventPayload,
+  getLatestAuditHash,
+  setLatestAuditHash,
+} from './audit';
 
 describe('audit logger', () => {
   const mockEvent: AuditEventPayload = {
@@ -48,5 +53,11 @@ describe('audit logger', () => {
     expect(hash).toHaveLength(64);
     // Since prev-event-hash-123 is present, it will be included in the hashed string context
     expect(mockTx.insert).toHaveBeenCalled();
+  });
+
+  it('gets and sets the latest audit hash', () => {
+    const freshHash = 'some-new-hash-val';
+    setLatestAuditHash(freshHash);
+    expect(getLatestAuditHash()).toBe(freshHash);
   });
 });

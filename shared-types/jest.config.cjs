@@ -9,5 +9,8 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'html'],
   coverageDirectory: '../coverage/shared-types',
+  collectCoverage: false,
+  coverageReporters: ['text', 'lcov', 'json', 'html', 'json-summary'],
+  coverageProvider: 'v8',
 };
 //# sourceMappingURL=jest.config.cjs.map

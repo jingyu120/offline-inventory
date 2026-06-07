@@ -236,5 +236,34 @@ describe('shared-types', () => {
       const results = semanticSearch(items, '');
       expect(results).toHaveLength(items.length);
     });
+
+    it('uses indexed regex substring matching when thermal state is CRITICAL', () => {
+      (globalThis as any).ThermalGuard = {
+        getThermalState: () => 'CRITICAL',
+      };
+
+      const results = semanticSearch(items, 'Sheets');
+      expect(results).toHaveLength(2); // Aluzinc Corrugated Sheets, Steel Roofing Sheets Green
+
+      delete (globalThis as any).ThermalGuard;
+    });
+
+    it('limits comparison search space by 50% when thermal state is SERIOUS', () => {
+      (globalThis as any).ThermalGuard = {
+        getThermalState: () => 'SERIOUS',
+      };
+
+      // items array size is 4. Under SERIOUS state, searchItems is items.slice(0, 2).
+      // So only "Aluzinc Corrugated Sheets" and "Steel Roofing Sheets Green" are searched.
+      // Search for "pvc" which is index 3 (item 4). Under SERIOUS state, it won't be matched.
+      const results = semanticSearch(items, 'pvc');
+      expect(results).toHaveLength(0);
+
+      // Search for "steel" which is index 1 (item 2). It is in the first 50%, so it should match.
+      const results2 = semanticSearch(items, 'steel');
+      expect(results2.length).toBeGreaterThan(0);
+
+      delete (globalThis as any).ThermalGuard;
+    });
   });
 });

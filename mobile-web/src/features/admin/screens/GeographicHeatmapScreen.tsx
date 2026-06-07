@@ -12,6 +12,7 @@ import { MapDetailPane } from '../components/MapDetailPane';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { tileDb } from '../../../core/database/tileDb';
 import { SYNC_API_URL, RECENCY_CONFIGS } from '../../../config/appConfig';
+import { ThermalGuard } from '../../../core/utils/thermalGuard';
 
 // Import subcomponents
 import { MapLegend } from '../components/MapLegend';
@@ -121,6 +122,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const markersRef = useRef<$Any[]>([]);
   const routePolylineRef = useRef<$Any>(null);
 
+  const thermalState = ThermalGuard.getThermalState();
+  const isThermalCritical = thermalState === 'CRITICAL';
+
   const {
     loading,
     selectedRegion,
@@ -199,9 +203,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
       'loading:',
       loading,
     );
-    if (!leafletLoaded || !mapContainerRef.current) {
+    if (!leafletLoaded || !mapContainerRef.current || isThermalCritical) {
       console.log(
-        '[Heatmap] Effect returned early due to missing leaflet or container',
+        '[Heatmap] Effect returned early due to missing leaflet, container, or thermal critical state',
       );
       return;
     }
@@ -262,7 +266,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
   // 4. Update Circle Markers on Filtered Shops Change
   useEffect(() => {
-    if (!leafletLoaded || !mapInstance) return;
+    if (!leafletLoaded || !mapInstance || isThermalCritical) return;
     const L = (window as $Any).L;
 
     // Clear old markers
@@ -489,7 +493,36 @@ export const GeographicHeatmapScreen: React.FC = () => {
             height={500}
             style={{ position: 'relative' }}
           >
-            {Platform.OS !== 'web' ? (
+            {isThermalCritical ? (
+              <Box
+                flex={1}
+                p="m"
+                bg="dangerBg"
+                borderColor="dangerText"
+                borderWidth={1}
+                borderRadius="m"
+                justifyContent="center"
+                alignItems="center"
+                height={500}
+              >
+                <Text
+                  variant="body"
+                  color="dangerText"
+                  fontWeight="bold"
+                  textAlign="center"
+                  mb="s"
+                >
+                  {t('thermalProtectionActive')}
+                </Text>
+                <Text
+                  variant="bodySecondary"
+                  color="dangerText"
+                  textAlign="center"
+                >
+                  {t('thermalProtectionDesc')}
+                </Text>
+              </Box>
+            ) : Platform.OS !== 'web' ? (
               <Box
                 flex={1}
                 justifyContent="center"
@@ -569,7 +602,31 @@ export const GeographicHeatmapScreen: React.FC = () => {
         />
       )}
       {/* Full-viewport Map */}
-      {Platform.OS !== 'web' ? (
+      {isThermalCritical ? (
+        <Box
+          flex={1}
+          p="m"
+          bg="dangerBg"
+          borderColor="dangerText"
+          borderWidth={1}
+          justifyContent="center"
+          alignItems="center"
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          <Text
+            variant="body"
+            color="dangerText"
+            fontWeight="bold"
+            textAlign="center"
+            mb="s"
+          >
+            {t('thermalProtectionActive')}
+          </Text>
+          <Text variant="bodySecondary" color="dangerText" textAlign="center">
+            {t('thermalProtectionDesc')}
+          </Text>
+        </Box>
+      ) : Platform.OS !== 'web' ? (
         <Box
           flex={1}
           justifyContent="center"

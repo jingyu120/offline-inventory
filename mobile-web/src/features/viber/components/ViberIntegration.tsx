@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../../../core/i18n/i18n';
+import { ThermalGuard } from '../../../core/utils/thermalGuard';
 import {
   INTERACTION_TYPES,
   IMAGE_UPLOAD_CONFIG,
@@ -65,10 +66,17 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
       return;
     }
 
+    const thermalState = ThermalGuard.getThermalState();
+    const isThrottled =
+      thermalState === 'SERIOUS' || thermalState === 'CRITICAL';
+    const quality = isThrottled ? 0.2 : 1;
+    const resizeWidth = isThrottled ? 480 : IMAGE_UPLOAD_CONFIG.resizeWidth;
+    const compressQuality = isThrottled ? 0.2 : IMAGE_UPLOAD_CONFIG.quality;
+
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      quality: 1,
+      quality,
     });
 
     if (
@@ -80,9 +88,9 @@ export const ViberIntegration: React.FC<ViberIntegrationProps> = ({
       try {
         const manipResult = await ImageManipulator.manipulateAsync(
           uri,
-          [{ resize: { width: IMAGE_UPLOAD_CONFIG.resizeWidth } }],
+          [{ resize: { width: resizeWidth } }],
           {
-            compress: IMAGE_UPLOAD_CONFIG.quality,
+            compress: compressQuality,
             format:
               IMAGE_UPLOAD_CONFIG.format === 'png'
                 ? ImageManipulator.SaveFormat.PNG

@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { ThemeProvider } from '@shopify/restyle';
+import { Modal } from 'react-native';
 import { DropdownSelector } from './DropdownSelector';
 import { theme } from './theme';
 
@@ -95,5 +96,62 @@ describe('DropdownSelector', () => {
     expect(getByText('Cancel')).toBeTruthy();
 
     fireEvent.press(getByText('Cancel'));
+  });
+
+  it('closes modal when overlay is clicked', async () => {
+    const { getByText, queryByText, getByTestId } = renderWithTheme(
+      <DropdownSelector
+        selectedValue="a"
+        options={options}
+        onValueChange={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(getByText('Option A'));
+    expect(getByTestId('modal-overlay')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId('modal-overlay'));
+    });
+    expect(queryByText('Option B')).toBeNull();
+  });
+
+  it('does not close modal and stops propagation when card is clicked', async () => {
+    const { getByText, getByTestId } = renderWithTheme(
+      <DropdownSelector
+        selectedValue="a"
+        options={options}
+        onValueChange={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(getByText('Option A'));
+
+    const stopPropagation = jest.fn();
+    await act(async () => {
+      fireEvent.press(getByTestId('modal-card'), { stopPropagation });
+    });
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(getByText('Option B')).toBeTruthy();
+  });
+
+  it('closes modal on Modal onRequestClose trigger', async () => {
+    const { getByText, queryByText, UNSAFE_getByType } = renderWithTheme(
+      <DropdownSelector
+        selectedValue="a"
+        options={options}
+        onValueChange={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(getByText('Option A'));
+
+    const modal = UNSAFE_getByType(Modal);
+    await act(async () => {
+      modal.props.onRequestClose();
+    });
+
+    expect(queryByText('Option B')).toBeNull();
   });
 });

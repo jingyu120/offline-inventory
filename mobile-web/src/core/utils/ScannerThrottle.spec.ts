@@ -68,4 +68,34 @@ describe('ScannerThrottle', () => {
   it('handles empty barcodes by returning false without updating state', () => {
     expect(scannerThrottle.processScan(' ')).toBe(false);
   });
+
+  it('handles custom translation function and triggers alert', () => {
+    const t = jest.fn((key) => `translated-${key}`);
+    scannerThrottle.processScan('BARCODE_T');
+    scannerThrottle.processScan('BARCODE_T', t);
+    expect(t).toHaveBeenCalledWith('duplicateScanBlocked');
+    expect(t).toHaveBeenCalledWith('duplicateScanBlockedDesc');
+  });
+
+  it('handles audio context creation exception', () => {
+    const originalAudioContext = (globalThis as any).window.AudioContext;
+    (globalThis as any).window.AudioContext = jest
+      .fn()
+      .mockImplementation(() => {
+        throw new Error('AudioContext error');
+      });
+
+    const consoleWarnSpy = jest
+      .spyOn(console, 'warn')
+      .mockImplementation((_msg, _err) => undefined);
+    scannerThrottle.processScan('BARCODE_ERR');
+    scannerThrottle.processScan('BARCODE_ERR');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Failed to play audio alert',
+      expect.any(Error),
+    );
+    consoleWarnSpy.mockRestore();
+    (globalThis as any).window.AudioContext = originalAudioContext;
+  });
 });

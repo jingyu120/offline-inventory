@@ -9,6 +9,45 @@ let isProcessing = false;
 
 export class ImageUploadQueue {
   static isPaused = false;
+  static subscribers = new Set<() => void>();
+
+  static subscribe(cb: () => void): () => void {
+    ImageUploadQueue.subscribers.add(cb);
+    return () => {
+      ImageUploadQueue.subscribers.delete(cb);
+    };
+  }
+
+  static unsubscribe(cb: () => void): void {
+    ImageUploadQueue.subscribers.delete(cb);
+  }
+
+  static notifySubscribers(): void {
+    ImageUploadQueue.subscribers.forEach((cb) => {
+      try {
+        cb();
+      } catch (err) {
+        console.error('[ImageUploadQueue] Error in subscriber callback:', err);
+      }
+    });
+  }
+
+  static async retryTask(taskId: string): Promise<void> {
+    console.log(`[ImageUploadQueue] Retrying task ${taskId}`);
+    const now = Math.floor(Date.now() / 1000);
+    try {
+      await database
+        .update(sqliteSchema.image_upload_queue)
+        .set({ status: 'pending', updated_at: now })
+        .where(eq(sqliteSchema.image_upload_queue.id, taskId));
+
+      ImageUploadQueue.notifySubscribers();
+
+      ImageUploadQueue.processQueue();
+    } catch (err) {
+      console.error(`[ImageUploadQueue] Failed to retry task ${taskId}:`, err);
+    }
+  }
 
   static pause(): void {
     ImageUploadQueue.isPaused = true;
@@ -18,12 +57,7 @@ export class ImageUploadQueue {
   static resume(): void {
     ImageUploadQueue.isPaused = false;
     console.log('[ImageUploadQueue] Queue manually resumed.');
-    ImageUploadQueue.processQueue().catch((err) => {
-      console.error(
-        '[ImageUploadQueue] background process error in resume:',
-        err,
-      );
-    });
+    ImageUploadQueue.processQueue();
   }
 
   static async enqueueImage(
@@ -39,7 +73,7 @@ export class ImageUploadQueue {
     let localFilePath = tempUri;
 
     try {
-      const ImageManipulator = await import('expo-image-manipulator');
+      const ImageManipulator = (require as $Any)('expo-image-manipulator');
       const manipResult = await ImageManipulator.manipulateAsync(
         tempUri,
         [{ resize: { width: 1080 } }],
@@ -88,6 +122,7 @@ export class ImageUploadQueue {
         updated_at: now,
       });
       console.log(`[ImageUploadQueue] Enqueued task ${queueId}`);
+      ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
         console.error('[ImageUploadQueue] background process error:', err);
@@ -158,6 +193,7 @@ export class ImageUploadQueue {
         updated_at: now,
       });
       console.log(`[ImageUploadQueue] Enqueued competitor task ${queueId}`);
+      ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
         console.error('[ImageUploadQueue] background process error:', err);
@@ -178,16 +214,17 @@ export class ImageUploadQueue {
       return;
     }
 
+    let isNetworkDegraded = false;
     try {
       const state = await NetInfo.fetch();
       const is2G =
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
       const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
       if (is2G || isMockDegraded) {
+        isNetworkDegraded = true;
         console.log(
-          '[ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Pausing image uploads.',
+          '[ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Enabling aggressive low-res/high-loss compression.',
         );
-        return;
       }
     } catch (netErr) {
       console.warn(
@@ -231,6 +268,35 @@ export class ImageUploadQueue {
           .update(sqliteSchema.image_upload_queue)
           .set({ status: 'processing', updated_at: now })
           .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+        ImageUploadQueue.notifySubscribers();
+
+        let uploadFilePath = task.local_file_path;
+        let tempCompressedFile: string | null = null;
+        if (isNetworkDegraded) {
+          try {
+            console.log(
+              `[ImageUploadQueue] Aggressively compressing ${task.local_file_path} for degraded network...`,
+            );
+            const ImageManipulator = (require as $Any)(
+              'expo-image-manipulator',
+            );
+            const manipResult = await ImageManipulator.manipulateAsync(
+              task.local_file_path,
+              [{ resize: { width: 480 } }],
+              { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG },
+            );
+            uploadFilePath = manipResult.uri;
+            tempCompressedFile = manipResult.uri;
+            console.log(
+              `[ImageUploadQueue] Aggressive compression completed: ${uploadFilePath}`,
+            );
+          } catch (manipErr) {
+            console.warn(
+              '[ImageUploadQueue] Failed to aggressively compress image under degraded network, falling back to original:',
+              manipErr,
+            );
+          }
+        }
 
         try {
           let serverUrl = '';
@@ -244,7 +310,7 @@ export class ImageUploadQueue {
 
           const uploadResult = await FileSystem.uploadAsync(
             `${SYNC_API_URL}/upload`,
-            task.local_file_path,
+            uploadFilePath,
             {
               fieldName: 'file',
               httpMethod: 'POST',
@@ -317,6 +383,7 @@ export class ImageUploadQueue {
             await database
               .delete(sqliteSchema.image_upload_queue)
               .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+            ImageUploadQueue.notifySubscribers();
           } else {
             throw new Error(
               'Server upload response did not return a valid screenshot URL.',
@@ -333,6 +400,26 @@ export class ImageUploadQueue {
             .update(sqliteSchema.image_upload_queue)
             .set({ status: 'failed', updated_at: updateTime })
             .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+          ImageUploadQueue.notifySubscribers();
+        } finally {
+          if (tempCompressedFile) {
+            try {
+              const info = await FileSystem.getInfoAsync(tempCompressedFile);
+              if (info.exists) {
+                await FileSystem.deleteAsync(tempCompressedFile, {
+                  idempotent: true,
+                });
+                console.log(
+                  `[ImageUploadQueue] Cleaned up temp compressed file: ${tempCompressedFile}`,
+                );
+              }
+            } catch (cleanupErr) {
+              console.warn(
+                '[ImageUploadQueue] Failed to delete temp compressed file:',
+                cleanupErr,
+              );
+            }
+          }
         }
       }
     } catch (err) {

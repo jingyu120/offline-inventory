@@ -87,4 +87,26 @@ describe('ThermalGuard', () => {
       expect(ThermalGuard.getThermalState()).toBe(state);
     }
   });
+
+  it('logs error when subscriber throws', () => {
+    const errorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation((_msg, _err) => undefined);
+    const throwingSubscriber = jest.fn().mockImplementation((state) => {
+      if (state === 'CRITICAL') {
+        throw new Error('Test Callback Error');
+      }
+    });
+
+    const unsubscribe = ThermalGuard.subscribe(throwingSubscriber);
+    ThermalGuard.setThermalState('CRITICAL');
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error in ThermalGuard listener callback:',
+      expect.any(Error),
+    );
+
+    errorSpy.mockRestore();
+    unsubscribe();
+  });
 });

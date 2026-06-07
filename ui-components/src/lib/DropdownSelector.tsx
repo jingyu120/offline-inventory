@@ -97,12 +97,14 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setIsOpen(false)}
+          testID="modal-overlay"
         >
           <Pressable
             style={styles.modalCard}
             onPress={(e) => {
               if (e && e.stopPropagation) e.stopPropagation();
             }}
+            testID="modal-card"
           >
             <Card
               m="none"

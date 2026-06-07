@@ -31,6 +31,8 @@ import { RefreshCw, Check, X, Edit2, Lock, Unlock } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
+import { getCachedLocation } from '../../../core/utils/locationCache';
+import { syncData } from '../../sync/sync';
 import {
   calculateDistance,
   GEOFENCE_RADIUS_INTAKE_METERS,
@@ -97,7 +99,7 @@ export function IntakeScreen() {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({
+      const loc = await getCachedLocation({
         accuracy: Location.Accuracy.Balanced,
       });
 
@@ -199,6 +201,9 @@ export function IntakeScreen() {
         });
         Alert.alert(t('success'), t('stockUpdateSubmitted'));
         await loadPendingUpdates();
+        syncData().catch((err) =>
+          console.error('[IntakeScreen] sync failed:', err),
+        );
       } catch (e) {
         console.error('Failed to submit pending update:', e);
         Alert.alert(t('error'), t('failedSubmitStockUpdate'));
@@ -248,6 +253,9 @@ export function IntakeScreen() {
       Alert.alert(t('error'), t('couldNotUpdateStock'));
     } else {
       await loadInventory();
+      syncData().catch((err) =>
+        console.error('[IntakeScreen] sync failed:', err),
+      );
     }
   };
 
@@ -296,6 +304,9 @@ export function IntakeScreen() {
         setInitialStock('100');
         Alert.alert(t('success'), t('skuRegistrationSubmitted'));
         await loadPendingUpdates();
+        syncData().catch((err) =>
+          console.error('[IntakeScreen] sync failed:', err),
+        );
       } catch (e) {
         console.error('Failed to submit pending SKU:', e);
         Alert.alert(t('error'), t('failedSubmitPendingSku'));
@@ -446,6 +457,9 @@ export function IntakeScreen() {
     } else {
       Alert.alert(t('approvedSuccess'), t('inventoryApprovedApplied'));
       await loadInventory();
+      syncData().catch((err) =>
+        console.error('[IntakeScreen] sync failed:', err),
+      );
     }
   };
 
@@ -460,6 +474,9 @@ export function IntakeScreen() {
         .where(eq(sqliteSchema.pending_inventory_updates.id, update.id));
       Alert.alert(t('rejectedSuccess'), t('updateRejectedMsg'));
       await loadPendingUpdates();
+      syncData().catch((err) =>
+        console.error('[IntakeScreen] sync failed:', err),
+      );
     } catch (e) {
       console.error('Failed to reject update:', e);
       Alert.alert(t('error'), t('failedRejectUpdate'));
@@ -511,6 +528,9 @@ export function IntakeScreen() {
       setEditingUpdateId(null);
       await loadPendingUpdates();
       Alert.alert(t('successTitle'), t('saveChanges'));
+      syncData().catch((err) =>
+        console.error('[IntakeScreen] sync failed:', err),
+      );
     } catch (e) {
       console.error('Failed to save edited update:', e);
       Alert.alert(t('errorTitle'), t('failedSaveEditUpdate'));

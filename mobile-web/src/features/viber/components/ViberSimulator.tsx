@@ -5,6 +5,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  useWindowDimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Box,
@@ -41,7 +43,10 @@ import {
   VIBER_SCORING_WEIGHTS,
   VIBER_KNOWN_UNITS,
   OVERRIDE_MARGIN_LIMIT_FACTOR,
+  AI_PARSE_NOTE_URL,
 } from '../../../config/appConfig';
+import axios from 'axios';
+import { syncData } from '../../sync/sync';
 
 export function ViberSimulator() {
   const theme = useTheme<Theme>();
@@ -53,6 +58,8 @@ export function ViberSimulator() {
   const [selectedShopId, setSelectedShopId] = useState<string>('');
   const [rawText, setRawText] = useState<string>('');
   const [selectedItems, setSelectedItems] = useState<$Any[]>([]);
+  const [draftStagingItems, setDraftStagingItems] = useState<$Any[]>([]);
+  const [isParsingNote, setIsParsingNote] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('MMK');
   const [priceBookItems, setPriceBookItems] = useState<$Any[]>([]);
   const [exchangeRates, setExchangeRates] = useState<$Any[]>([]);
@@ -64,6 +71,8 @@ export function ViberSimulator() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
   // Shop selection dropdown states
   const [shopSearch, setShopSearch] = useState('');
@@ -248,7 +257,7 @@ export function ViberSimulator() {
     return priceInMmk;
   };
 
-  const handleParse = () => {
+  const handleParse = async () => {
     if (!rawText.trim()) {
       Alert.alert(t('info'), t('enterRawOrderTextInfo'));
       return;
@@ -395,9 +404,54 @@ export function ViberSimulator() {
     }
 
     if (parsedItems.length === 0) {
-      Alert.alert(t('info'), t('couldNotIdentifyItems'));
+      setIsParsingNote(true);
+      try {
+        console.log(
+          `[ViberSimulator] Token parser failed. Falling back to local AI note parser at ${AI_PARSE_NOTE_URL}`,
+        );
+        const response = await axios.post(AI_PARSE_NOTE_URL, {
+          note: rawText,
+        });
+
+        if (
+          response.data &&
+          response.data.items &&
+          response.data.items.length > 0
+        ) {
+          const aiParsedItems: $Any[] = [];
+          for (const rawItem of response.data.items) {
+            const matchedItem = items.find(
+              (i) => i.sku.toLowerCase() === rawItem.sku.toLowerCase(),
+            );
+            if (matchedItem) {
+              const basePrice = getItemPrice(matchedItem);
+              const multiplier = getConversionMultiplier(matchedItem, 'PCS');
+              const unitPrice = basePrice * multiplier;
+              aiParsedItems.push({
+                item: matchedItem,
+                quantity: rawItem.quantity,
+                selectedUnit: 'PCS',
+                unitPrice,
+                stockCondition: 'GOOD',
+                pendingAllocationCount: 0,
+              });
+            }
+          }
+
+          if (aiParsedItems.length > 0) {
+            setDraftStagingItems(aiParsedItems);
+            return;
+          }
+        }
+        Alert.alert(t('info'), t('couldNotIdentifyItems'));
+      } catch (err) {
+        console.error('[ViberSimulator] AI parse fallback failed:', err);
+        Alert.alert(t('info'), t('couldNotIdentifyItems'));
+      } finally {
+        setIsParsingNote(false);
+      }
     } else {
-      setSelectedItems(parsedItems);
+      setDraftStagingItems(parsedItems);
     }
   };
 
@@ -519,6 +573,9 @@ export function ViberSimulator() {
       setRawText('');
       setSelectedItems([]);
       setIsOverrideMarginAcknowledged(false);
+      syncData().catch((err) => {
+        console.error('[ViberSimulator] Background sync failed:', err);
+      });
     } catch (e) {
       console.error(e);
       Alert.alert(t('error'), t('failedToSaveOrder'));
@@ -550,388 +607,653 @@ export function ViberSimulator() {
       ? `K${Math.round(totalBasketValue).toLocaleString()}`
       : `${totalBasketValue.toFixed(2)} ${selectedCurrency}`;
 
+  const renderShopPicker = () => (
+    <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+      <Text variant="body" fontWeight="bold" mb="s">
+        {t('selectShopForDraftOrder')}
+      </Text>
+
+      <Pressable
+        onPress={() => setShowShopList(!showShopList)}
+        style={({ pressed }) => [
+          {
+            transform: [{ scale: pressed ? 0.99 : 1 }],
+            ...webTransition,
+          },
+        ]}
+      >
+        <Box
+          height={48}
+          borderWidth={1}
+          borderRadius="m"
+          px="m"
+          flexDirection="row"
+          alignItems="center"
+          justifyContent="space-between"
+          borderColor="borderColor"
+          bg="cardBackground"
+        >
+          <Box flexDirection="row" alignItems="center" flex={1}>
+            <Box mr="s">
+              <MapPin size={18} stroke={theme.colors.primaryButton} />
+            </Box>
+            <Text
+              variant="body"
+              fontWeight={selectedShop ? 'bold' : 'normal'}
+              color={selectedShop ? 'primaryText' : 'secondaryText'}
+            >
+              {selectedShop ? selectedShop.name : t('selectRetailAccount')}
+            </Text>
+          </Box>
+          <Text color="secondaryText">▼</Text>
+        </Box>
+      </Pressable>
+
+      {showShopList && (
+        <Box
+          mt="s"
+          borderWidth={1}
+          borderRadius="m"
+          p="s"
+          borderColor="borderColor"
+        >
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            borderWidth={searchFocused ? 2 : 1}
+            borderColor={searchFocused ? 'success' : 'borderColor'}
+            borderRadius="m"
+            px="s"
+            mb="s"
+            bg="mainBackground"
+          >
+            <Box mr="xs">
+              <Search size={16} stroke={theme.colors.secondaryText} />
+            </Box>
+            <ThemedTextInput
+              placeholder={t('searchShops')}
+              placeholderTextColor={theme.colors.secondaryText}
+              value={shopSearch}
+              onChangeText={setShopSearch}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              flex={1}
+              height={36}
+              style={{
+                fontSize: 14,
+                color: theme.colors.primaryText,
+                ...(Platform.OS === 'web'
+                  ? ({ outlineStyle: 'none' } as $Any)
+                  : {}),
+              }}
+            />
+          </Box>
+
+          <Box maxHeight={200}>
+            <ScrollView
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+            >
+              {filteredShops.map((s) => (
+                <Pressable
+                  key={s.id}
+                  onPress={() => {
+                    setSelectedShopId(s.id);
+                    setShowShopList(false);
+                    setShopSearch('');
+                  }}
+                  style={({ pressed, hovered }: $Any) => [
+                    {
+                      backgroundColor:
+                        selectedShopId === s.id
+                          ? theme.colors.secondaryButton
+                          : hovered
+                            ? theme.colors.secondaryBackground
+                            : 'transparent',
+                      transform: [{ scale: pressed ? 0.99 : 1 }],
+                      ...webTransition,
+                    },
+                  ]}
+                >
+                  <Box
+                    py="s"
+                    px="s"
+                    borderBottomWidth={1}
+                    borderColor="borderColor"
+                  >
+                    <Text
+                      variant="body"
+                      fontWeight={selectedShopId === s.id ? 'bold' : 'normal'}
+                    >
+                      {s.name}
+                    </Text>
+                    <Text variant="caption">{s.address}</Text>
+                  </Box>
+                </Pressable>
+              ))}
+              {filteredShops.length === 0 && (
+                <Box p="m" alignItems="center">
+                  <Text variant="bodySecondary">{t('noShopsMatchSearch')}</Text>
+                </Box>
+              )}
+            </ScrollView>
+          </Box>
+        </Box>
+      )}
+    </Card>
+  );
+
+  const renderRawTextInput = () => (
+    <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+      <Text variant="body" fontWeight="bold" mb="xs">
+        {t('pasteRawOrderMessage')}
+      </Text>
+      <Text variant="caption" color="secondaryText" mb="s">
+        {t('oneItemPerLineSub')}
+      </Text>
+      <ThemedTextInput
+        multiline
+        numberOfLines={4}
+        value={rawText}
+        onChangeText={setRawText}
+        placeholder={t('viberPlaceholder')}
+        placeholderTextColor={theme.colors.secondaryText}
+        onFocus={() => setTextAreaFocused(true)}
+        onBlur={() => setTextAreaFocused(false)}
+        borderWidth={textAreaFocused ? 2 : 1}
+        borderColor={textAreaFocused ? 'success' : 'borderColor'}
+        bg="cardBackground"
+        p="m"
+        borderRadius="m"
+        style={{
+          color: theme.colors.primaryText,
+          fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+          textAlignVertical: 'top',
+          ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as $Any) : {}),
+        }}
+      />
+
+      <Box mt="s">
+        <Button
+          title={'🪄 ' + t('autoDraftOrder')}
+          variant="primary"
+          onPress={handleParse}
+          isLoading={isParsingNote}
+          icon={
+            !isParsingNote ? (
+              <Box mr="xs">
+                <Sparkles size={16} stroke={theme.colors.primaryButtonText} />
+              </Box>
+            ) : undefined
+          }
+        />
+      </Box>
+    </Card>
+  );
+
+  const renderCurrencyPicker = () => (
+    <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+      <Text variant="body" fontWeight="bold" mb="s">
+        {t('orderCurrency')}
+      </Text>
+      <Box flexDirection="row">
+        {CURRENCIES.map((c) => {
+          const curr = c.value;
+          const isSelected = selectedCurrency === curr;
+          return (
+            <Box key={curr} mr="s" style={{ flex: 1 }}>
+              <Pressable
+                onPress={() => {
+                  setSelectedCurrency(curr);
+                  // Recalculate existing basket items pricing on currency change
+                  setSelectedItems((prev) =>
+                    prev.map((si) => {
+                      const pbItem = priceBookItems.find(
+                        (pbi) => pbi.item_id === si.item.id,
+                      );
+                      let basePrice = si.item.unitPrice;
+                      let baseCurrency = 'MMK';
+                      if (pbItem) {
+                        basePrice = pbItem.price;
+                        baseCurrency = pbItem.currency;
+                      }
+
+                      // Convert standard price to new selected currency
+                      let priceInMmk = basePrice;
+                      if (baseCurrency !== 'MMK') {
+                        const rateToMmk = exchangeRates.find(
+                          (r) =>
+                            r.from_currency === baseCurrency &&
+                            r.to_currency === 'MMK',
+                        );
+                        if (rateToMmk) priceInMmk = basePrice * rateToMmk.rate;
+                      }
+
+                      let finalPrice = priceInMmk;
+                      if (curr !== 'MMK') {
+                        const rateFromMmk = exchangeRates.find(
+                          (r) =>
+                            r.from_currency === curr && r.to_currency === 'MMK',
+                        );
+                        if (rateFromMmk && rateFromMmk.rate > 0) {
+                          finalPrice = priceInMmk / rateFromMmk.rate;
+                        } else {
+                          const matchedConfig = CURRENCIES.find(
+                            (cc) => cc.value === curr,
+                          );
+                          if (
+                            matchedConfig &&
+                            matchedConfig.defaultRateToMmk > 0
+                          ) {
+                            finalPrice =
+                              priceInMmk / matchedConfig.defaultRateToMmk;
+                          }
+                        }
+                      }
+
+                      const multiplier = getConversionMultiplier(
+                        si.item,
+                        si.selectedUnit,
+                      );
+                      return {
+                        ...si,
+                        unitPrice: finalPrice * multiplier,
+                      };
+                    }),
+                  );
+                }}
+                style={({ pressed }) => ({
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                  ...webTransition,
+                })}
+              >
+                <Box
+                  py="s"
+                  px="m"
+                  borderRadius="m"
+                  borderWidth={1}
+                  borderColor={isSelected ? 'primaryButton' : 'borderColor'}
+                  bg={isSelected ? 'primaryButton' : 'cardBackground'}
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Text
+                    variant="body"
+                    fontWeight="bold"
+                    color={isSelected ? 'primaryButtonText' : 'primaryText'}
+                  >
+                    {curr}
+                  </Text>
+                </Box>
+              </Pressable>
+            </Box>
+          );
+        })}
+      </Box>
+    </Card>
+  );
+
+  const renderStagingReview = () => {
+    if (draftStagingItems.length === 0) return null;
+    return (
+      <Card p="m" mb="m" borderColor="brand" borderWidth={1}>
+        <Box
+          flexDirection="row"
+          alignItems="center"
+          mb="s"
+          justifyContent="space-between"
+        >
+          <Box flexDirection="row" alignItems="center">
+            <Box mr="xs">
+              <Sparkles size={18} stroke={theme.colors.brand} />
+            </Box>
+            <Text variant="body" fontWeight="bold" color="brand">
+              {t('stagingReviewArea')}
+            </Text>
+          </Box>
+          <TouchableOpacity onPress={() => setDraftStagingItems([])}>
+            <Text variant="bodySecondary" color="dangerText">
+              {t('clearStaged')}
+            </Text>
+          </TouchableOpacity>
+        </Box>
+
+        <Text variant="caption" color="secondaryText" mb="m">
+          {t('stagingReviewDesc')}
+        </Text>
+
+        {draftStagingItems.map((si, index) => {
+          return (
+            <Box
+              key={`${si.item.id}-${index}`}
+              mb="m"
+              pb="m"
+              borderBottomWidth={index < draftStagingItems.length - 1 ? 1 : 0}
+              borderBottomColor="borderColor"
+            >
+              <Text variant="body" fontWeight="bold" mb="s">
+                {si.item.name} ({si.item.sku})
+              </Text>
+
+              <Box
+                flexDirection="row"
+                gap="s"
+                mb="s"
+                flexWrap="wrap"
+                alignItems="center"
+              >
+                {/* Quantity Edit */}
+                <Box style={{ flex: 1, minWidth: 80 }}>
+                  <Text variant="caption" color="secondaryText" mb="xs">
+                    {t('qty')}
+                  </Text>
+                  <ThemedTextInput
+                    value={si.quantity.toString()}
+                    onChangeText={(val) => {
+                      const qtyStr = val.replace(/[^0-9]/g, '');
+                      setDraftStagingItems((prev) =>
+                        prev.map((item, idx) =>
+                          idx === index ? { ...item, quantity: qtyStr } : item,
+                        ),
+                      );
+                    }}
+                    keyboardType="number-pad"
+                    p="s"
+                    borderRadius="s"
+                    borderWidth={1}
+                    borderColor="borderColor"
+                    bg="mainBackground"
+                    style={{
+                      fontSize: 13,
+                      color: theme.colors.primaryText,
+                      textAlign: 'center',
+                    }}
+                  />
+                </Box>
+
+                {/* Unit Segmented Selector */}
+                <Box>
+                  <Text variant="caption" mb="xs" color="secondaryText">
+                    {t('unit')}
+                  </Text>
+                  <Box flexDirection="row">
+                    {['PCS', 'PK', 'BAGS', 'PAL'].map((unit) => {
+                      const isSelected = si.selectedUnit === unit;
+                      return (
+                        <Pressable
+                          key={unit}
+                          onPress={() => {
+                            setDraftStagingItems((prev) =>
+                              prev.map((item, idx) => {
+                                if (idx === index) {
+                                  const basePrice = getItemPrice(item.item);
+                                  const multiplier = getConversionMultiplier(
+                                    item.item,
+                                    unit,
+                                  );
+                                  const newPrice = basePrice * multiplier;
+                                  return {
+                                    ...item,
+                                    selectedUnit: unit,
+                                    unitPrice: newPrice,
+                                  };
+                                }
+                                return item;
+                              }),
+                            );
+                          }}
+                          style={({ pressed }) => [
+                            {
+                              marginLeft: theme.spacing.xs,
+                              transform: [{ scale: pressed ? 0.95 : 1 }],
+                              ...webTransition,
+                            },
+                          ]}
+                        >
+                          <Box
+                            px="s"
+                            py="xs"
+                            borderRadius="s"
+                            borderWidth={1}
+                            borderColor={
+                              isSelected ? 'primaryButton' : 'borderColor'
+                            }
+                            bg={isSelected ? 'primaryButton' : 'cardBackground'}
+                          >
+                            <Text
+                              variant="badge"
+                              fontWeight="bold"
+                              color={
+                                isSelected
+                                  ? 'primaryButtonText'
+                                  : 'secondaryText'
+                              }
+                            >
+                              {unit}
+                            </Text>
+                          </Box>
+                        </Pressable>
+                      );
+                    })}
+                  </Box>
+                </Box>
+
+                {/* Unit Price Edit */}
+                <Box style={{ flex: 1.2, minWidth: 120 }}>
+                  <Text variant="caption" color="secondaryText" mb="xs">
+                    {t('unitPriceLabel')} ({selectedCurrency})
+                  </Text>
+                  <ThemedTextInput
+                    value={si.unitPrice.toString()}
+                    onChangeText={(val) => {
+                      let cleanPrice = val.replace(/[^0-9.-]/g, '');
+                      if (cleanPrice.startsWith('-')) {
+                        cleanPrice =
+                          '-' + cleanPrice.slice(1).replace(/-/g, '');
+                      } else {
+                        cleanPrice = cleanPrice.replace(/-/g, '');
+                      }
+                      const parts = cleanPrice.split('.');
+                      if (parts.length > 2) {
+                        cleanPrice = parts[0] + '.' + parts.slice(1).join('');
+                      }
+                      setDraftStagingItems((prev) =>
+                        prev.map((item, idx) =>
+                          idx === index
+                            ? { ...item, unitPrice: cleanPrice }
+                            : item,
+                        ),
+                      );
+                    }}
+                    keyboardType="numeric"
+                    p="s"
+                    borderRadius="s"
+                    borderWidth={1}
+                    borderColor="borderColor"
+                    bg="mainBackground"
+                    style={{ fontSize: 13, color: theme.colors.primaryText }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          );
+        })}
+
+        <Box mt="s">
+          <Button
+            title={t('commitToOrderBasket')}
+            variant="primary"
+            onPress={() => {
+              setSelectedItems((prev) => {
+                const updated = [...prev];
+                for (const staged of draftStagingItems) {
+                  const existingIdx = updated.findIndex(
+                    (item) =>
+                      item.item.id === staged.item.id &&
+                      item.selectedUnit === staged.selectedUnit,
+                  );
+                  if (existingIdx > -1) {
+                    const prevQty = parseInt(
+                      updated[existingIdx].quantity.toString() || '0',
+                      10,
+                    );
+                    const stagedQty = parseInt(
+                      staged.quantity.toString() || '0',
+                      10,
+                    );
+                    updated[existingIdx] = {
+                      ...updated[existingIdx],
+                      quantity: prevQty + stagedQty,
+                    };
+                  } else {
+                    updated.push(staged);
+                  }
+                }
+                return updated;
+              });
+              setDraftStagingItems([]);
+              Alert.alert(t('success'), t('stagedItemsAdded'));
+            }}
+          />
+        </Box>
+      </Card>
+    );
+  };
+
+  const renderOrderBasket = () => {
+    if (selectedItems.length > 0) {
+      return (
+        <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
+          <Box flexDirection="row" alignItems="center" mb="s">
+            <Box mr="xs">
+              <ShoppingCart size={18} stroke={theme.colors.primaryButton} />
+            </Box>
+            <Text variant="body" fontWeight="bold">
+              {t('orderBasket')}
+            </Text>
+          </Box>
+
+          <SelectedItemsList
+            selectedItems={selectedItems}
+            updateQuantity={updateQuantity}
+            updateSelectedUnit={updateSelectedUnit}
+            updateUnitPrice={updateUnitPrice}
+            getItemPrice={getItemPrice}
+            selectedCurrency={selectedCurrency}
+            updateStockCondition={updateStockCondition}
+            isOverrideMarginAcknowledged={isOverrideMarginAcknowledged}
+            setIsOverrideMarginAcknowledged={setIsOverrideMarginAcknowledged}
+            lastInteractionLog={lastInteractionLog}
+            onDuplicateLastOrder={handleDuplicateLastOrder}
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            setSelectedProjectId={setSelectedProjectId}
+          />
+
+          <Box
+            flexDirection="row"
+            justifyContent="space-between"
+            alignItems="center"
+            borderTopWidth={1}
+            borderTopColor="borderColor"
+            pt="m"
+            mt="s"
+          >
+            <Text variant="body" fontWeight="bold">
+              {t('totalOrderValue')}
+            </Text>
+            <Text variant="header" fontSize={18} color="primaryButton">
+              {formattedBasketTotal}
+            </Text>
+          </Box>
+        </Card>
+      );
+    } else {
+      return (
+        <Card
+          p="m"
+          mb="m"
+          alignItems="center"
+          borderColor="borderColor"
+          borderWidth={1}
+        >
+          <Box mb="s">
+            <AlertCircle size={24} stroke={theme.colors.secondaryText} />
+          </Box>
+          <Text variant="bodySecondary">{t('draftOrderBasketEmpty')}</Text>
+        </Card>
+      );
+    }
+  };
+
   return (
     <Box flex={1} bg="mainBackground" p="m">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-        >
-          <Box mb="m">
-            <Text variant="header" fontSize={24}>
-              📥 {t('backOfficeOrderDrafter')}
-            </Text>
-            <Text variant="bodySecondary">{t('pasteRawViberMessageSub')}</Text>
-          </Box>
-
-          {/* Shop Picker Component */}
-          <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-            <Text variant="body" fontWeight="bold" mb="s">
-              {t('selectShopForDraftOrder')}
-            </Text>
-
-            <Pressable
-              onPress={() => setShowShopList(!showShopList)}
-              style={({ pressed }) => [
-                {
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
-                  ...webTransition,
-                },
-              ]}
-            >
-              <Box
-                height={48}
-                borderWidth={1}
-                borderRadius="m"
-                px="m"
-                flexDirection="row"
-                alignItems="center"
-                justifyContent="space-between"
-                borderColor="borderColor"
-                bg="cardBackground"
+        {isDesktop ? (
+          <Box flexDirection="row" flex={1} gap="m">
+            {/* Left Column */}
+            <Box flex={1}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
               >
-                <Box flexDirection="row" alignItems="center" flex={1}>
-                  <Box mr="s">
-                    <MapPin size={18} stroke={theme.colors.primaryButton} />
-                  </Box>
-                  <Text
-                    variant="body"
-                    fontWeight={selectedShop ? 'bold' : 'normal'}
-                    color={selectedShop ? 'primaryText' : 'secondaryText'}
-                  >
-                    {selectedShop
-                      ? selectedShop.name
-                      : t('selectRetailAccount')}
+                <Box mb="m">
+                  <Text variant="header" fontSize={24}>
+                    📥 {t('backOfficeOrderDrafter')}
+                  </Text>
+                  <Text variant="bodySecondary">
+                    {t('pasteRawViberMessageSub')}
                   </Text>
                 </Box>
-                <Text color="secondaryText">▼</Text>
-              </Box>
-            </Pressable>
-
-            {showShopList && (
-              <Box
-                mt="s"
-                borderWidth={1}
-                borderRadius="m"
-                p="s"
-                borderColor="borderColor"
-              >
-                <Box
-                  flexDirection="row"
-                  alignItems="center"
-                  borderWidth={searchFocused ? 2 : 1}
-                  borderColor={searchFocused ? 'success' : 'borderColor'}
-                  borderRadius="m"
-                  px="s"
-                  mb="s"
-                  bg="mainBackground"
-                >
-                  <Box mr="xs">
-                    <Search size={16} stroke={theme.colors.secondaryText} />
-                  </Box>
-                  <ThemedTextInput
-                    placeholder={t('searchShops')}
-                    placeholderTextColor={theme.colors.secondaryText}
-                    value={shopSearch}
-                    onChangeText={setShopSearch}
-                    onFocus={() => setSearchFocused(true)}
-                    onBlur={() => setSearchFocused(false)}
-                    flex={1}
-                    height={36}
-                    style={{
-                      fontSize: 14,
-                      color: theme.colors.primaryText,
-                      ...(Platform.OS === 'web'
-                        ? ({ outlineStyle: 'none' } as $Any)
-                        : {}),
-                    }}
-                  />
-                </Box>
-
-                <Box maxHeight={200}>
-                  <ScrollView
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator={false}
-                    showsHorizontalScrollIndicator={false}
-                  >
-                    {filteredShops.map((s) => (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => {
-                          setSelectedShopId(s.id);
-                          setShowShopList(false);
-                          setShopSearch('');
-                        }}
-                        style={({ pressed, hovered }: $Any) => [
-                          {
-                            backgroundColor:
-                              selectedShopId === s.id
-                                ? theme.colors.secondaryButton
-                                : hovered
-                                  ? theme.colors.secondaryBackground
-                                  : 'transparent',
-                            transform: [{ scale: pressed ? 0.99 : 1 }],
-                            ...webTransition,
-                          },
-                        ]}
-                      >
-                        <Box
-                          py="s"
-                          px="s"
-                          borderBottomWidth={1}
-                          borderColor="borderColor"
-                        >
-                          <Text
-                            variant="body"
-                            fontWeight={
-                              selectedShopId === s.id ? 'bold' : 'normal'
-                            }
-                          >
-                            {s.name}
-                          </Text>
-                          <Text variant="caption">{s.address}</Text>
-                        </Box>
-                      </Pressable>
-                    ))}
-                    {filteredShops.length === 0 && (
-                      <Box p="m" alignItems="center">
-                        <Text variant="bodySecondary">
-                          {t('noShopsMatchSearch')}
-                        </Text>
-                      </Box>
-                    )}
-                  </ScrollView>
-                </Box>
-              </Box>
-            )}
-          </Card>
-
-          {/* Raw Text Input Card */}
-          <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-            <Text variant="body" fontWeight="bold" mb="xs">
-              {t('pasteRawOrderMessage')}
-            </Text>
-            <Text variant="caption" color="secondaryText" mb="s">
-              {t('oneItemPerLineSub')}
-            </Text>
-            <ThemedTextInput
-              multiline
-              numberOfLines={4}
-              value={rawText}
-              onChangeText={setRawText}
-              placeholder={t('viberPlaceholder')}
-              placeholderTextColor={theme.colors.secondaryText}
-              onFocus={() => setTextAreaFocused(true)}
-              onBlur={() => setTextAreaFocused(false)}
-              borderWidth={textAreaFocused ? 2 : 1}
-              borderColor={textAreaFocused ? 'success' : 'borderColor'}
-              bg="cardBackground"
-              p="m"
-              borderRadius="m"
-              style={{
-                color: theme.colors.primaryText,
-                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-                textAlignVertical: 'top',
-                ...(Platform.OS === 'web'
-                  ? ({ outlineStyle: 'none' } as $Any)
-                  : {}),
-              }}
-            />
-
-            <Box mt="s">
-              <Button
-                title={'🪄 ' + t('autoDraftOrder')}
-                variant="primary"
-                onPress={handleParse}
-                icon={
-                  <Box mr="xs">
-                    <Sparkles
-                      size={16}
-                      stroke={theme.colors.primaryButtonText}
-                    />
-                  </Box>
-                }
-              />
+                {renderShopPicker()}
+                {renderRawTextInput()}
+                {renderCurrencyPicker()}
+                <Box height={40} />
+              </ScrollView>
             </Box>
-          </Card>
 
-          {/* Pricing Currency Picker */}
-          <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-            <Text variant="body" fontWeight="bold" mb="s">
-              {t('orderCurrency')}
-            </Text>
-            <Box flexDirection="row">
-              {CURRENCIES.map((c) => {
-                const curr = c.value;
-                const isSelected = selectedCurrency === curr;
-                return (
-                  <Box key={curr} mr="s" style={{ flex: 1 }}>
-                    <Pressable
-                      onPress={() => {
-                        setSelectedCurrency(curr);
-                        // Recalculate existing basket items pricing on currency change
-                        setSelectedItems((prev) =>
-                          prev.map((si) => {
-                            const pbItem = priceBookItems.find(
-                              (pbi) => pbi.item_id === si.item.id,
-                            );
-                            let basePrice = si.item.unitPrice;
-                            let baseCurrency = 'MMK';
-                            if (pbItem) {
-                              basePrice = pbItem.price;
-                              baseCurrency = pbItem.currency;
-                            }
-
-                            // Convert standard price to new selected currency
-                            let priceInMmk = basePrice;
-                            if (baseCurrency !== 'MMK') {
-                              const rateToMmk = exchangeRates.find(
-                                (r) =>
-                                  r.from_currency === baseCurrency &&
-                                  r.to_currency === 'MMK',
-                              );
-                              if (rateToMmk)
-                                priceInMmk = basePrice * rateToMmk.rate;
-                            }
-
-                            let finalPrice = priceInMmk;
-                            if (curr !== 'MMK') {
-                              const rateFromMmk = exchangeRates.find(
-                                (r) =>
-                                  r.from_currency === curr &&
-                                  r.to_currency === 'MMK',
-                              );
-                              if (rateFromMmk && rateFromMmk.rate > 0) {
-                                finalPrice = priceInMmk / rateFromMmk.rate;
-                              } else {
-                                const matchedConfig = CURRENCIES.find(
-                                  (cc) => cc.value === curr,
-                                );
-                                if (
-                                  matchedConfig &&
-                                  matchedConfig.defaultRateToMmk > 0
-                                ) {
-                                  finalPrice =
-                                    priceInMmk / matchedConfig.defaultRateToMmk;
-                                }
-                              }
-                            }
-
-                            const multiplier = getConversionMultiplier(
-                              si.item,
-                              si.selectedUnit,
-                            );
-                            return {
-                              ...si,
-                              unitPrice: finalPrice * multiplier,
-                            };
-                          }),
-                        );
-                      }}
-                      style={({ pressed }) => ({
-                        transform: [{ scale: pressed ? 0.96 : 1 }],
-                        ...webTransition,
-                      })}
-                    >
-                      <Box
-                        py="s"
-                        px="m"
-                        borderRadius="m"
-                        borderWidth={1}
-                        borderColor={
-                          isSelected ? 'primaryButton' : 'borderColor'
-                        }
-                        bg={isSelected ? 'primaryButton' : 'cardBackground'}
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        <Text
-                          variant="body"
-                          fontWeight="bold"
-                          color={
-                            isSelected ? 'primaryButtonText' : 'primaryText'
-                          }
-                        >
-                          {curr}
-                        </Text>
-                      </Box>
-                    </Pressable>
-                  </Box>
-                );
-              })}
-            </Box>
-          </Card>
-
-          {/* Selected items basket */}
-          {selectedItems.length > 0 ? (
-            <Card p="m" mb="m" borderColor="borderColor" borderWidth={1}>
-              <Box flexDirection="row" alignItems="center" mb="s">
-                <Box mr="xs">
-                  <ShoppingCart size={18} stroke={theme.colors.primaryButton} />
-                </Box>
-                <Text variant="body" fontWeight="bold">
-                  {t('orderBasket')}
-                </Text>
-              </Box>
-
-              <SelectedItemsList
-                selectedItems={selectedItems}
-                updateQuantity={updateQuantity}
-                updateSelectedUnit={updateSelectedUnit}
-                updateUnitPrice={updateUnitPrice}
-                getItemPrice={getItemPrice}
-                selectedCurrency={selectedCurrency}
-                updateStockCondition={updateStockCondition}
-                isOverrideMarginAcknowledged={isOverrideMarginAcknowledged}
-                setIsOverrideMarginAcknowledged={
-                  setIsOverrideMarginAcknowledged
-                }
-                lastInteractionLog={lastInteractionLog}
-                onDuplicateLastOrder={handleDuplicateLastOrder}
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                setSelectedProjectId={setSelectedProjectId}
-              />
-
-              <Box
-                flexDirection="row"
-                justifyContent="space-between"
-                alignItems="center"
-                borderTopWidth={1}
-                borderTopColor="borderColor"
-                pt="m"
-                mt="s"
+            {/* Right Column */}
+            <Box flex={1.2}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
               >
-                <Text variant="body" fontWeight="bold">
-                  {t('totalOrderValue')}
-                </Text>
-                <Text variant="header" fontSize={18} color="primaryButton">
-                  {formattedBasketTotal}
-                </Text>
-              </Box>
-            </Card>
-          ) : (
-            <Card
-              p="m"
-              mb="m"
-              alignItems="center"
-              borderColor="borderColor"
-              borderWidth={1}
-            >
-              <Box mb="s">
-                <AlertCircle size={24} stroke={theme.colors.secondaryText} />
-              </Box>
-              <Text variant="bodySecondary">{t('draftOrderBasketEmpty')}</Text>
-            </Card>
-          )}
+                {renderStagingReview()}
+                {renderOrderBasket()}
+                <Box height={40} />
+              </ScrollView>
+            </Box>
+          </Box>
+        ) : (
+          <ScrollView
+            style={{ flex: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+          >
+            <Box mb="m">
+              <Text variant="header" fontSize={24}>
+                📥 {t('backOfficeOrderDrafter')}
+              </Text>
+              <Text variant="bodySecondary">
+                {t('pasteRawViberMessageSub')}
+              </Text>
+            </Box>
 
-          <Box height={40} />
-        </ScrollView>
+            {renderShopPicker()}
+            {renderRawTextInput()}
+            {renderCurrencyPicker()}
+            {renderStagingReview()}
+            {renderOrderBasket()}
+            <Box height={40} />
+          </ScrollView>
+        )}
 
         <Box
           p="m"

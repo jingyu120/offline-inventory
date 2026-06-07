@@ -745,4 +745,57 @@ describe('createInteractionLog', () => {
     // The last .insert().values() call should have quantity = 30
     expect(capturedValues?.quantity ?? 30).toBe(30);
   });
+
+  it('searches shops by name when searchQuery is provided', async () => {
+    const shopsChain = createQueryChain([rawShop]);
+    const regionsChain = createQueryChain([rawRegion]);
+    const logsChain = createQueryChain([]);
+
+    mockDb.select
+      .mockReturnValueOnce(shopsChain as any)
+      .mockReturnValueOnce(regionsChain as any)
+      .mockReturnValueOnce(logsChain as any);
+
+    const shops = await fetchShops('Shop A');
+    expect(shops).toHaveLength(1);
+    expect(shops[0].name).toBe('Shop A');
+  });
+
+  it('uses fallback item name when item lookup throws an error', async () => {
+    const contactsChain = createQueryChain([]);
+    const logsChain = createQueryChain([rawLog]);
+    const iiChain = createQueryChain([rawInteractionItem]);
+    mockDb.select
+      .mockReturnValueOnce(contactsChain as any)
+      .mockReturnValueOnce(logsChain as any)
+      .mockReturnValueOnce(iiChain as any)
+      .mockImplementationOnce(() => {
+        throw new Error('Select failed');
+      });
+
+    const details = await fetchShopDetails('sh1');
+    expect(details.logsWithItems[0].items[0].name).toBe('Unknown Item');
+    expect(details.logsWithItems[0].items[0].sku).toBe('N/A');
+  });
+
+  it('uses selected.unitPrice negotiated price when provided', async () => {
+    let capturedValues: any = null;
+    mockDb.transaction.mockImplementation(async (cb: any) => {
+      const mockTx = {
+        insert: jest.fn().mockReturnValue({
+          values: jest.fn().mockImplementation((v: any) => {
+            capturedValues = v;
+            return Promise.resolve(undefined);
+          }),
+        }),
+      };
+      return cb(mockTx);
+    });
+
+    await createInteractionLog('sh1', 'rep1', 'VISIT', 'SALE', '', null, [
+      { item: selectedItem, quantity: 2, unitPrice: 950 },
+    ]);
+
+    expect(capturedValues.unit_price_at_sale).toBe(950);
+  });
 });

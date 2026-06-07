@@ -129,12 +129,10 @@ async function executeSyncCycle(): Promise<void> {
     const degraded = await isNetworkDegraded();
     if (degraded) {
       console.log(
-        '[SyncEngine] Highly degraded network (2G/EDGE or mock packet loss). Pausing ImageUploadQueue.',
+        '[SyncEngine] Highly degraded network (2G/EDGE or mock packet loss). Keeping ImageUploadQueue active with aggressive compression.',
       );
-      ImageUploadQueue.pause();
-    } else {
-      ImageUploadQueue.resume();
     }
+    ImageUploadQueue.resume();
   } catch (err) {
     console.warn(
       '[SyncEngine] Failed to check network quality for queue prioritization:',

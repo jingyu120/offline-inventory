@@ -9,6 +9,45 @@ const activeSessionBlobs = new Set<string>();
 
 export class ImageUploadQueue {
   static isPaused = false;
+  static subscribers = new Set<() => void>();
+
+  static subscribe(cb: () => void): () => void {
+    ImageUploadQueue.subscribers.add(cb);
+    return () => {
+      ImageUploadQueue.subscribers.delete(cb);
+    };
+  }
+
+  static unsubscribe(cb: () => void): void {
+    ImageUploadQueue.subscribers.delete(cb);
+  }
+
+  static notifySubscribers(): void {
+    ImageUploadQueue.subscribers.forEach((cb) => {
+      try {
+        cb();
+      } catch (err) {
+        console.error('[ImageUploadQueue] Error in subscriber callback:', err);
+      }
+    });
+  }
+
+  static async retryTask(taskId: string): Promise<void> {
+    console.log(`[ImageUploadQueue] Retrying task ${taskId}`);
+    const now = Math.floor(Date.now() / 1000);
+    try {
+      await database
+        .update(sqliteSchema.image_upload_queue)
+        .set({ status: 'pending', updated_at: now })
+        .where(eq(sqliteSchema.image_upload_queue.id, taskId));
+
+      ImageUploadQueue.notifySubscribers();
+
+      ImageUploadQueue.processQueue();
+    } catch (err) {
+      console.error(`[ImageUploadQueue] Failed to retry task ${taskId}:`, err);
+    }
+  }
 
   static pause(): void {
     ImageUploadQueue.isPaused = true;
@@ -18,12 +57,7 @@ export class ImageUploadQueue {
   static resume(): void {
     ImageUploadQueue.isPaused = false;
     console.log('[ImageUploadQueue] Queue manually resumed.');
-    ImageUploadQueue.processQueue().catch((err) => {
-      console.error(
-        '[ImageUploadQueue] background process error in resume:',
-        err,
-      );
-    });
+    ImageUploadQueue.processQueue();
   }
 
   static async enqueueImage(
@@ -57,6 +91,7 @@ export class ImageUploadQueue {
         updated_at: now,
       });
       console.log(`[ImageUploadQueue] Enqueued task ${queueId}`);
+      ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
         console.error('[ImageUploadQueue] background process error:', err);
@@ -98,6 +133,7 @@ export class ImageUploadQueue {
       console.log(
         `[ImageUploadQueue] Enqueued competitor insight task ${queueId}`,
       );
+      ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
         console.error('[ImageUploadQueue] background process error:', err);
@@ -153,6 +189,7 @@ export class ImageUploadQueue {
           .update(sqliteSchema.image_upload_queue)
           .set({ status: 'processing', updated_at: now })
           .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+        ImageUploadQueue.notifySubscribers();
 
         try {
           let serverUrl = '';
@@ -229,6 +266,7 @@ export class ImageUploadQueue {
             await database
               .delete(sqliteSchema.image_upload_queue)
               .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+            ImageUploadQueue.notifySubscribers();
           } else {
             throw new Error(
               'Server upload response did not return a valid screenshot URL.',
@@ -245,6 +283,7 @@ export class ImageUploadQueue {
             .update(sqliteSchema.image_upload_queue)
             .set({ status: 'failed', updated_at: updateTime })
             .where(eq(sqliteSchema.image_upload_queue.id, task.id));
+          ImageUploadQueue.notifySubscribers();
         }
       }
     } catch (err) {

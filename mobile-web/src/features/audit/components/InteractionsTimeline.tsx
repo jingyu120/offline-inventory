@@ -3,7 +3,18 @@ import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { LogWithItems } from '../../../core/data/repositories';
 import { useTranslation } from '../../../core/i18n/i18n';
-import { Clock, Phone, MessageSquare, MapPin } from 'lucide-react-native';
+import {
+  Clock,
+  Phone,
+  MessageSquare,
+  MapPin,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react-native';
+import { TouchableOpacity } from 'react-native';
+import { database } from '../../../core/database/database';
+import { sqliteSchema } from '@burma-inventory/shared-types';
+import { ImageUploadQueue } from '../../sync/ImageUploadQueue';
 
 interface InteractionsTimelineProps {
   shopLogsWithItems: LogWithItems[];
@@ -14,6 +25,38 @@ export const InteractionsTimeline: React.FC<InteractionsTimelineProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
+
+  const [queueTasks, setQueueTasks] = React.useState<
+    Record<string, { id: string; status: string }>
+  >({});
+
+  const fetchQueue = React.useCallback(async () => {
+    try {
+      const tasks = await database
+        .select()
+        .from(sqliteSchema.image_upload_queue);
+      const mapping: Record<string, { id: string; status: string }> = {};
+      for (const t of tasks) {
+        if (t.interaction_log_id) {
+          mapping[t.interaction_log_id] = { id: t.id, status: t.status };
+        }
+      }
+      setQueueTasks(mapping);
+    } catch (err) {
+      console.error(
+        '[InteractionsTimeline] Failed to query image upload queue:',
+        err,
+      );
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchQueue();
+    const unsubscribe = ImageUploadQueue.subscribe(fetchQueue);
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchQueue]);
 
   const getLogTypeLabel = (type: string) => {
     if (type === 'SHOP_VISIT') return t('typeVisit');
@@ -87,12 +130,100 @@ export const InteractionsTimeline: React.FC<InteractionsTimelineProps> = ({
               </Box>
             </Box>
 
-            <Box mb="s" flexDirection="row">
-              <Box bg={statusBg} px="s" py="xs" borderRadius="s">
+            <Box mb="s" flexDirection="row" flexWrap="wrap" alignItems="center">
+              <Box bg={statusBg} px="s" py="xs" borderRadius="s" mr="s">
                 <Text variant="badge" color={statusColor} fontSize={11}>
                   {getCommercialStatusLabel(log.commercialStatus)}
                 </Text>
               </Box>
+
+              {queueTasks[log.id] &&
+                (() => {
+                  const task = queueTasks[log.id];
+                  const isPending = task.status === 'pending';
+                  const isProcessing = task.status === 'processing';
+                  const isFailed = task.status === 'failed';
+                  return (
+                    <Box flexDirection="row" alignItems="center">
+                      {isPending && (
+                        <Box
+                          bg="secondaryButton"
+                          px="s"
+                          py="xs"
+                          borderRadius="s"
+                          flexDirection="row"
+                          alignItems="center"
+                        >
+                          <Clock
+                            size={10}
+                            stroke={theme.colors.secondaryText}
+                            style={{ marginRight: 4 }}
+                          />
+                          <Text
+                            variant="badge"
+                            color="secondaryText"
+                            fontSize={11}
+                          >
+                            {t('pendingUpload')}
+                          </Text>
+                        </Box>
+                      )}
+                      {isProcessing && (
+                        <Box
+                          bg="infoBg"
+                          px="s"
+                          py="xs"
+                          borderRadius="s"
+                          flexDirection="row"
+                          alignItems="center"
+                        >
+                          <RefreshCw
+                            size={10}
+                            stroke={theme.colors.infoText}
+                            style={{ marginRight: 4 }}
+                          />
+                          <Text variant="badge" color="infoText" fontSize={11}>
+                            {t('uploading')}
+                          </Text>
+                        </Box>
+                      )}
+                      {isFailed && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            ImageUploadQueue.retryTask(task.id).catch((err) => {
+                              console.error(
+                                '[InteractionsTimeline] Failed to retry task:',
+                                err,
+                              );
+                            });
+                          }}
+                        >
+                          <Box
+                            bg="dangerBg"
+                            px="s"
+                            py="xs"
+                            borderRadius="s"
+                            flexDirection="row"
+                            alignItems="center"
+                          >
+                            <AlertTriangle
+                              size={10}
+                              stroke={theme.colors.dangerText}
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text
+                              variant="badge"
+                              color="dangerText"
+                              fontSize={11}
+                            >
+                              {t('failedTapRetry')}
+                            </Text>
+                          </Box>
+                        </TouchableOpacity>
+                      )}
+                    </Box>
+                  );
+                })()}
             </Box>
 
             <Text variant="body" style={{ lineHeight: 20 }}>
