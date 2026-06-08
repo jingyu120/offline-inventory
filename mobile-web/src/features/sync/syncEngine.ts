@@ -1,13 +1,21 @@
-import {
-  SYNC_CONFIG,
-  INVENTORY_STATUS,
-  SYNC_API_URL,
-} from '../../config/appConfig';
+import { SYNC_CONFIG, INVENTORY_STATUS } from '../../config/appConfig';
 import { database } from '../../core/database/database';
-import { sqliteSchema, RECORD_SCHEMAS } from '@burma-inventory/shared-types';
-import axios from 'axios';
-import { eq, inArray, isNull, gt, sql, getTableColumns } from 'drizzle-orm';
+import {
+  sqliteSchema,
+  RECORD_SCHEMAS,
+  WatermelonChangeSet,
+} from '@burma-inventory/shared-types';
+import {
+  eq,
+  inArray,
+  isNull,
+  gt,
+  sql,
+  getTableColumns,
+  SQL,
+} from 'drizzle-orm';
 import { TelemetryLogger } from '../../core/utils/telemetry';
+import { trpcClient } from '../../core/trpc/trpcClient';
 
 import {
   getLastSyncedAt,
@@ -15,15 +23,20 @@ import {
   getDeviceId,
   getActiveRepId,
 } from '../../core/storage/platformStorage';
-import { ActorService } from '../../core/auth/ActorService';
 import { ImageUploadQueue } from './ImageUploadQueue';
 import { isNetworkDegraded } from './networkQualityUtil';
 
-function getPrimaryKeyColName(tableSchema: $Any): string {
+type SqliteSchema = typeof sqliteSchema;
+type SQLiteTables = SqliteSchema[keyof SqliteSchema];
+
+function getPrimaryKeyColName(tableSchema: SQLiteTables): string {
   try {
-    const columns = getTableColumns(tableSchema) as $Any;
+    const columns = getTableColumns(tableSchema) as unknown as Record<
+      string,
+      unknown
+    >;
     for (const key of Object.keys(columns)) {
-      if (columns[key]?.primary) {
+      if ((columns[key] as unknown as Record<string, unknown>)?.primary) {
         return key;
       }
     }
@@ -33,19 +46,21 @@ function getPrimaryKeyColName(tableSchema: $Any): string {
   return 'id'; // default fallback
 }
 
-async function applyPullChanges(changes: $Any): Promise<void> {
+async function applyPullChanges(
+  changes: Record<string, WatermelonChangeSet<unknown>>,
+): Promise<void> {
   for (const [tableName, changeset] of Object.entries(changes)) {
-    const tableSchema = (sqliteSchema as $Any)[tableName];
+    const tableSchema = (
+      sqliteSchema as unknown as Record<string, SQLiteTables>
+    )[tableName];
     if (!tableSchema) continue;
 
-    const typedChangeset = changeset as {
-      created: $Any[];
-      updated: $Any[];
-      deleted: string[];
-    };
+    const typedChangeset = changeset;
 
     const pkColName = getPrimaryKeyColName(tableSchema);
-    const pkCol = tableSchema[pkColName] || tableSchema.id;
+    const pkCol = (tableSchema as unknown as Record<string, unknown>)[
+      pkColName
+    ] as SQL;
 
     // Apply Deletes
     if (typedChangeset.deleted && typedChangeset.deleted.length > 0) {
@@ -55,10 +70,12 @@ async function applyPullChanges(changes: $Any): Promise<void> {
           tableName === 'shops' ||
           tableName === 'projects'
         ) {
-          await database
-            .update(tableSchema)
-            .set({ deleted_at: Date.now() })
-            .where(eq(pkCol, id));
+          if ('deleted_at' in tableSchema) {
+            await database
+              .update(tableSchema)
+              .set({ deleted_at: Date.now() })
+              .where(eq(pkCol, id));
+          }
         } else {
           await database.delete(tableSchema).where(eq(pkCol, id));
         }
@@ -71,9 +88,10 @@ async function applyPullChanges(changes: $Any): Promise<void> {
     if (typedChangeset.created && typedChangeset.created.length > 0) {
       for (const record of typedChangeset.created) {
         const validatedRecord = recordSchema
-          ? recordSchema.parse(record)
-          : record;
-        const recordId = validatedRecord[pkColName] || validatedRecord.id;
+          ? (recordSchema.parse(record) as Record<string, unknown>)
+          : (record as Record<string, unknown>);
+        const recordId = (validatedRecord[pkColName] ||
+          validatedRecord['id']) as string;
 
         const existing = await database
           .select()
@@ -95,9 +113,10 @@ async function applyPullChanges(changes: $Any): Promise<void> {
     if (typedChangeset.updated && typedChangeset.updated.length > 0) {
       for (const record of typedChangeset.updated) {
         const validatedRecord = recordSchema
-          ? recordSchema.parse(record)
-          : record;
-        const recordId = validatedRecord[pkColName] || validatedRecord.id;
+          ? (recordSchema.parse(record) as Record<string, unknown>)
+          : (record as Record<string, unknown>);
+        const recordId = (validatedRecord[pkColName] ||
+          validatedRecord['id']) as string;
         await database
           .update(tableSchema)
           .set(validatedRecord)
@@ -148,27 +167,21 @@ async function executeSyncCycle(): Promise<void> {
 
   let pullResponse;
   try {
-    pullResponse = await axios.get(`${SYNC_API_URL}`, {
-      params: {
-        last_synced_at: lastSyncedAt,
-        device_id: devId,
-        user_id: userId || undefined,
-      },
-      headers: {
-        'x-actor-id': ActorService.getActorId(),
-        'x-device-id': devId,
-      },
+    pullResponse = await trpcClient.sync.pull.query({
+      lastPulledAt: lastSyncedAt,
+      deviceId: devId,
+      userId: userId || undefined,
     });
-  } catch (error: $Any) {
+  } catch (error) {
     console.error('[SyncEngine] Pull failed:', error);
     await TelemetryLogger.logEvent(
       'sync_drop',
-      `Sync Pull failed: ${error?.message || String(error)}`,
+      `Sync Pull failed: ${error instanceof Error ? error.message : String(error)}`,
     );
     return;
   }
 
-  const { changes, timestamp } = pullResponse.data;
+  const { changes, timestamp } = pullResponse;
   await applyPullChanges(changes);
   console.log('[SyncEngine] Pull applied successfully.');
 
@@ -206,28 +219,32 @@ async function executeSyncCycle(): Promise<void> {
     'expected_inbounds',
   ];
 
-  const pushChanges: $Any = {};
+  const pushChanges: Record<string, WatermelonChangeSet<unknown>> = {};
 
   for (const tableName of syncableTables) {
-    const tableSchema = (sqliteSchema as $Any)[tableName];
+    const tableSchema = (
+      sqliteSchema as unknown as Record<string, SQLiteTables>
+    )[tableName];
     if (!tableSchema) continue;
 
     const hasCreatedAt = 'created_at' in tableSchema;
     const hasUpdatedAt = 'updated_at' in tableSchema;
     const hasSyncedAtServer = 'synced_at_server' in tableSchema;
 
-    let createdRecords: $Any[] = [];
-    let updatedRecords: $Any[] = [];
+    let createdRecords: unknown[] = [];
+    let updatedRecords: unknown[] = [];
 
-    if (hasSyncedAtServer) {
+    if (hasSyncedAtServer && 'synced_at_server' in tableSchema) {
       const unsynced = await database
         .select()
         .from(tableSchema)
         .where(isNull(tableSchema.synced_at_server));
 
-      if (hasCreatedAt) {
+      if (hasCreatedAt && 'created_at' in tableSchema) {
         for (const record of unsynced) {
-          if (record.created_at > lastSyncedAt) {
+          const rec = record as Record<string, unknown>;
+          const createdAt = rec['created_at'] as number;
+          if (createdAt > lastSyncedAt) {
             createdRecords.push(record);
           } else {
             updatedRecords.push(record);
@@ -237,22 +254,24 @@ async function executeSyncCycle(): Promise<void> {
         createdRecords = unsynced;
       }
     } else {
-      if (hasCreatedAt) {
+      if (hasCreatedAt && 'created_at' in tableSchema) {
         createdRecords = await database
           .select()
           .from(tableSchema)
           .where(gt(tableSchema.created_at, lastSyncedAt));
       }
 
-      if (hasUpdatedAt) {
-        if (hasCreatedAt) {
+      if (hasUpdatedAt && 'updated_at' in tableSchema) {
+        if (hasCreatedAt && 'created_at' in tableSchema) {
           const candidates = await database
             .select()
             .from(tableSchema)
             .where(gt(tableSchema.updated_at, lastSyncedAt));
-          updatedRecords = candidates.filter(
-            (r: $Any) => r.created_at <= lastSyncedAt,
-          );
+          updatedRecords = candidates.filter((r) => {
+            const rec = r as Record<string, unknown>;
+            const createdAt = rec['created_at'] as number;
+            return createdAt <= lastSyncedAt;
+          });
         } else {
           createdRecords = await database
             .select()
@@ -268,11 +287,11 @@ async function executeSyncCycle(): Promise<void> {
 
       if (tableName === 'items' || tableName === 'item_stocks') {
         finalCreated = createdRecords.map((r) => ({
-          ...r,
+          ...(r as Record<string, unknown>),
           inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
         }));
         finalUpdated = updatedRecords.map((r) => ({
-          ...r,
+          ...(r as Record<string, unknown>),
           inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
         }));
       }
@@ -291,40 +310,39 @@ async function executeSyncCycle(): Promise<void> {
       JSON.stringify(Object.keys(pushChanges)),
     );
     try {
-      const idempotencyKey = generateUUIDv4();
-      await axios.post(
-        `${SYNC_API_URL}`,
-        {
-          changes: pushChanges,
-          device_id: devId,
-          user_id: userId || undefined,
-        },
-        {
-          headers: {
-            'x-idempotency-key': idempotencyKey,
-            'x-actor-id': ActorService.getActorId(),
-            'x-device-id': devId,
-          },
-        },
-      );
+      await trpcClient.sync.push.mutate({
+        changes: pushChanges,
+        deviceId: devId,
+        userId: userId || undefined,
+      });
       console.log('[SyncEngine] Push successful.');
 
       // Mark local records as synced generically
       for (const [tableName, changeset] of Object.entries(pushChanges)) {
-        const tableSchema = (sqliteSchema as $Any)[tableName];
+        const tableSchema = (
+          sqliteSchema as unknown as Record<string, SQLiteTables>
+        )[tableName];
         if (!tableSchema) continue;
 
         if ('synced_at_server' in tableSchema) {
           const pkColName = getPrimaryKeyColName(tableSchema);
-          const pkCol = tableSchema[pkColName] || tableSchema.id;
+          const columns = getTableColumns(tableSchema) as unknown as Record<
+            string,
+            SQL
+          >;
+          const pkCol = columns[pkColName] || columns['id'];
           const recordIds = [
-            ...(changeset as $Any).created.map(
-              (r: $Any) => r[pkColName] || r.id,
+            ...changeset.created.map(
+              (r) =>
+                (r as Record<string, unknown>)[pkColName] ||
+                (r as Record<string, unknown>)['id'],
             ),
-            ...(changeset as $Any).updated.map(
-              (r: $Any) => r[pkColName] || r.id,
+            ...changeset.updated.map(
+              (r) =>
+                (r as Record<string, unknown>)[pkColName] ||
+                (r as Record<string, unknown>)['id'],
             ),
-          ];
+          ] as string[];
 
           if (recordIds.length > 0) {
             const chunk = SYNC_CONFIG.dbChunkSize;
@@ -338,11 +356,11 @@ async function executeSyncCycle(): Promise<void> {
           }
         }
       }
-    } catch (error: $Any) {
+    } catch (error) {
       console.error('[SyncEngine] Push failed:', error);
       await TelemetryLogger.logEvent(
         'sync_drop',
-        `Sync Push failed: ${error?.message || String(error)}`,
+        `Sync Push failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       return;
     }
@@ -374,12 +392,4 @@ export async function syncData(): Promise<void> {
   } finally {
     activeSyncPromise = null;
   }
-}
-
-function generateUUIDv4(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }

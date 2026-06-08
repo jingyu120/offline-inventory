@@ -226,6 +226,12 @@ describe('shared-types', () => {
       expect(results[0].id).toBe('3');
     });
 
+    it('matches exactly on name', () => {
+      const results = semanticSearch(items, 'Premium Cement Bag 50kg');
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('3');
+    });
+
     it('performs semantic matching with synonym expansion for "waterproof roofing"', () => {
       const results = semanticSearch(items, 'waterproof roofing');
       expect(results.length).toBeGreaterThanOrEqual(2);

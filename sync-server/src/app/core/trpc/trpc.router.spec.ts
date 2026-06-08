@@ -25,6 +25,8 @@ describe('TrpcRouter & TrpcController', () => {
     getSyncLogs: jest.fn().mockResolvedValue([]),
     getMismatchLogs: jest.fn().mockResolvedValue([]),
     resolveMismatchLog: jest.fn().mockResolvedValue({ success: true }),
+    pullChanges: jest.fn().mockResolvedValue({ changes: {}, timestamp: 12345 }),
+    pushChanges: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockAiService = {
@@ -245,6 +247,30 @@ describe('TrpcRouter & TrpcController', () => {
         // removeJob
         await resolvers.removeJob({ jobId: 'j-3' });
         expect(mockAiQueueService.removeJob).toHaveBeenCalledWith('j-3');
+
+        // sync.pull
+        await resolvers.sync.pull({
+          lastPulledAt: 1000,
+          deviceId: 'd-1',
+          userId: 'u-1',
+        });
+        expect(mockSyncService.pullChanges).toHaveBeenCalledWith(
+          1000,
+          'd-1',
+          'u-1',
+        );
+
+        // sync.push
+        await resolvers.sync.push({
+          changes: {},
+          deviceId: 'd-1',
+          userId: 'u-1',
+        });
+        expect(mockSyncService.pushChanges).toHaveBeenCalledWith(
+          {},
+          'd-1',
+          'u-1',
+        );
       });
     });
   });

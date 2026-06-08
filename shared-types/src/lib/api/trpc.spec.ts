@@ -7,7 +7,11 @@ describe('tRPC Router', () => {
     caller = appRouter.createCaller({});
     // Reset all resolvers to null
     Object.keys(trpcResolvers).forEach((key) => {
-      (trpcResolvers as Record<string, unknown>)[key] = null;
+      if (key === 'sync') {
+        trpcResolvers.sync = { pull: null, push: null };
+      } else {
+        (trpcResolvers as Record<string, unknown>)[key] = null;
+      }
     });
   });
 
@@ -231,6 +235,64 @@ describe('tRPC Router', () => {
       const res = await caller.removeJob({ jobId: '1' });
       expect(res).toEqual(mockResult);
       expect(trpcResolvers.removeJob).toHaveBeenCalledWith({ jobId: '1' });
+    });
+  });
+
+  describe('sync.pull', () => {
+    it('throws when resolver is not registered', async () => {
+      await expect(caller.sync.pull({ lastPulledAt: 12345 })).rejects.toThrow(
+        'Resolver not registered',
+      );
+    });
+
+    it('returns changes when resolver is registered', async () => {
+      const mockResult = {
+        changes: {},
+        timestamp: 12345,
+      };
+      trpcResolvers.sync.pull = jest.fn().mockResolvedValue(mockResult);
+
+      const res = await caller.sync.pull({
+        lastPulledAt: 12345,
+        deviceId: 'device-1',
+        userId: 'user-1',
+      });
+      expect(res).toEqual(mockResult);
+      expect(trpcResolvers.sync.pull).toHaveBeenCalledWith({
+        lastPulledAt: 12345,
+        deviceId: 'device-1',
+        userId: 'user-1',
+      });
+    });
+  });
+
+  describe('sync.push', () => {
+    it('throws when resolver is not registered', async () => {
+      await expect(
+        caller.sync.push({
+          changes: {},
+        }),
+      ).rejects.toThrow('Resolver not registered');
+    });
+
+    it('returns success when resolver is registered', async () => {
+      const mockResult = { success: true };
+      trpcResolvers.sync.push = jest.fn().mockResolvedValue(mockResult);
+
+      const input = {
+        changes: {
+          shops: {
+            created: [{ id: 'shop-1', name: 'Shop 1' }],
+            updated: [],
+            deleted: [],
+          },
+        },
+        deviceId: 'device-1',
+        userId: 'user-1',
+      };
+      const res = await caller.sync.push(input);
+      expect(res).toEqual(mockResult);
+      expect(trpcResolvers.sync.push).toHaveBeenCalledWith(input);
     });
   });
 });

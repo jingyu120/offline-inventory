@@ -1,5 +1,6 @@
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
+import { WatermelonChangeSet } from '../types/shared-types';
 
 const t = initTRPC.create();
 
@@ -18,11 +19,34 @@ const globalResolvers = (globalThis as Record<string, unknown>)[
   updateJobData: null,
   retryJob: null,
   removeJob: null,
+  sync: {
+    pull: null,
+    push: null,
+  },
 };
 
 (globalThis as Record<string, unknown>)['__trpcResolvers'] = globalResolvers;
 
 export const trpcResolvers = globalResolvers as {
+  sync: {
+    pull:
+      | null
+      | ((input: {
+          lastPulledAt: number;
+          deviceId?: string;
+          userId?: string;
+        }) => Promise<{
+          changes: Record<string, WatermelonChangeSet<unknown>>;
+          timestamp: number;
+        }>);
+    push:
+      | null
+      | ((input: {
+          changes: Record<string, WatermelonChangeSet<unknown>>;
+          deviceId?: string;
+          userId?: string;
+        }) => Promise<{ success: boolean }>);
+  };
   getSyncLogs:
     | null
     | ((input: { lastSeenId?: string; limit: number }) => Promise<{
@@ -218,6 +242,41 @@ export const appRouter = t.router({
       if (!trpcResolvers.removeJob) throw new Error('Resolver not registered');
       return trpcResolvers.removeJob(input);
     }),
+  sync: t.router({
+    pull: t.procedure
+      .input(
+        z.object({
+          lastPulledAt: z.number(),
+          deviceId: z.string().optional(),
+          userId: z.string().optional(),
+        }),
+      )
+      .query(async ({ input }) => {
+        if (!trpcResolvers.sync?.pull)
+          throw new Error('Resolver not registered');
+        return trpcResolvers.sync.pull(input);
+      }),
+    push: t.procedure
+      .input(
+        z.object({
+          changes: z.record(
+            z.string(),
+            z.object({
+              created: z.array(z.unknown()),
+              updated: z.array(z.unknown()),
+              deleted: z.array(z.string()),
+            }),
+          ),
+          deviceId: z.string().optional(),
+          userId: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        if (!trpcResolvers.sync?.push)
+          throw new Error('Resolver not registered');
+        return trpcResolvers.sync.push(input);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

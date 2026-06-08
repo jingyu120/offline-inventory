@@ -129,5 +129,25 @@ export class TrpcRouter implements OnModuleInit {
       this.validateRequest('removeJob', input);
       return this.aiQueueService.removeJob(input.jobId);
     };
+
+    trpcResolvers.sync = {
+      pull: async (input) => {
+        this.validateRequest('sync.pull', input);
+        return this.syncService.pullChanges(
+          input.lastPulledAt,
+          input.deviceId,
+          input.userId,
+        );
+      },
+      push: async (input) => {
+        this.validateRequest('sync.push', input);
+        await this.syncService.pushChanges(
+          input.changes,
+          input.deviceId,
+          input.userId,
+        );
+        return { success: true };
+      },
+    };
   }
 }
