@@ -102,6 +102,66 @@ export class SyncService {
     });
   }
 
+  private async getFieldsChangedOnServer(
+    tx: $Any,
+    entityType: 'SHOP' | 'ORDER' | 'INVENTORY',
+    recordId: string,
+    sinceTime: number,
+  ): Promise<Set<string>> {
+    const changedFields = new Set<string>();
+
+    const events = await tx
+      .select()
+      .from(schema.pgSchema.audit_events)
+      .where(
+        and(
+          eq(schema.pgSchema.audit_events.entity_type, entityType),
+          gt(schema.pgSchema.audit_events.created_at, sinceTime),
+        ),
+      );
+
+    for (const event of events) {
+      let ps: Record<string, $Any> | null = null;
+      let ns: Record<string, $Any> | null = null;
+
+      try {
+        ps =
+          typeof event.previous_state === 'string'
+            ? JSON.parse(event.previous_state)
+            : event.previous_state;
+      } catch {
+        // ignore parse errors
+      }
+
+      try {
+        ns =
+          typeof event.new_state === 'string'
+            ? JSON.parse(event.new_state)
+            : event.new_state;
+      } catch {
+        // ignore parse errors
+      }
+
+      if (ps?.id === recordId || ns?.id === recordId) {
+        if (!ps) {
+          if (ns) {
+            for (const key of Object.keys(ns)) {
+              changedFields.add(key);
+            }
+          }
+        } else if (ns) {
+          for (const key of Object.keys(ns)) {
+            if (ns[key] !== ps[key]) {
+              changedFields.add(key);
+            }
+          }
+        }
+      }
+    }
+
+    return changedFields;
+  }
+
   private generateSequentialId(): string {
     const timestamp = Date.now().toString().padStart(15, '0');
     const randomSuffix = crypto.randomBytes(8).toString('hex');
@@ -281,6 +341,24 @@ export class SyncService {
 
     const [, error] = await schema.guardAsync(
       this.drizzle.db.transaction(async (tx) => {
+        // Retrieve the client's last pull time from the sync audit logs
+        const lastPullLog = await tx
+          .select()
+          .from(schema.pgSchema.sync_audit_logs)
+          .where(
+            and(
+              eq(schema.pgSchema.sync_audit_logs.device_id, finalDeviceId),
+              eq(schema.pgSchema.sync_audit_logs.action, 'PULL'),
+              eq(schema.pgSchema.sync_audit_logs.status, 'SUCCESS'),
+            ),
+          )
+          .orderBy(desc(schema.pgSchema.sync_audit_logs.created_at))
+          .limit(1);
+
+        const clientLastPullTime = lastPullLog[0]
+          ? Number(lastPullLog[0].created_at)
+          : 0;
+
         for (const [tableName, cfg] of Object.entries(TABLE_REGISTRY)) {
           const changeset = (changes as Record<string, unknown>)[tableName] as
             | schema.WatermelonChangeSet<{ id: string }>
@@ -297,8 +375,15 @@ export class SyncService {
               .values(changeset.created.map(cfg.toDrizzle))
               .onConflictDoNothing();
 
-            if (tableName === 'shops' || tableName === 'interaction_logs') {
-              const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+            if (
+              tableName === 'shops' ||
+              tableName === 'interaction_logs' ||
+              tableName === 'contacts'
+            ) {
+              const entityType =
+                tableName === 'shops' || tableName === 'contacts'
+                  ? 'SHOP'
+                  : 'ORDER';
               for (const record of changeset.created) {
                 await this.commitAuditEvent(
                   tx,
@@ -333,8 +418,15 @@ export class SyncService {
                   );
                 });
 
-              if (tableName === 'shops' || tableName === 'interaction_logs') {
-                const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+              if (
+                tableName === 'shops' ||
+                tableName === 'interaction_logs' ||
+                tableName === 'contacts'
+              ) {
+                const entityType =
+                  tableName === 'shops' || tableName === 'contacts'
+                    ? 'SHOP'
+                    : 'ORDER';
                 await this.commitAuditEvent(
                   tx,
                   entityType,
@@ -352,72 +444,107 @@ export class SyncService {
             const incomingTime = incomingDrizzle.updated_at || 0;
             const existingTime = existing.updated_at || 0;
 
-            if (incomingTime > existingTime) {
-              const prev = { ...existing };
-              await tx
-                .update(table)
-                .set(incomingDrizzle)
-                .where(eq(table.id, record.id));
+            const recordWasUpdatedOnServer = existingTime > clientLastPullTime;
 
-              if (tableName === 'shops' || tableName === 'interaction_logs') {
-                const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
-                await this.commitAuditEvent(
-                  tx,
-                  entityType,
-                  'UPDATE',
-                  prev,
-                  incomingDrizzle,
-                  actorId,
-                  finalDeviceId,
-                  finalTraceId,
-                );
-              }
-            } else {
-              const patchData: Record<string, $Any> = {};
-              for (const [key, val] of Object.entries(incomingDrizzle)) {
-                if (val !== undefined && val !== null) {
-                  const existingVal = (existing as $Any)[key];
-                  if (
-                    existingVal === null ||
-                    existingVal === undefined ||
-                    existingVal === ''
-                  ) {
-                    patchData[key] = val;
+            let mergedRecord: Record<string, $Any> = { ...incomingDrizzle };
+            const prev = { ...existing };
+
+            if (recordWasUpdatedOnServer) {
+              let entityType: 'SHOP' | 'ORDER' | 'INVENTORY' | null = null;
+              if (tableName === 'shops') entityType = 'SHOP';
+              else if (tableName === 'contacts') entityType = 'SHOP';
+              else if (tableName === 'interaction_logs') entityType = 'ORDER';
+
+              const serverChangedFields = entityType
+                ? await this.getFieldsChangedOnServer(
+                    tx,
+                    entityType,
+                    record.id,
+                    clientLastPullTime,
+                  )
+                : new Set<string>();
+
+              mergedRecord = { ...existing };
+
+              for (const [key, incomingVal] of Object.entries(
+                incomingDrizzle,
+              )) {
+                if (
+                  ['id', 'created_at', 'updated_at', 'deleted_at'].includes(key)
+                ) {
+                  continue;
+                }
+
+                const existingVal = (existing as $Any)[key];
+
+                if (incomingVal === undefined) {
+                  continue;
+                }
+
+                if (incomingVal === existingVal) {
+                  mergedRecord[key] = existingVal;
+                } else {
+                  const fieldChangedOnServer = serverChangedFields.has(key);
+
+                  if (fieldChangedOnServer) {
+                    mergedRecord[key] = existingVal;
+
+                    if (key === 'commercial_status') {
+                      this.logger.warn(
+                        `[Conflict Resolution] True conflict on critical operational field "${key}" for record ${record.id}. Maintaining server value "${existingVal}" as source of truth. Client incoming value was "${incomingVal}".`,
+                      );
+                    }
+                  } else {
+                    mergedRecord[key] = incomingVal;
                   }
                 }
               }
 
-              patchData.updated_at = existing.updated_at;
+              mergedRecord.updated_at = Math.max(
+                incomingTime,
+                existingTime,
+                Date.now(),
+              );
+            }
 
-              if (Object.keys(patchData).length > 1) {
-                const prev = { ...existing };
-                await tx
-                  .update(table)
-                  .set(patchData)
-                  .where(eq(table.id, record.id));
+            await tx
+              .update(table)
+              .set(mergedRecord)
+              .where(eq(table.id, record.id));
 
-                if (tableName === 'shops' || tableName === 'interaction_logs') {
-                  const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
-                  const updatedRecord = { ...existing, ...patchData };
-                  await this.commitAuditEvent(
-                    tx,
-                    entityType,
-                    'UPDATE',
-                    prev,
-                    updatedRecord,
-                    actorId,
-                    finalDeviceId,
-                    finalTraceId,
-                  );
-                }
-              }
+            if (
+              tableName === 'shops' ||
+              tableName === 'interaction_logs' ||
+              tableName === 'contacts'
+            ) {
+              const entityType =
+                tableName === 'shops' || tableName === 'contacts'
+                  ? 'SHOP'
+                  : 'ORDER';
+              await this.commitAuditEvent(
+                tx,
+                entityType,
+                'UPDATE',
+                prev,
+                mergedRecord,
+                actorId,
+                finalDeviceId,
+                finalTraceId,
+              );
             }
           }
 
           // Deletes
           if (changeset.deleted.length > 0) {
-            if (tableName === 'shops' || tableName === 'interaction_logs') {
-              const entityType = tableName === 'shops' ? 'SHOP' : 'ORDER';
+            if (
+              tableName === 'shops' ||
+              tableName === 'interaction_logs' ||
+              tableName === 'contacts'
+            ) {
+              const entityType =
+                tableName === 'shops' || tableName === 'contacts'
+                  ? 'SHOP'
+                  : 'ORDER';
               for (const id of changeset.deleted) {
                 const existingRows = await tx
                   .select()

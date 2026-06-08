@@ -1,6 +1,6 @@
-import { database } from './database';
+import { database, DatabaseType } from './database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
-import { lte, inArray } from 'drizzle-orm';
+import { lte, inArray, and, isNotNull, ne } from 'drizzle-orm';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -92,5 +92,82 @@ export async function runGarbageCollection() {
       '[GarbageCollector] Error running database garbage collection:',
       err,
     );
+  }
+}
+
+export async function pruneSyncedLocalData(db: DatabaseType) {
+  console.log('[GarbageCollector] Running pruneSyncedLocalData...');
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+  try {
+    // Find all synced logs older than 30 days
+    const candidateLogs = await db
+      .select({ id: sqliteSchema.interaction_logs.id })
+      .from(sqliteSchema.interaction_logs)
+      .where(
+        and(
+          isNotNull(sqliteSchema.interaction_logs.synced_at_server),
+          lte(sqliteSchema.interaction_logs.created_at, cutoff),
+        ),
+      );
+
+    if (candidateLogs.length === 0) {
+      console.log('[GarbageCollector] No old synced logs to prune.');
+      return;
+    }
+
+    // Find logs that have outstanding/pending image uploads
+    const pendingImages = await db
+      .select({
+        interaction_log_id: sqliteSchema.image_upload_queue.interaction_log_id,
+      })
+      .from(sqliteSchema.image_upload_queue)
+      .where(
+        and(
+          isNotNull(sqliteSchema.image_upload_queue.interaction_log_id),
+          ne(sqliteSchema.image_upload_queue.status, 'completed'),
+        ),
+      );
+
+    const pendingLogIds = new Set(
+      pendingImages
+        .map((img) => img.interaction_log_id)
+        .filter((id): id is string => id !== null),
+    );
+
+    const logIdsToPrune = candidateLogs
+      .map((log) => log.id)
+      .filter((id) => !pendingLogIds.has(id));
+
+    if (logIdsToPrune.length > 0) {
+      console.log(
+        `[GarbageCollector] Pruning ${logIdsToPrune.length} synced logs and their items...`,
+      );
+
+      // Delete child interaction items first to preserve relation flow
+      await db
+        .delete(sqliteSchema.interaction_items)
+        .where(
+          inArray(
+            sqliteSchema.interaction_items.interaction_log_id,
+            logIdsToPrune,
+          ),
+        );
+
+      // Delete parent interaction logs
+      await db
+        .delete(sqliteSchema.interaction_logs)
+        .where(inArray(sqliteSchema.interaction_logs.id, logIdsToPrune));
+
+      console.log(
+        `[GarbageCollector] Successfully pruned ${logIdsToPrune.length} logs.`,
+      );
+    } else {
+      console.log(
+        '[GarbageCollector] All candidate logs are referenced by pending image uploads.',
+      );
+    }
+  } catch (err) {
+    console.error('[GarbageCollector] Error pruning synced local data:', err);
   }
 }

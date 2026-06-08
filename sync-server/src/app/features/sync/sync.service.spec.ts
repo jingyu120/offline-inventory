@@ -227,6 +227,12 @@ describe('SyncService', () => {
         expect.stringContaining('Failed to write pull audit log: Insert error'),
       );
     });
+
+    it('writes pull audit log without userId', async () => {
+      const spy = jest.spyOn(mockDrizzle.db, 'insert');
+      await service.pullChanges(Date.now(), 'device-1');
+      expect(spy).toHaveBeenCalled();
+    });
   });
 
   describe('pushChanges', () => {
@@ -255,9 +261,9 @@ describe('SyncService', () => {
       mockDrizzle.db.transaction = jest
         .fn()
         .mockRejectedValue(new Error('Transaction error'));
-      await expect(service.pushChanges({} as any)).rejects.toThrow(
-        'Transaction error',
-      );
+      await expect(
+        service.pushChanges({} as any, 'device-1', 'user-1'),
+      ).rejects.toThrow('Transaction error');
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining(
           'Failed to push sync changes: Transaction error',
@@ -371,6 +377,9 @@ describe('SyncService', () => {
         q.from = jest.fn().mockImplementation((table: any) => {
           if (table === schema.pgSchema.audit_events) {
             return createMockQueryBuilder([{ hash: 'prev-event-hash' }]);
+          }
+          if (table === schema.pgSchema.sync_audit_logs) {
+            return createMockQueryBuilder([{ created_at: 100 }]);
           }
           const res = selectResults[tracker.selectCallCount] || [];
           tracker.selectCallCount++;
@@ -568,6 +577,459 @@ describe('SyncService', () => {
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('Anomaly detection error: Select failed'),
       );
+    });
+
+    describe('field-level conflict resolution and merging', () => {
+      it('merges fields concurrently when different fields are modified on client and server', async () => {
+        const changes = {
+          shops: {
+            created: [],
+            updated: [
+              {
+                id: 'shop-1',
+                name: 'Updated Name',
+                address: 'Main St',
+                region_id: 'reg-1',
+                latitude: undefined,
+                updated_at: 110,
+              },
+              {
+                id: 'shop-2',
+                name: 'Updated Name 2',
+                updated_at: 110,
+              },
+              {
+                id: 'shop-no-time',
+                name: 'Updated Shop No Time',
+              },
+            ],
+            deleted: [],
+          },
+        } as any;
+
+        let shopsSelectCount = 0;
+
+        mockTx.select = jest.fn().mockImplementation((_selectArg?: any) => {
+          const q = createMockQueryBuilder([]);
+          q.from = jest.fn().mockImplementation((table: any) => {
+            if (table === schema.pgSchema.sync_audit_logs) {
+              return createMockQueryBuilder([{ created_at: 100 }]);
+            }
+            if (table === schema.pgSchema.audit_events) {
+              return createMockQueryBuilder([
+                {
+                  previous_state: '{invalid}',
+                  new_state: '{invalid}',
+                  created_at: 101,
+                },
+                {
+                  previous_state: null,
+                  new_state: JSON.stringify({
+                    id: 'shop-2',
+                    name: 'Original Name 2',
+                  }),
+                  created_at: 102,
+                },
+                {
+                  previous_state: JSON.stringify({
+                    id: 'shop-1',
+                    address: 'Main St',
+                    name: 'Original Name',
+                  }),
+                  new_state: JSON.stringify({
+                    id: 'shop-1',
+                    address: 'Broadway',
+                    name: 'Original Name',
+                  }),
+                  created_at: 105,
+                },
+              ]);
+            }
+            if (table === schema.pgSchema.shops) {
+              if (shopsSelectCount === 0) {
+                shopsSelectCount++;
+                return createMockQueryBuilder([
+                  {
+                    id: 'shop-1',
+                    name: 'Original Name',
+                    address: 'Broadway',
+                    region_id: 'reg-1',
+                    latitude: 12.345,
+                    updated_at: 105,
+                  },
+                ]);
+              } else if (shopsSelectCount === 1) {
+                shopsSelectCount++;
+                return createMockQueryBuilder([
+                  {
+                    id: 'shop-2',
+                    name: 'Original Name 2',
+                    updated_at: 102,
+                  },
+                ]);
+              } else {
+                return createMockQueryBuilder([
+                  {
+                    id: 'shop-no-time',
+                    name: 'Existing Shop No Time',
+                  },
+                ]);
+              }
+            }
+            return createMockQueryBuilder([]);
+          });
+          return q;
+        });
+
+        await service.pushChanges(changes, 'device-1', 'user-1');
+
+        expect(mockTx.update).toHaveBeenCalledWith(schema.pgSchema.shops);
+        expect(mockTx.set).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'shop-1',
+            name: 'Updated Name',
+            address: 'Broadway',
+            region_id: 'reg-1',
+            latitude: 12.345,
+          }),
+        );
+        expect(mockTx.set).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'shop-2',
+            name: 'Original Name 2',
+          }),
+        );
+      });
+
+      it('logs conflict warning on commercial_status and maintains server value on true conflict', async () => {
+        const changes = {
+          interaction_logs: {
+            created: [],
+            updated: [
+              {
+                id: 'log-1',
+                commercial_status: 'PENDING',
+                updated_at: 110,
+              },
+            ],
+            deleted: [],
+          },
+        } as any;
+
+        mockTx.select = jest.fn().mockImplementation((_selectArg?: any) => {
+          const q = createMockQueryBuilder([]);
+          q.from = jest.fn().mockImplementation((table: any) => {
+            if (table === schema.pgSchema.sync_audit_logs) {
+              return createMockQueryBuilder([{ created_at: 100 }]);
+            }
+            if (table === schema.pgSchema.audit_events) {
+              return createMockQueryBuilder([
+                {
+                  previous_state: JSON.stringify({
+                    id: 'log-1',
+                    commercial_status: 'PAID',
+                  }),
+                  new_state: JSON.stringify({
+                    id: 'log-1',
+                    commercial_status: 'CANCELLED',
+                  }),
+                  created_at: 105,
+                },
+              ]);
+            }
+            if (table === schema.pgSchema.interaction_logs) {
+              return createMockQueryBuilder([
+                {
+                  id: 'log-1',
+                  commercial_status: 'CANCELLED',
+                  updated_at: 105,
+                },
+              ]);
+            }
+            return createMockQueryBuilder([]);
+          });
+          return q;
+        });
+
+        const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+        await service.pushChanges(changes, 'device-1', 'user-1');
+
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            '[Conflict Resolution] True conflict on critical operational field "commercial_status"',
+          ),
+        );
+
+        expect(mockTx.set).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'log-1',
+            commercial_status: 'CANCELLED',
+          }),
+        );
+      });
+
+      it('handles contacts table synchronization with audit events', async () => {
+        const changes = {
+          contacts: {
+            created: [
+              { id: 'contact-new', name: 'New Contact', phone_number: '123' },
+            ],
+            updated: [
+              {
+                id: 'contact-update',
+                name: 'Updated Contact',
+                phone_number: '456',
+                updated_at: 110,
+              },
+              {
+                id: 'contact-missing',
+                name: 'Missing Contact',
+                phone_number: '999',
+                updated_at: 110,
+              },
+            ],
+            deleted: ['contact-delete'],
+          },
+        } as any;
+
+        let contactSelectCount = 0;
+        mockTx.select = jest.fn().mockImplementation((_selectArg?: any) => {
+          const q = createMockQueryBuilder([]);
+          q.from = jest.fn().mockImplementation((table: any) => {
+            if (table === schema.pgSchema.sync_audit_logs) {
+              return createMockQueryBuilder([{ created_at: 100 }]);
+            }
+            if (table === schema.pgSchema.audit_events) {
+              return createMockQueryBuilder([]);
+            }
+            if (table === schema.pgSchema.contacts) {
+              if (contactSelectCount === 0) {
+                contactSelectCount++;
+                return createMockQueryBuilder([
+                  {
+                    id: 'contact-update',
+                    name: 'Old Contact',
+                    phone_number: '456',
+                    updated_at: 50,
+                  },
+                ]);
+              } else if (contactSelectCount === 1) {
+                contactSelectCount++;
+                return createMockQueryBuilder([]); // contact-missing not found
+              } else {
+                return createMockQueryBuilder([
+                  {
+                    id: 'contact-delete',
+                    name: 'Delete Contact',
+                    phone_number: '789',
+                  },
+                ]);
+              }
+            }
+            return createMockQueryBuilder([]);
+          });
+          return q;
+        });
+
+        const commitAuditSpy = jest.spyOn(service, 'commitAuditEvent');
+        await service.pushChanges(changes, 'device-1', 'user-1');
+
+        expect(mockTx.insert).toHaveBeenCalled();
+        expect(mockTx.update).toHaveBeenCalled();
+        expect(commitAuditSpy).toHaveBeenCalledWith(
+          expect.any(Object),
+          'SHOP',
+          'CREATE',
+          null,
+          expect.objectContaining({ id: 'contact-new' }),
+          'user-1',
+          'device-1',
+          null,
+        );
+        expect(commitAuditSpy).toHaveBeenCalledWith(
+          expect.any(Object),
+          'SHOP',
+          'UPDATE',
+          expect.objectContaining({ id: 'contact-update' }),
+          expect.objectContaining({ id: 'contact-update' }),
+          'user-1',
+          'device-1',
+          null,
+        );
+        expect(commitAuditSpy).toHaveBeenCalledWith(
+          expect.any(Object),
+          'SHOP',
+          'CREATE',
+          null,
+          expect.objectContaining({ id: 'contact-missing' }),
+          'user-1',
+          'device-1',
+          null,
+        );
+        expect(commitAuditSpy).toHaveBeenCalledWith(
+          expect.any(Object),
+          'SHOP',
+          'DELETE',
+          expect.objectContaining({ id: 'contact-delete' }),
+          null,
+          'user-1',
+          'device-1',
+          null,
+        );
+      });
+
+      it('handles null changesets in pushChanges', async () => {
+        await service.pushChanges({ shops: null } as any);
+        expect(mockDrizzle.db.transaction).toHaveBeenCalled();
+      });
+
+      it('detects compromised audit events hash chain when lastDbEvent is null', async () => {
+        const changes = {
+          audit_events: {
+            created: [
+              {
+                event_id: 'evt-1',
+                created_at: 1000,
+                hash: 'invalid-hash-value',
+                actor_id: 'user-1',
+              },
+            ],
+            updated: [],
+            deleted: [],
+          },
+        } as any;
+        mockDrizzle.readDb.select = jest
+          .fn()
+          .mockReturnValue(createMockQueryBuilder([])); // Null db events
+
+        await service.pushChanges(changes, 'device-1', 'user-1');
+        expect(changes.audit_events.created[0].status).toBe('COMPROMISED');
+      });
+
+      it('detects compromised audit events hash chain when database event has falsy hash', async () => {
+        const changes = {
+          audit_events: {
+            created: [
+              {
+                event_id: 'evt-1',
+                created_at: 1000,
+                hash: 'invalid-hash-value',
+                actor_id: 'user-1',
+              },
+            ],
+            updated: [],
+            deleted: [],
+          },
+        } as any;
+        mockDrizzle.readDb.select = jest
+          .fn()
+          .mockReturnValue(createMockQueryBuilder([{ hash: null }])); // Falsy hash
+
+        await service.pushChanges(changes, 'device-1', 'user-1');
+        expect(changes.audit_events.created[0].status).toBe('COMPROMISED');
+      });
+
+      it('detects compromised audit events hash chain when sequential events have falsy hashes', async () => {
+        const changes = {
+          audit_events: {
+            created: [
+              {
+                event_id: 'evt-1',
+                created_at: 1000,
+                hash: null,
+                actor_id: 'user-1',
+              },
+              {
+                event_id: 'evt-2',
+                created_at: 2000,
+                hash: 'invalid-hash',
+                actor_id: 'user-1',
+              },
+            ],
+            updated: [],
+            deleted: [],
+          },
+        } as any;
+        mockDrizzle.readDb.select = jest
+          .fn()
+          .mockReturnValue(createMockQueryBuilder([]));
+
+        await service.pushChanges(changes, 'device-1', 'user-1');
+        expect(changes.audit_events.created[1].status).toBe('COMPROMISED');
+      });
+
+      it('returns early if parent interaction log is not found', async () => {
+        mockDrizzle.db.select = jest.fn().mockImplementation(() => {
+          return createMockQueryBuilder([]); // Empty array (log not found)
+        });
+
+        // Directly invoke private method with undefined updated to test fallback branch
+        const promise = (service as any).runAnomalyDetection({
+          created: [
+            {
+              id: 'ii-1',
+              interaction_log_id: 'log-1',
+              fulfillment_status: 'PENDING_FULFILLMENT',
+              quantity: 100,
+            },
+          ],
+          updated: undefined,
+        });
+
+        await expect(promise).resolves.toBeUndefined();
+        expect(mockDrizzle.db.update).not.toHaveBeenCalled();
+      });
+
+      it('directly tests triggerAuditForPushedLogs with missing created or updated arrays', async () => {
+        mockDrizzle.db.select = jest.fn().mockImplementation(() => {
+          return createMockQueryBuilder([]);
+        });
+
+        // Directly invoke private method with undefined updated to test fallback branch
+        const promise = (service as any).triggerAuditForPushedLogs(
+          {
+            created: [
+              { id: 'log-1', viber_screenshot_url: '/api/uploads/img.jpg' },
+            ],
+            updated: undefined,
+          },
+          'system',
+          'trace-1',
+        );
+
+        await expect(promise).resolves.toBeUndefined();
+      });
+
+      it('handles case where no historical items exist for average calculation', async () => {
+        const changes = {
+          interaction_items: {
+            created: [
+              {
+                id: 'ii-1',
+                interaction_log_id: 'log-1',
+                fulfillment_status: 'PENDING_FULFILLMENT',
+                quantity: 100,
+              },
+            ],
+            updated: [],
+            deleted: [],
+          },
+        } as any;
+
+        mockDrizzle.db.select = jest
+          .fn()
+          .mockImplementation((selectArg?: any) => {
+            if (selectArg && selectArg.quantity) {
+              return createMockQueryBuilder([]); // No historical items
+            }
+            return createMockQueryBuilder([
+              { id: 'log-1', shop_id: 'shop-123' },
+            ]);
+          });
+
+        await service.pushChanges(changes);
+        expect(mockDrizzle.db.update).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -849,6 +1311,51 @@ describe('SyncService', () => {
       expect(mockTx.delete).toHaveBeenCalled();
       expect(mockTx.insert).toHaveBeenCalled();
       expect(res).toEqual({ success: true });
+    });
+
+    it('resolves mismatch log with default unit and stock condition if omitted', async () => {
+      const input = {
+        logId: 'log-1',
+        shopId: 'shop-1',
+        notes: 'notes',
+        items: [
+          {
+            itemId: 'item-1',
+            quantity: 5,
+            unitPrice: 1000,
+            selectedUnit: '',
+            stockCondition: '',
+          },
+        ],
+      };
+      await service.resolveMismatchLog(input);
+      expect(mockTx.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMismatchLogs edge cases', () => {
+    it('returns Unknown Shop when shop is not found', async () => {
+      const logs = [{ id: 'log-1', shop_id: 'shop-1', notes: 'discrepancy' }];
+      const items = [
+        { id: 'ii-1', interaction_log_id: 'log-1', item_id: 'item-1' },
+      ];
+
+      mockDrizzle.readDb.select = jest.fn().mockImplementation(() => {
+        const query = createMockQueryBuilder([]);
+        query.from = jest.fn().mockImplementation((table) => {
+          if (table === schema.pgSchema.shops) {
+            return createMockQueryBuilder([]); // not found
+          }
+          if (table === schema.pgSchema.interaction_items) {
+            return createMockQueryBuilder(items);
+          }
+          return createMockQueryBuilder(logs);
+        });
+        return query;
+      });
+
+      const res = await service.getMismatchLogs();
+      expect(res[0].shopName).toBe('Unknown Shop');
     });
   });
 

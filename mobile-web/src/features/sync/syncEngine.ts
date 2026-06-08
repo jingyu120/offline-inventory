@@ -25,6 +25,7 @@ import {
 } from '../../core/storage/platformStorage';
 import { ImageUploadQueue } from './ImageUploadQueue';
 import { isNetworkDegraded } from './networkQualityUtil';
+import { pruneSyncedLocalData } from '../../core/database/garbageCollector';
 
 type SqliteSchema = typeof sqliteSchema;
 type SQLiteTables = SqliteSchema[keyof SqliteSchema];
@@ -373,6 +374,13 @@ async function executeSyncCycle(): Promise<void> {
 
   // 3. Compact database
   await runDatabaseCompaction();
+
+  // 4. Prune synced local data older than 30 days
+  try {
+    await pruneSyncedLocalData(database);
+  } catch (pruneErr) {
+    console.warn('[SyncEngine] Failed to prune synced local data:', pruneErr);
+  }
 
   console.log('[SyncEngine] Sync cycle complete.');
 }
