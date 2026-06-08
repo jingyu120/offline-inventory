@@ -894,6 +894,56 @@ describe('SyncService', () => {
         expect(mockDrizzle.db.transaction).toHaveBeenCalled();
       });
 
+      it('automatically creates an invoice when an ORDER_PLACED interaction log is created', async () => {
+        const changes = {
+          interaction_logs: {
+            created: [
+              {
+                id: 'log-order-1',
+                shop_id: 'shop-123',
+                commercial_status: 'ORDER_PLACED',
+                created_at_local: Date.now(),
+              },
+            ],
+            updated: [],
+            deleted: [],
+          },
+        } as any;
+
+        const mockItems = [
+          { quantity: 2, unit_price_at_sale: 1500 },
+          { quantity: 3, unit_price_at_sale: 2000 },
+        ];
+
+        mockTx.select = jest.fn().mockImplementation((selectArg?: any) => {
+          if (selectArg && selectArg.hash) {
+            return createMockQueryBuilder([{ hash: 'prev-event-hash' }]);
+          }
+          const q = createMockQueryBuilder([]);
+          q.from = jest.fn().mockImplementation((table: any) => {
+            if (table === schema.pgSchema.interaction_items) {
+              return createMockQueryBuilder(mockItems);
+            }
+            if (table === schema.pgSchema.sync_audit_logs) {
+              return createMockQueryBuilder([{ created_at: 100 }]);
+            }
+            return createMockQueryBuilder([]);
+          });
+          return q;
+        });
+
+        await service.pushChanges(changes, 'device-1', 'user-1');
+
+        expect(mockTx.insert).toHaveBeenCalledWith(schema.pgSchema.invoices);
+        expect(mockTx.values).toHaveBeenCalledWith(
+          expect.objectContaining({
+            shop_id: 'shop-123',
+            amount: 9000,
+            state: 'PENDING',
+          }),
+        );
+      });
+
       it('detects compromised audit events hash chain when lastDbEvent is null', async () => {
         const changes = {
           audit_events: {

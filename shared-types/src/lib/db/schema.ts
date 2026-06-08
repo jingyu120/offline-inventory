@@ -38,6 +38,7 @@ export const shops = pgTable(
     ward_id: text('ward_id'),
     assigned_rep_id: text('assigned_rep_id'),
     lifetime_value: doublePrecision('lifetime_value').notNull().default(0),
+    credit_limit_mmk: doublePrecision('credit_limit_mmk').notNull().default(0),
     sentiment_trend: text('sentiment_trend').notNull().default('STABLE'),
     price_book_id: text('price_book_id'),
     price_tier: text('price_tier').notNull().default('Retailer'),
@@ -151,6 +152,11 @@ export const interaction_logs = pgTable(
     assigned_driver_id: text('assigned_driver_id'),
     dispatched_at: bigint('dispatched_at', { mode: 'number' }),
     pod_image_url: text('pod_image_url'),
+    // Price negotiation & objection fields (Sprint 36)
+    negotiated_price: doublePrecision('negotiated_price'),
+    objection_reason: text('objection_reason'),
+    competitor_price: doublePrecision('competitor_price'),
+    viber_message_text: text('viber_message_text'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),

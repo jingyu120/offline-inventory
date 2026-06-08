@@ -58,6 +58,7 @@ describe('shared-types', () => {
         sentiment_trend: 'STABLE',
         price_book_id: null,
         price_tier: 'Retailer',
+        credit_limit_mmk: 0,
         created_at: 10000,
         updated_at: 10000,
       };
@@ -127,6 +128,10 @@ describe('shared-types', () => {
         approved_by_id: null,
         created_at: 10000,
         updated_at: 10000,
+        negotiated_price: null,
+        objection_reason: null,
+        competitor_price: null,
+        viber_message_text: null,
       };
       expect(record.type).toBe('SHOP_VISIT');
       expect(record.is_offline_entry).toBe(true);

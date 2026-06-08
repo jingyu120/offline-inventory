@@ -31,6 +31,7 @@ import { PredictionAnalyticsCard } from './PredictionAnalyticsCard';
 import { RepScorecardCard } from './RepScorecardCard';
 import { ContactsCard } from './ContactsCard';
 import { InteractionsTimeline } from './InteractionsTimeline';
+import { ClientViewForecastList } from './ClientViewForecastList';
 
 interface ShopDetailPaneProps {
   shop: Shop;
@@ -616,11 +617,20 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
                   </Box>
                   <Box flex={1}>
                     <Text variant="bodySecondary">{t('lifetimeValue')}</Text>
-                    <Text variant="body" fontWeight="bold">
+                    <Text variant="body" fontWeight="bold" mb="xs">
                       {t('priceFormatted').replace(
                         '{price}',
                         (shop.lifetimeValue || 0).toLocaleString(),
                       )}
+                    </Text>
+                    <Text variant="bodySecondary">{t('creditLimit')}</Text>
+                    <Text variant="body" fontWeight="bold">
+                      {shop.creditLimitMmk
+                        ? t('priceFormatted').replace(
+                            '{price}',
+                            shop.creditLimitMmk.toLocaleString(),
+                          )
+                        : t('noLimit')}
                     </Text>
                   </Box>
                 </Card>
@@ -654,16 +664,19 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
 
         {/* Predictive Analytics & AI Recommendations (shown on Desktop, or Mobile AI Insights Tab) */}
         {(isDesktop || activeMobileTab === 'ai_insights') && (
-          <PredictionAnalyticsCard
-            shop={shop}
-            predictionLog={predictionLog}
-            recommendedOrder={recommendedOrder}
-            recommendedItem={recommendedItem}
-            onLogInteraction={onLogInteraction}
-            historicalNotes={shopLogsWithItems
-              .map((l) => l.log.notes)
-              .filter(Boolean)}
-          />
+          <>
+            <PredictionAnalyticsCard
+              shop={shop}
+              predictionLog={predictionLog}
+              recommendedOrder={recommendedOrder}
+              recommendedItem={recommendedItem}
+              onLogInteraction={onLogInteraction}
+              historicalNotes={shopLogsWithItems
+                .map((l) => l.log.notes)
+                .filter(Boolean)}
+            />
+            <ClientViewForecastList shopId={shop.id} />
+          </>
         )}
 
         {/* Gamification Scorecard (shown on Desktop, or Mobile Scorecard Tab) */}

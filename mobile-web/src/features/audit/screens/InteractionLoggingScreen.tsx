@@ -8,7 +8,15 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Box, Text, Button, Card, Theme } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  Button,
+  Card,
+  Theme,
+  DropdownSelector,
+  TextField,
+} from '@burma-inventory/ui-components';
 import {
   Shop,
   Item,
@@ -16,7 +24,7 @@ import {
   semanticSearch,
 } from '@burma-inventory/shared-types';
 import { database } from '../../../core/database/database';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, or, gte } from 'drizzle-orm';
 import {
   fetchItemsAndStockLevel,
   createInteractionLog,
@@ -100,6 +108,85 @@ export function InteractionLoggingScreen({
   const hasDiscrepancy = session.hasDiscrepancy;
   const setHasDiscrepancy = (val: boolean) =>
     updateSession(shopId, { hasDiscrepancy: val });
+
+  const objectionReason = session.objectionReason;
+  const setObjectionReason = (val: string) =>
+    updateSession(shopId, { objectionReason: val });
+
+  const negotiatedPrice = session.negotiatedPrice;
+  const setNegotiatedPrice = (val: string) =>
+    updateSession(shopId, { negotiatedPrice: val });
+
+  const competitorPrice = session.competitorPrice;
+  const setCompetitorPrice = (val: string) =>
+    updateSession(shopId, { competitorPrice: val });
+
+  const isPriceTooHigh = objectionReason === 'PRICE_TOO_HIGH';
+
+  const viberMessageText = session.viberMessageText;
+  const setViberMessageText = (val: string) =>
+    updateSession(shopId, { viberMessageText: val });
+
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasCollectionToday, setHasCollectionToday] = useState(false);
+
+  const checkBlockedStatus = async () => {
+    if (!shop) return;
+    try {
+      const allInvoices = await database
+        .select()
+        .from(sqliteSchema.invoices)
+        .where(
+          and(
+            eq(sqliteSchema.invoices.shop_id, shop.id),
+            or(
+              eq(sqliteSchema.invoices.state, 'PENDING'),
+              eq(sqliteSchema.invoices.state, 'PARTIALLY_PAID'),
+              eq(sqliteSchema.invoices.state, 'OVERDUE'),
+            ),
+          ),
+        );
+
+      let totalOutstanding = 0;
+      let maxOverdueDays = 0;
+      const now = Date.now();
+      for (const inv of allInvoices) {
+        totalOutstanding += inv.amount;
+        const effectiveDue =
+          inv.due_date + inv.grace_period_days * 24 * 60 * 60 * 1000;
+        if (now > effectiveDue) {
+          const agingDays = Math.floor(
+            (now - effectiveDue) / (24 * 60 * 60 * 1000),
+          );
+          if (agingDays > maxOverdueDays) {
+            maxOverdueDays = agingDays;
+          }
+        }
+      }
+
+      const limit = shop.creditLimitMmk || 0;
+      const creditExceeded = totalOutstanding > limit;
+      const overdueExceeded = maxOverdueDays >= 30;
+      setIsBlocked(creditExceeded || overdueExceeded);
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const todayMs = startOfToday.getTime();
+      const collections = await database
+        .select()
+        .from(sqliteSchema.interaction_logs)
+        .where(
+          and(
+            eq(sqliteSchema.interaction_logs.shop_id, shop.id),
+            eq(sqliteSchema.interaction_logs.type, 'PAYMENT_COLLECTION'),
+            gte(sqliteSchema.interaction_logs.created_at_local, todayMs),
+          ),
+        );
+      setHasCollectionToday(collections.length > 0);
+    } catch (e) {
+      console.error('Failed to check blocked status:', e);
+    }
+  };
 
   const [skuSearch, setSkuSearch] = useState('');
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
@@ -318,6 +405,7 @@ export function InteractionLoggingScreen({
       loadItems();
       loadRatesAndBook();
       loadLastInteractionLog();
+      checkBlockedStatus();
     } else {
       resetForm();
       setIsDraftLoaded(false);
@@ -425,6 +513,12 @@ export function InteractionLoggingScreen({
     setSelectedProjectId(null);
     setLastInteractionLog(null);
     setIsOverrideMarginAcknowledged(false);
+    setObjectionReason('');
+    setNegotiatedPrice('');
+    setCompetitorPrice('');
+    setViberMessageText('');
+    setIsBlocked(false);
+    setHasCollectionToday(false);
   };
 
   const handleDuplicateLastOrder = async () => {
@@ -588,6 +682,15 @@ export function InteractionLoggingScreen({
     if (!shop) return;
 
     if (
+      isBlocked &&
+      !hasCollectionToday &&
+      commercialStatus === 'ORDER_PLACED'
+    ) {
+      Alert.alert(t('validationError'), t('mustCollectCashError'));
+      return;
+    }
+
+    if (
       (commercialStatus === 'INTERESTED' ||
         commercialStatus === 'NOT_INTERESTED') &&
       notes.length < 20
@@ -664,6 +767,10 @@ export function InteractionLoggingScreen({
         selectedProjectId,
         traceId || undefined,
         ActorService.getActorId(),
+        negotiatedPrice ? Number(negotiatedPrice) : null,
+        objectionReason || null,
+        competitorPrice ? Number(competitorPrice) : null,
+        viberMessageText || null,
       );
 
       // After successfully creating interaction log, delete the draft cart
@@ -780,6 +887,43 @@ export function InteractionLoggingScreen({
                 </Box>
               )}
 
+              {isBlocked && (
+                <Box
+                  bg={hasCollectionToday ? 'successBg' : 'dangerBg'}
+                  p="m"
+                  borderRadius="m"
+                  mb="m"
+                  flexDirection="row"
+                  alignItems="center"
+                  style={{ gap: 8 }}
+                >
+                  <AlertTriangle
+                    size={20}
+                    color={
+                      theme.colors[
+                        hasCollectionToday ? 'successText' : 'dangerText'
+                      ]
+                    }
+                  />
+                  <Box flex={1}>
+                    <Text
+                      variant="body"
+                      fontWeight="bold"
+                      color={hasCollectionToday ? 'successText' : 'dangerText'}
+                    >
+                      {hasCollectionToday
+                        ? t('accountBlockedReleased')
+                        : t('accountBlocked')}
+                    </Text>
+                    {!hasCollectionToday && (
+                      <Text variant="caption" color="dangerText" mt="xs">
+                        {t('mustCollectCashDesc')}
+                      </Text>
+                    )}
+                  </Box>
+                </Box>
+              )}
+
               {hasDiscrepancy && (
                 <Box
                   bg="warningBg"
@@ -811,6 +955,11 @@ export function InteractionLoggingScreen({
                 shop={shop}
                 screenshotUri={screenshotUri}
                 setScreenshotUri={handleInterceptScreenshot}
+                viberMessageText={viberMessageText}
+                setViberMessageText={setViberMessageText}
+                selectedItems={selectedItems}
+                setSelectedItems={setSelectedItems}
+                setCommercialStatus={setCommercialStatus}
               />
 
               <GemmaCopilot
@@ -838,6 +987,68 @@ export function InteractionLoggingScreen({
                     />
                   </Box>
                 ))}
+              </Box>
+
+              <Box
+                mt="m"
+                mb="m"
+                borderTopWidth={1}
+                borderTopColor="borderColor"
+                pt="m"
+              >
+                <Text variant="title" mb="s">
+                  {t('priceObjectionIntel')}
+                </Text>
+
+                <Box mb="m">
+                  <DropdownSelector
+                    label={t('objectionReason')}
+                    placeholder={t('selectObjectionReason')}
+                    selectedValue={objectionReason}
+                    onValueChange={(val) => setObjectionReason(val)}
+                    options={[
+                      { label: t('none') || 'None', value: '' },
+                      {
+                        label: t('priceTooHigh') || 'Price Too High',
+                        value: 'PRICE_TOO_HIGH',
+                      },
+                      {
+                        label: t('competitorLower') || 'Competitor Lower',
+                        value: 'COMPETITOR_LOWER',
+                      },
+                      {
+                        label: t('stockUnavailable') || 'Stock Unavailable',
+                        value: 'STOCK_UNAVAILABLE',
+                      },
+                      {
+                        label: t('lackOfCredit') || 'Lack of Credit',
+                        value: 'LACK_OF_CREDIT',
+                      },
+                    ]}
+                  />
+                </Box>
+
+                <Box mb="m">
+                  <TextField
+                    name="negotiated_price"
+                    label={`${t('negotiatedPrice')} (${selectedCurrency})`}
+                    value={negotiatedPrice}
+                    onChangeText={setNegotiatedPrice}
+                    keyboardType="numeric"
+                  />
+                </Box>
+
+                {isPriceTooHigh && (
+                  <Box mb="m">
+                    <TextField
+                      name="competitor_price"
+                      label={`${t('negotiatedCompetitorPrice')} (${selectedCurrency})`}
+                      value={competitorPrice}
+                      onChangeText={setCompetitorPrice}
+                      keyboardType="numeric"
+                    />
+                  </Box>
+                )}
               </Box>
 
               <Text variant="title" mb="s">

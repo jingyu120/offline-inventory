@@ -21,6 +21,10 @@ export interface CartSession {
   screenshotUri: string | null;
   hasDiscrepancy: boolean;
   traceId?: string | null;
+  negotiatedPrice: string;
+  objectionReason: string;
+  competitorPrice: string;
+  viberMessageText: string;
 }
 
 export const defaultSession: CartSession = {
@@ -34,6 +38,10 @@ export const defaultSession: CartSession = {
   screenshotUri: null,
   hasDiscrepancy: false,
   traceId: null,
+  negotiatedPrice: '',
+  objectionReason: '',
+  competitorPrice: '',
+  viberMessageText: '',
 };
 
 interface CartState {

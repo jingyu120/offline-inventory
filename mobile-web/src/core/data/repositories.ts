@@ -57,6 +57,7 @@ export const mapShop = (s: $Any): Shop => ({
   sentimentTrend: s.sentiment_trend,
   priceBookId: s.price_book_id,
   priceTier: s.price_tier,
+  creditLimitMmk: s.credit_limit_mmk || 0,
   createdAt: s.created_at,
   updatedAt: s.updated_at,
 });
@@ -114,6 +115,10 @@ export const mapInteractionLog = (l: $Any): InteractionLog => ({
   approvedById: l.approved_by_id,
   createdAt: l.created_at,
   updatedAt: l.updated_at,
+  negotiatedPrice: l.negotiated_price,
+  objectionReason: l.objection_reason,
+  competitorPrice: l.competitor_price,
+  viberMessageText: l.viber_message_text,
 });
 
 export const mapInteractionItem = (ii: $Any): InteractionItem => ({
@@ -345,6 +350,10 @@ export const createInteractionLog = async (
   projectId: string | null = null,
   traceId?: string,
   actorId?: string,
+  negotiatedPrice: number | null = null,
+  objectionReason: string | null = null,
+  competitorPrice: number | null = null,
+  viberMessageText: string | null = null,
 ): Promise<string> => {
   let newLogId = '';
   const [, error] = await guardAsync(
@@ -372,6 +381,10 @@ export const createInteractionLog = async (
         approved_by_id: null,
         created_at: now,
         updated_at: now,
+        negotiated_price: negotiatedPrice,
+        objection_reason: objectionReason,
+        competitor_price: competitorPrice,
+        viber_message_text: viberMessageText,
       };
       await tx.insert(sqliteSchema.interaction_logs).values(incomingLog);
 

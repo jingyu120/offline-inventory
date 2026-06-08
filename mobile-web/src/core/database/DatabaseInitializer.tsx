@@ -58,6 +58,10 @@ export const DatabaseInitializer: React.FC<{ children: React.ReactNode }> = ({
                 screenshotUri: null,
                 hasDiscrepancy: false,
                 traceId: (draft as $Any).trace_id || null,
+                negotiatedPrice: '',
+                objectionReason: '',
+                competitorPrice: '',
+                viberMessageText: '',
               };
             } catch (jsonErr) {
               console.error('Failed to parse draft items_json:', jsonErr);

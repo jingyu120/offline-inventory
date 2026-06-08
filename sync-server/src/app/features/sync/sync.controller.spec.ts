@@ -68,6 +68,7 @@ describe('SyncController', () => {
     updateInteractionLogScreenshot: jest
       .fn()
       .mockResolvedValue('url-screenshot'),
+    updateInteractionLogPodImage: jest.fn().mockResolvedValue('url-pod'),
     getContactByPhone: jest.fn().mockResolvedValue({ shop_id: 'shop-123' }),
     createViberLog: jest.fn().mockResolvedValue(undefined),
   };
@@ -318,6 +319,28 @@ describe('SyncController', () => {
         success: true,
         url: 'url-screenshot',
         viberScreenshotUrl: 'url-screenshot',
+      });
+    });
+
+    it('processes interactionLogId for POD image without enqueuing screenshot audit job', async () => {
+      const file = { filename: 'test-pod.jpg' };
+      const req = { headers: {} };
+      const res = await controller.uploadFile(
+        file,
+        req,
+        'log-123',
+        undefined,
+        'pod',
+      );
+      expect(syncService.updateInteractionLogPodImage).toHaveBeenCalledWith(
+        'log-123',
+        'test-pod.jpg',
+      );
+      expect(aiQueueService.addScreenshotJob).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        success: true,
+        url: 'url-pod',
+        viberScreenshotUrl: undefined,
       });
     });
   });

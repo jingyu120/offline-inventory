@@ -798,4 +798,46 @@ describe('createInteractionLog', () => {
 
     expect(capturedValues.unit_price_at_sale).toBe(950);
   });
+
+  it('saves the new price negotiation and Viber message fields in createInteractionLog', async () => {
+    let capturedValues: any = null;
+    mockDb.transaction.mockImplementation(async (cb: any) => {
+      const mockTx = {
+        insert: jest.fn().mockImplementation((_table: any) => {
+          return {
+            values: jest.fn().mockImplementation((v: any) => {
+              if (v.negotiated_price !== undefined) {
+                capturedValues = v;
+              }
+              return Promise.resolve(undefined);
+            }),
+          };
+        }),
+      };
+      return cb(mockTx);
+    });
+
+    await createInteractionLog(
+      'sh1',
+      'rep1',
+      'VISIT',
+      'SALE',
+      'negotiation notes',
+      null,
+      [],
+      null,
+      undefined,
+      undefined,
+      12000,
+      'PRICE_TOO_HIGH',
+      11500,
+      'source message body',
+    );
+
+    expect(capturedValues).toBeDefined();
+    expect(capturedValues.negotiated_price).toBe(12000);
+    expect(capturedValues.objection_reason).toBe('PRICE_TOO_HIGH');
+    expect(capturedValues.competitor_price).toBe(11500);
+    expect(capturedValues.viber_message_text).toBe('source message body');
+  });
 });

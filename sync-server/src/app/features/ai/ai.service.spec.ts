@@ -8,6 +8,19 @@ import * as fs from 'fs';
 import * as schema from '@burma-inventory/shared-types';
 
 jest.mock('axios');
+
+// Prevent env.ts from calling process.exit(1) when DATABASE_URL is missing in CI
+jest.mock('../../../env', () => ({
+  env: {
+    DATABASE_URL: 'postgresql://test:test@localhost:5433/test_db',
+    DATABASE_REPLICA_URL: undefined,
+    GEMMA_API_URL: 'http://localhost:11434',
+    REDIS_URL: 'redis://localhost:6379',
+    SYNC_SERVER_PORT: 3000,
+    SYNC_SERVER_PREFIX: 'api',
+    NODE_ENV: 'test',
+  },
+}));
 jest.mock('fs', () => {
   return {
     existsSync: jest.fn(),
@@ -1152,6 +1165,103 @@ describe('AiService', () => {
         expect.stringContaining('Failed to parse quota optimizations JSON'),
       );
       loggerSpy.mockRestore();
+    });
+  });
+
+  describe('parsePaymentTransfer', () => {
+    it('successfully parses payment transfer receipt details via dispatchModel', async () => {
+      (axios.post as jest.Mock).mockResolvedValueOnce({
+        data: {
+          response: JSON.stringify({
+            transactionId: 'TXN-999',
+            amount: 150000,
+            timestamp: '2026-06-08T10:00:00Z',
+            senderName: 'U Aung',
+            rawText: 'KBZPay transfer U Aung 150,000 Kyats...',
+          }),
+        },
+      });
+
+      const res = await service.parsePaymentTransfer('mockBase64');
+      expect(res.transactionId).toBe('TXN-999');
+      expect(res.amount).toBe(150000);
+      expect(res.confidence).toBe('HIGH');
+    });
+
+    it('handles dispatchModel returning null and returns confidence FAILED', async () => {
+      (axios.post as jest.Mock).mockResolvedValueOnce({ data: null });
+      const res = await service.parsePaymentTransfer('mockBase64');
+      expect(res.confidence).toBe('FAILED');
+    });
+
+    it('handles parse error gracefully and returns confidence FAILED', async () => {
+      (axios.post as jest.Mock).mockResolvedValueOnce({
+        data: { response: 'invalid-json' },
+      });
+      const res = await service.parsePaymentTransfer('mockBase64');
+      expect(res.confidence).toBe('FAILED');
+    });
+  });
+
+  describe('reconcilePaymentFifo', () => {
+    it('applies payment across outstanding invoices and inserts payment records', async () => {
+      const mockInvoices = [
+        { id: 'inv-1', amount: 3000, state: 'PENDING', due_date: 1000 },
+        { id: 'inv-2', amount: 5000, state: 'PARTIALLY_PAID', due_date: 2000 },
+      ];
+
+      mockDrizzle.db.select = jest.fn().mockImplementation(() => {
+        const query = createMockQueryBuilder(mockInvoices);
+        return query;
+      });
+
+      const res = await service.reconcilePaymentFifo(
+        'shop-123',
+        5000,
+        'TX-REF',
+        'http://receipt.png',
+        'actor-1',
+      );
+
+      // We had $5000 payment. Oldest invoice inv-1 is $3000, so it gets paid off fully.
+      // Next invoice inv-2 is $5000, but only $2000 remaining gets applied to it, so it stays PARTIALLY_PAID.
+      expect(res.applied.length).toBe(2);
+      expect(res.applied[0]).toEqual({
+        invoiceId: 'inv-1',
+        amountApplied: 3000,
+        newState: 'PAID',
+      });
+      expect(res.applied[1]).toEqual({
+        invoiceId: 'inv-2',
+        amountApplied: 2000,
+        newState: 'PARTIALLY_PAID',
+      });
+      expect(res.remainingAmount).toBe(0);
+
+      // Check Drizzle db updates
+      expect(mockDrizzle.db.update).toHaveBeenCalledWith(
+        schema.pgSchema.invoices,
+      );
+      expect(mockDrizzle.db.insert).toHaveBeenCalledWith(
+        schema.pgSchema.payments,
+      );
+    });
+
+    it('returns empty applied list if no outstanding invoices exist', async () => {
+      mockDrizzle.db.select = jest.fn().mockImplementation(() => {
+        return createMockQueryBuilder([]);
+      });
+
+      const res = await service.reconcilePaymentFifo(
+        'shop-123',
+        5000,
+        null,
+        null,
+        'actor-1',
+      );
+
+      expect(res.applied).toEqual([]);
+      expect(res.remainingAmount).toBe(5000);
     });
   });
 });

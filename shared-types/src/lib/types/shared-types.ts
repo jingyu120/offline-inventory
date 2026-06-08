@@ -46,6 +46,7 @@ export interface ShopRecord {
   sentiment_trend: string;
   price_book_id: string | null;
   price_tier: string;
+  credit_limit_mmk: number;
   created_at: number;
   updated_at: number;
 }
@@ -103,6 +104,10 @@ export interface InteractionLogRecord {
   approved_by_id?: string | null;
   created_at: number;
   updated_at: number;
+  negotiated_price: number | null;
+  objection_reason: string | null;
+  competitor_price: number | null;
+  viber_message_text: string | null;
 }
 
 export interface InteractionItemRecord {
@@ -347,6 +352,7 @@ export const ShopRecordSchema = z.object({
   sentiment_trend: z.string().default('STABLE'),
   price_book_id: z.string().nullable(),
   price_tier: z.string().default('Retailer'),
+  credit_limit_mmk: z.number().default(0),
   created_at: z.number(),
   updated_at: z.number(),
 });
@@ -406,6 +412,10 @@ export const InteractionLogRecordSchema = z.object({
   updated_at: z.number(),
   ai_verification_status: z.string().nullable().optional(),
   ai_verification_notes: z.string().nullable().optional(),
+  negotiated_price: z.number().nullable().optional(),
+  objection_reason: z.string().nullable().optional(),
+  competitor_price: z.number().nullable().optional(),
+  viber_message_text: z.string().nullable().optional(),
 });
 
 export const InteractionItemRecordSchema = z.object({
@@ -860,6 +870,7 @@ export interface Shop {
   sentimentTrend: string;
   priceBookId: string | null;
   priceTier: string;
+  creditLimitMmk: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -917,6 +928,10 @@ export interface InteractionLog {
   approvedById?: string | null;
   createdAt: number;
   updatedAt: number;
+  negotiatedPrice: number | null;
+  objectionReason: string | null;
+  competitorPrice: number | null;
+  viberMessageText: string | null;
 }
 
 export interface InteractionItem {

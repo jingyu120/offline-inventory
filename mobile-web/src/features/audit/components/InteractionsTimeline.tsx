@@ -230,6 +230,33 @@ export const InteractionsTimeline: React.FC<InteractionsTimelineProps> = ({
               {log.notes}
             </Text>
 
+            {log.viberMessageText && (
+              <Box
+                mt="s"
+                p="s"
+                borderRadius="s"
+                borderWidth={1}
+                borderColor="borderColor"
+                bg="secondaryBackground"
+              >
+                <Text
+                  variant="caption"
+                  color="secondaryText"
+                  fontWeight="bold"
+                  mb="xs"
+                >
+                  💬 {t('viberMessageSource')}
+                </Text>
+                <Text
+                  variant="bodySecondary"
+                  color="primaryText"
+                  style={{ fontStyle: 'italic' }}
+                >
+                  {log.viberMessageText}
+                </Text>
+              </Box>
+            )}
+
             {items.length > 0 && (
               <Box
                 mt="m"
