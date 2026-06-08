@@ -174,6 +174,7 @@ export class SyncService {
     lastPulledAt: number,
     deviceId?: string,
     userId?: string,
+    targetTable?: string,
   ): Promise<schema.PullChangesResponse> {
     const pullOne = async (
       tableName: string,
@@ -249,7 +250,10 @@ export class SyncService {
       };
     };
 
-    const entries = Object.entries(TABLE_REGISTRY);
+    let entries = Object.entries(TABLE_REGISTRY);
+    if (targetTable) {
+      entries = entries.filter(([tableName]) => tableName === targetTable);
+    }
     const results = await Promise.all(
       entries.map(([tableName, cfg]) => pullOne(tableName, cfg)),
     );

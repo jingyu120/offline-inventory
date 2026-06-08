@@ -35,6 +35,7 @@ export const trpcResolvers = globalResolvers as {
           lastPulledAt: number;
           deviceId?: string;
           userId?: string;
+          targetTable?: string;
         }) => Promise<{
           changes: Record<string, WatermelonChangeSet<unknown>>;
           timestamp: number;
@@ -249,6 +250,7 @@ export const appRouter = t.router({
           lastPulledAt: z.number(),
           deviceId: z.string().optional(),
           userId: z.string().optional(),
+          targetTable: z.string().optional(),
         }),
       )
       .query(async ({ input }) => {

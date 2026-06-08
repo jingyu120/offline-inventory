@@ -1,6 +1,24 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { syncData } from '../syncEngine';
 
 jest.mock('react', () => jest.requireActual('react'));
+jest.mock('../syncEngine', () => ({
+  syncData: jest.fn().mockResolvedValue(undefined),
+}));
+
+class MockEventSource {
+  static instances: MockEventSource[] = [];
+  url: string;
+  onopen: (() => void) | null = null;
+  onmessage: ((event: any) => void) | null = null;
+  onerror: ((err: any) => void) | null = null;
+  close = jest.fn();
+
+  constructor(url: string) {
+    this.url = url;
+    MockEventSource.instances.push(this);
+  }
+}
 
 let mockAddEventListenerCallback: ((state: any) => void) | null = null;
 let addEventListenerCalled = false;
@@ -30,14 +48,27 @@ let NetInfo: any;
 let useNetworkQuality: any;
 let getActiveNetworkQuality: any;
 let NetworkQualityObserver: any;
+let mockSyncData: jest.Mock;
 
 beforeAll(() => {
+  Object.defineProperty(global, 'EventSource', {
+    value: MockEventSource,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'EventSource', {
+    value: MockEventSource,
+    writable: true,
+    configurable: true,
+  });
+
   jest.isolateModules(() => {
     NetInfo = (require as any)('@react-native-community/netinfo').default;
     const module = (require as any)('./useNetworkQuality');
     useNetworkQuality = module.useNetworkQuality;
     getActiveNetworkQuality = module.getActiveNetworkQuality;
     NetworkQualityObserver = module.NetworkQualityObserver;
+    mockSyncData = syncData as jest.Mock;
   });
 });
 
@@ -262,5 +293,323 @@ describe('useNetworkQuality', () => {
 
     expect(consoleErrorSpy).toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
+  });
+
+  describe('SSE Invalidation Stream', () => {
+    beforeEach(() => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      if (mockNetInfoCallback) {
+        act(() => {
+          mockNetInfoCallback({
+            isConnected: false,
+            type: 'none',
+          });
+        });
+      }
+      MockEventSource.instances = [];
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('establishes SSE connection when online and not degraded', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      expect(MockEventSource.instances.length).toBe(1);
+      const instance = MockEventSource.instances[0];
+      expect(instance.url).toContain('/live-invalidations');
+
+      // Trigger onopen
+      act(() => {
+        instance.onopen?.();
+      });
+    });
+
+    it('triggers targeted syncData on receiving valid message', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      act(() => {
+        instance.onmessage?.({
+          data: JSON.stringify({ table: 'item_stocks' }),
+        });
+      });
+
+      expect(mockSyncData).toHaveBeenCalledWith('item_stocks');
+    });
+
+    it('does not trigger syncData on receiving invalid message or message without table', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      mockSyncData.mockClear();
+
+      // Invalid JSON
+      act(() => {
+        instance.onmessage?.({ data: '{invalid' });
+      });
+      expect(mockSyncData).not.toHaveBeenCalled();
+
+      // No table
+      act(() => {
+        instance.onmessage?.({ data: JSON.stringify({}) });
+      });
+      expect(mockSyncData).not.toHaveBeenCalled();
+    });
+
+    it('closes connection and schedules reconnect on error if still online', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      expect(instance.close).not.toHaveBeenCalled();
+
+      act(() => {
+        instance.onerror?.(new Error('connection closed'));
+      });
+
+      expect(instance.close).toHaveBeenCalled();
+
+      // Fast-forward reconnect timer
+      expect(MockEventSource.instances.length).toBe(1); // Old one cleared
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+      expect(MockEventSource.instances.length).toBe(2); // Reconnect spawned a new one
+    });
+
+    it('disconnects SSE when transitioning offline or degraded', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      // Connect first
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      expect(instance.close).not.toHaveBeenCalled();
+
+      // Transition to offline
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: false,
+          type: 'none',
+        });
+      });
+
+      expect(instance.close).toHaveBeenCalled();
+    });
+
+    it('warns and returns if EventSource is undefined', () => {
+      const originalEventSource = global.EventSource;
+      delete (global as any).EventSource;
+      delete (globalThis as any).EventSource;
+
+      const consoleWarnSpy = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[SSE] EventSource is not defined in this environment.',
+      );
+
+      consoleWarnSpy.mockRestore();
+      global.EventSource = originalEventSource;
+      globalThis.EventSource = originalEventSource;
+    });
+
+    it('logs error when targeted syncData rejects', async () => {
+      mockSyncData.mockRejectedValueOnce(new Error('Sync failed'));
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      await act(async () => {
+        instance.onmessage?.({
+          data: JSON.stringify({ table: 'item_stocks' }),
+        });
+        await Promise.resolve();
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[SSE] Targeted sync failed:',
+        expect.any(Error),
+      );
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('logs error when EventSource constructor throws', () => {
+      const originalEventSource = global.EventSource;
+      const throwingMock = jest.fn().mockImplementation(() => {
+        throw new Error('Constructor failed');
+      });
+      global.EventSource = throwingMock as any;
+      globalThis.EventSource = throwingMock as any;
+
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[SSE] Failed to create EventSource:',
+        expect.any(Error),
+      );
+
+      consoleErrorSpy.mockRestore();
+      global.EventSource = originalEventSource;
+      globalThis.EventSource = originalEventSource;
+    });
+
+    it('clears active reconnect timeout on disconnect', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+
+      // Trigger error to schedule reconnect
+      act(() => {
+        instance.onerror?.(new Error('err'));
+      });
+
+      // Now transition offline to trigger disconnect while reconnect timeout is pending
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: false,
+          type: 'none',
+        });
+      });
+
+      // Verify that after fast-forwarding, no reconnect happens
+      MockEventSource.instances = [];
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+      expect(MockEventSource.instances.length).toBe(0);
+    });
+
+    it('handles falsy event data in onmessage gracefully', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      mockSyncData.mockClear();
+
+      act(() => {
+        instance.onmessage?.({ data: '' });
+      });
+
+      expect(mockSyncData).not.toHaveBeenCalled();
+    });
+
+    it('handles error gracefully when event source close throws', () => {
+      const mockNetInfoCallback = mockAddEventListenerCallback as (
+        state: any,
+      ) => void;
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: true,
+          type: 'wifi',
+        });
+      });
+
+      const instance = MockEventSource.instances[0];
+      instance.close.mockImplementationOnce(() => {
+        throw new Error('Close error');
+      });
+
+      act(() => {
+        mockNetInfoCallback({
+          isConnected: false,
+          type: 'none',
+        });
+      });
+
+      expect(instance.close).toHaveBeenCalled();
+    });
   });
 });

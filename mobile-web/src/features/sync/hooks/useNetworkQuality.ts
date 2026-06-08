@@ -65,3 +65,91 @@ export function useNetworkQuality(): NetworkQuality {
 
   return quality;
 }
+
+// ── SSE Real-Time Invalidations listener ──
+import { syncData } from '../syncEngine';
+import { SYNC_API_URL } from '../../../config/appConfig';
+
+let currentEventSource: EventSource | null = null;
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function connectSSE() {
+  if (currentEventSource || reconnectTimeout) return;
+  if (typeof EventSource === 'undefined') {
+    console.warn('[SSE] EventSource is not defined in this environment.');
+    return;
+  }
+
+  console.log('[SSE] Connecting to live invalidations stream...');
+  const url = `${SYNC_API_URL}/live-invalidations`;
+
+  try {
+    const es = new EventSource(url);
+    currentEventSource = es;
+
+    es.onopen = () => {
+      console.log('[SSE] Connected to live invalidations stream.');
+    };
+
+    es.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data || '{}');
+        if (payload.table) {
+          console.log(
+            `[SSE] Received invalidation for table: ${payload.table}`,
+          );
+          syncData(payload.table).catch((err) => {
+            console.error('[SSE] Targeted sync failed:', err);
+          });
+        }
+      } catch (err) {
+        console.error('[SSE] Failed to parse event data:', err);
+      }
+    };
+
+    es.onerror = (err) => {
+      console.warn(
+        '[SSE] EventSource connection error, closing and scheduling reconnect:',
+        err,
+      );
+      disconnectSSE();
+
+      // Only reconnect if still online and not degraded
+      const currentQuality = getActiveNetworkQuality();
+      if (currentQuality.isConnected && !currentQuality.isDegraded) {
+        reconnectTimeout = setTimeout(() => {
+          reconnectTimeout = null;
+          connectSSE();
+        }, 5000);
+      }
+    };
+  } catch (err) {
+    console.error('[SSE] Failed to create EventSource:', err);
+  }
+}
+
+function disconnectSSE() {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+  if (currentEventSource) {
+    try {
+      currentEventSource.close();
+    } catch {
+      // ignore close errors on shutdown
+    }
+    currentEventSource = null;
+  }
+  console.log('[SSE] Disconnected from live invalidations stream.');
+}
+
+// Subscribe to network quality transitions
+NetworkQualityObserver.subscribe((quality) => {
+  const isOnlineAndNotDegraded = quality.isConnected && !quality.isDegraded;
+  if (isOnlineAndNotDegraded) {
+    connectSSE();
+  } else {
+    disconnectSSE();
+  }
+});

@@ -8,6 +8,7 @@ import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '@burma-inventory/shared-types';
 import * as bcrypt from 'bcryptjs';
+import { sql } from 'drizzle-orm';
 
 @Injectable()
 export class DrizzleService implements OnModuleInit, OnModuleDestroy {
@@ -621,6 +622,44 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
             updated_at: now,
           })
           .onConflictDoNothing();
+      }
+
+      // Set up real-time invalidation triggers in PostgreSQL
+      try {
+        await this.db.execute(sql`
+          CREATE OR REPLACE FUNCTION notify_table_invalidation()
+          RETURNS trigger AS $$
+          BEGIN
+            PERFORM pg_notify('live_invalidations', json_build_object('table', TG_TABLE_NAME)::text);
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+        `);
+
+        await this.db.execute(sql`
+          DROP TRIGGER IF EXISTS item_stocks_invalidation_trigger ON item_stocks;
+        `);
+        await this.db.execute(sql`
+          CREATE TRIGGER item_stocks_invalidation_trigger
+          AFTER INSERT OR UPDATE OR DELETE ON item_stocks
+          FOR EACH ROW EXECUTE FUNCTION notify_table_invalidation();
+        `);
+
+        await this.db.execute(sql`
+          DROP TRIGGER IF EXISTS exchange_rates_invalidation_trigger ON exchange_rates;
+        `);
+        await this.db.execute(sql`
+          CREATE TRIGGER exchange_rates_invalidation_trigger
+          AFTER INSERT OR UPDATE OR DELETE ON exchange_rates
+          FOR EACH ROW EXECUTE FUNCTION notify_table_invalidation();
+        `);
+        this.logger.log(
+          'Database notification triggers configured successfully.',
+        );
+      } catch (triggerErr: unknown) {
+        const message =
+          triggerErr instanceof Error ? triggerErr.message : String(triggerErr);
+        this.logger.warn(`Failed to configure database triggers: ${message}`);
       }
 
       this.logger.log('Seeded E2E dataset (Drizzle version) successfully');

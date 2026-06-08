@@ -15,7 +15,11 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { InvalidationBroadcastEngine } from './invalidation-broadcast.engine';
 import { Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { SyncService } from './sync.service';
@@ -55,7 +59,13 @@ export class SyncController {
     private readonly syncService: SyncService,
     private readonly aiQueueService: AiQueueService,
     private readonly config: AppConfig,
+    private readonly invalidationEngine: InvalidationBroadcastEngine,
   ) {}
+
+  @Sse('live-invalidations')
+  liveInvalidations(): Observable<MessageEvent> {
+    return this.invalidationEngine.getInvalidations();
+  }
 
   @Get()
   async pullChanges(

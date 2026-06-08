@@ -1,0 +1,1433 @@
+
+> nx run mobile-web:test
+
+> jest
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mpricing.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mthermalGuard.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mstateRecovery.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mScannerThrottle.spec.ts[22m
+  [1m● [22mConsole
+
+    [2m[33mconsole.warn[39m[22m
+[33m      ScannerThrottle: Blocked duplicate scan for barcode: "BARCODE2"[39m
+[2m[22m
+[2m    [0m [90m 21 |[39m       now [33m-[39m [36mthis[39m[33m.[39mlastScanTime [33m<[39m [36mthis[39m[33m.[39mthrottleWindowMs[22m
+[2m     [90m 22 |[39m     ) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 23 |[39m       console[33m.[39mwarn([22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 24 |[39m         [32m`ScannerThrottle: Blocked duplicate scan for barcode: "${cleanBarcode}"`[39m[33m,[39m[22m
+[2m     [90m 25 |[39m       )[33m;[39m[22m
+[2m     [90m 26 |[39m       [36mthis[39m[33m.[39mtriggerAlert(t)[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ScannerThrottle.warn [as processScan] ([22m[2msrc/core/utils/ScannerThrottle.ts[2m:23:15)[22m[2m[22m
+[2m      [2mat Object.processScan ([22m[2m[0m[36msrc/core/utils/ScannerThrottle.spec.ts[39m[0m[2m:54:37)[22m[2m[22m
+
+    [2m[33mconsole.warn[39m[22m
+[33m      ScannerThrottle: Blocked duplicate scan for barcode: "BARCODE_T"[39m
+[2m[22m
+[2m    [0m [90m 21 |[39m       now [33m-[39m [36mthis[39m[33m.[39mlastScanTime [33m<[39m [36mthis[39m[33m.[39mthrottleWindowMs[22m
+[2m     [90m 22 |[39m     ) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 23 |[39m       console[33m.[39mwarn([22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 24 |[39m         [32m`ScannerThrottle: Blocked duplicate scan for barcode: "${cleanBarcode}"`[39m[33m,[39m[22m
+[2m     [90m 25 |[39m       )[33m;[39m[22m
+[2m     [90m 26 |[39m       [36mthis[39m[33m.[39mtriggerAlert(t)[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ScannerThrottle.warn [as processScan] ([22m[2msrc/core/utils/ScannerThrottle.ts[2m:23:15)[22m[2m[22m
+[2m      [2mat Object.processScan ([22m[2m[0m[36msrc/core/utils/ScannerThrottle.spec.ts[39m[0m[2m:75:21)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mocr.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mcrypto.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mgeo.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/config/[22m[1mappConfig.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mtelemetry.spec.ts[22m
+  [1m● [22mConsole
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: CLICK_BUTTON - Clicked submit
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: SYSTEM_ERROR - Something went wrong
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: EV1 - msg1
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: EV2 - msg2
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: sync_dropout - Network disconnected
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [TelemetryLogger] Logged event: CLICK_BUTTON - User clicked log
+[2m[22m
+[2m      [2mat TelemetryLogger.log ([22m[2msrc/core/utils/telemetry.ts[2m:53:15)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1maudit.spec.ts[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/store/[22m[1mcartStore.spec.ts[22m
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/features/sync/hooks/[22m[1museNetworkQuality.spec.ts[22m
+  [1m● [22mConsole
+
+    [2mconsole.log[22m
+      [DEBUG SSE] typeof EventSource: function global.EventSource: function
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:78:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [SSE] Connecting to live invalidations stream...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:84:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [SSE] Disconnected from live invalidations stream.
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:138:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [DEBUG SSE] typeof EventSource: function global.EventSource: function
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:78:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Connecting to live invalidations stream...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:84:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Disconnected from live invalidations stream.
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:138:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Disconnected from live invalidations stream.
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:138:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [DEBUG SSE] typeof EventSource: function global.EventSource: function
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:78:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Connecting to live invalidations stream...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:84:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Disconnected from live invalidations stream.
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:138:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [DEBUG SSE] typeof EventSource: function global.EventSource: function
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:78:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Connecting to live invalidations stream...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:84:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Disconnected from live invalidations stream.
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:138:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [DEBUG SSE] typeof EventSource: function global.EventSource: function
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:78:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [SSE] Connecting to live invalidations stream...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:84:11)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Error in NetworkQualityObserver listener callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:276:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at listener (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:30:7)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at forEach (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:28:20)[39m
+[31m          at mockNetInfoCallback (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:309:9)[39m
+[31m          at callback (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:31:24)[39m
+[31m          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/react/cjs/react.development.js:814:22)[39m
+[31m          at actImplementation (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:30:25)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:308:10)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 30 |[39m       listener(activeNetworkQuality)[33m;[39m[22m
+[2m     [90m 31 |[39m     } [36mcatch[39m (e) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 32 |[39m       console[33m.[39merror([32m'Error in NetworkQualityObserver listener callback:'[39m[33m,[39m e)[33m;[39m[22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 33 |[39m     }[22m
+[2m     [90m 34 |[39m   })[33m;[39m[22m
+[2m     [90m 35 |[39m }[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:32:15)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat forEach ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:28:20)[22m[2m[22m
+[2m      [2mat mockNetInfoCallback ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:309:9)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:308:10)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Error in NetworkQualityObserver listener callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:276:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at listener (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:30:7)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at forEach (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:28:20)[39m
+[31m          at mockNetInfoCallback (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:323:9)[39m
+[31m          at callback (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:31:24)[39m
+[31m          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/react/cjs/react.development.js:814:22)[39m
+[31m          at actImplementation (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:30:25)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:322:10)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 30 |[39m       listener(activeNetworkQuality)[33m;[39m[22m
+[2m     [90m 31 |[39m     } [36mcatch[39m (e) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 32 |[39m       console[33m.[39merror([32m'Error in NetworkQualityObserver listener callback:'[39m[33m,[39m e)[33m;[39m[22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 33 |[39m     }[22m
+[2m     [90m 34 |[39m   })[33m;[39m[22m
+[2m     [90m 35 |[39m }[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:32:15)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat forEach ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:28:20)[22m[2m[22m
+[2m      [2mat mockNetInfoCallback ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:323:9)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:322:10)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Error in NetworkQualityObserver listener callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:276:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at listener (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:30:7)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at forEach (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:28:20)[39m
+[31m          at mockNetInfoCallback (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:341:9)[39m
+[31m          at callback (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:31:24)[39m
+[31m          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/react/cjs/react.development.js:814:22)[39m
+[31m          at actImplementation (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:30:25)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:340:10)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 30 |[39m       listener(activeNetworkQuality)[33m;[39m[22m
+[2m     [90m 31 |[39m     } [36mcatch[39m (e) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 32 |[39m       console[33m.[39merror([32m'Error in NetworkQualityObserver listener callback:'[39m[33m,[39m e)[33m;[39m[22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 33 |[39m     }[22m
+[2m     [90m 34 |[39m   })[33m;[39m[22m
+[2m     [90m 35 |[39m }[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:32:15)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat forEach ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:28:20)[22m[2m[22m
+[2m      [2mat mockNetInfoCallback ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:341:9)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:340:10)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Error in NetworkQualityObserver listener callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:276:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at listener (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:30:7)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at forEach (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:28:20)[39m
+[31m          at mockNetInfoCallback (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:367:9)[39m
+[31m          at callback (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:31:24)[39m
+[31m          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/react/cjs/react.development.js:814:22)[39m
+[31m          at actImplementation (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:30:25)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:366:10)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 30 |[39m       listener(activeNetworkQuality)[33m;[39m[22m
+[2m     [90m 31 |[39m     } [36mcatch[39m (e) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 32 |[39m       console[33m.[39merror([32m'Error in NetworkQualityObserver listener callback:'[39m[33m,[39m e)[33m;[39m[22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 33 |[39m     }[22m
+[2m     [90m 34 |[39m   })[33m;[39m[22m
+[2m     [90m 35 |[39m }[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:32:15)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat forEach ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:28:20)[22m[2m[22m
+[2m      [2mat mockNetInfoCallback ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:367:9)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:366:10)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Error in NetworkQualityObserver listener callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:276:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at listener (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:30:7)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at forEach (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.ts:28:20)[39m
+[31m          at mockNetInfoCallback (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:394:9)[39m
+[31m          at callback (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:31:24)[39m
+[31m          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/react/cjs/react.development.js:814:22)[39m
+[31m          at actImplementation (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@testing-library/react-native/src/act.ts:30:25)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/hooks/useNetworkQuality.spec.ts:393:10)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 30 |[39m       listener(activeNetworkQuality)[33m;[39m[22m
+[2m     [90m 31 |[39m     } [36mcatch[39m (e) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 32 |[39m       console[33m.[39merror([32m'Error in NetworkQualityObserver listener callback:'[39m[33m,[39m e)[33m;[39m[22m
+[2m     [90m    |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 33 |[39m     }[22m
+[2m     [90m 34 |[39m   })[33m;[39m[22m
+[2m     [90m 35 |[39m }[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:32:15)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat forEach ([22m[2msrc/features/sync/hooks/useNetworkQuality.ts[2m:28:20)[22m[2m[22m
+[2m      [2mat mockNetInfoCallback ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:394:9)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:393:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1museNetworkQuality › SSE Invalidation Stream › establishes SSE connection when online and not degraded[39m[22m
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+[2m[22m
+[2m    [0m [90m 313 |[39m       })[33m;[39m[22m
+[2m     [90m 314 |[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 315 |[39m       expect([33mMockEventSource[39m[33m.[39minstances[33m.[39mlength)[33m.[39mtoBe([35m1[39m)[33m;[39m[22m
+[2m     [90m     |[39m                                                [31m[1m^[22m[2m[39m[22m
+[2m     [90m 316 |[39m       [36mconst[39m instance [33m=[39m [33mMockEventSource[39m[33m.[39minstances[[35m0[39m][33m;[39m[22m
+[2m     [90m 317 |[39m       expect(instance[33m.[39murl)[33m.[39mtoContain([32m'/live-invalidations'[39m)[33m;[39m[22m
+[2m     [90m 318 |[39m     })[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.toBe ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:315:48)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1museNetworkQuality › SSE Invalidation Stream › triggers targeted syncData on receiving valid message[39m[22m
+
+    TypeError: Cannot read properties of undefined (reading 'onmessage')
+[2m[22m
+[2m    [0m [90m 329 |[39m       [36mconst[39m instance [33m=[39m [33mMockEventSource[39m[33m.[39minstances[[35m0[39m][33m;[39m[22m
+[2m     [90m 330 |[39m       act(() [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 331 |[39m         instance[33m.[39monmessage[33m?[39m[33m.[39m({ data[33m:[39m [33mJSON[39m[33m.[39mstringify({ table[33m:[39m [32m'item_stocks'[39m }) })[33m;[39m[22m
+[2m     [90m     |[39m                  [31m[1m^[22m[2m[39m[22m
+[2m     [90m 332 |[39m       })[33m;[39m[22m
+[2m     [90m 333 |[39m[22m
+[2m     [90m 334 |[39m       [36mconst[39m { syncData } [33m=[39m require([32m'../syncEngine'[39m)[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat onmessage ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:331:18)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:330:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1museNetworkQuality › SSE Invalidation Stream › does not trigger syncData on receiving invalid message or message without table[39m[22m
+
+    TypeError: Cannot read properties of undefined (reading 'onmessage')
+[2m[22m
+[2m    [0m [90m 351 |[39m       [90m// Invalid JSON[39m[22m
+[2m     [90m 352 |[39m       act(() [33m=>[39m {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 353 |[39m         instance[33m.[39monmessage[33m?[39m[33m.[39m({ data[33m:[39m [32m'{invalid'[39m })[33m;[39m[22m
+[2m     [90m     |[39m                  [31m[1m^[22m[2m[39m[22m
+[2m     [90m 354 |[39m       })[33m;[39m[22m
+[2m     [90m 355 |[39m       expect(syncData)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[22m
+[2m     [90m 356 |[39m[0m[22m
+[2m[22m
+[2m      [2mat onmessage ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:353:18)[22m[2m[22m
+[2m      [2mat callback ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:31:24)[22m[2m[22m
+[2m      [2mat Object.<anonymous>.process.env.NODE_ENV.exports.act ([22m[2m../node_modules/react/cjs/react.development.js[2m:814:22)[22m[2m[22m
+[2m      [2mat actImplementation ([22m[2m../node_modules/@testing-library/react-native/src/act.ts[2m:30:25)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:352:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1museNetworkQuality › SSE Invalidation Stream › closes connection and schedules reconnect on error if still online[39m[22m
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+[2m[22m
+[2m    [0m [90m 372 |[39m[22m
+[2m     [90m 373 |[39m       [36mconst[39m instance [33m=[39m [33mMockEventSource[39m[33m.[39minstances[[35m0[39m][33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 374 |[39m       expect(instance[33m.[39mclose)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[22m
+[2m     [90m     |[39m                       [31m[1m^[22m[2m[39m[22m
+[2m     [90m 375 |[39m[22m
+[2m     [90m 376 |[39m       act(() [33m=>[39m {[22m
+[2m     [90m 377 |[39m         instance[33m.[39monerror[33m?[39m[33m.[39m([36mnew[39m [33mError[39m([32m'connection closed'[39m))[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.close ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:374:23)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1museNetworkQuality › SSE Invalidation Stream › disconnects SSE when transitioning offline or degraded[39m[22m
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+[2m[22m
+[2m    [0m [90m 399 |[39m[22m
+[2m     [90m 400 |[39m       [36mconst[39m instance [33m=[39m [33mMockEventSource[39m[33m.[39minstances[[35m0[39m][33m;[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 401 |[39m       expect(instance[33m.[39mclose)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[22m
+[2m     [90m     |[39m                       [31m[1m^[22m[2m[39m[22m
+[2m     [90m 402 |[39m[22m
+[2m     [90m 403 |[39m       [90m// Transition to offline[39m[22m
+[2m     [90m 404 |[39m       act(() [33m=>[39m {[0m[22m
+[2m[22m
+[2m      [2mat Object.close ([22m[2m[0m[36msrc/features/sync/hooks/useNetworkQuality.spec.ts[39m[0m[2m:401:23)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/utils/[22m[1mlocationCache.spec.ts[22m
+  [1m● [22mConsole
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Returning cached coordinates: { latitude: 16.8661, longitude: 96.1951 }
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:23:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [LocationCache] Cache expired or missing. Fetching fresh location...
+[2m[22m
+[2m      [2mat log ([22m[2msrc/core/utils/locationCache.ts[2m:30:11)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/data/[22m[1mrepositories.spec.ts[22m
+  [1m● [22mConsole
+
+    [2m[31mconsole.error[39m[22m
+[31m      Database mutation failed in applyQuotaAdjustments: Error: INSERT failed[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/data/repositories.spec.ts:648:21)[39m
+[31m          at Generator.next (<anonymous>)[39m
+[31m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[31m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 492 |[39m[22m
+[2m     [90m 493 |[39m   [36mif[39m (error) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 494 |[39m     console[33m.[39merror([32m'Database mutation failed in applyQuotaAdjustments:'[39m[33m,[39m error)[33m;[39m[22m
+[2m     [90m     |[39m             [31m[1m^[22m[2m[39m[22m
+[2m     [90m 495 |[39m     [36mthrow[39m error[33m;[39m[22m
+[2m     [90m 496 |[39m   }[22m
+[2m     [90m 497 |[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/core/data/repositories.ts[2m:494:13)[22m[2m[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _next ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:17:9)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      Database mutation failed in createInteractionLog: Error: TX failed[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/core/data/repositories.spec.ts:713:42)[39m
+[31m          at Generator.next (<anonymous>)[39m
+[31m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[31m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 430 |[39m[22m
+[2m     [90m 431 |[39m   [36mif[39m (error) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 432 |[39m     console[33m.[39merror([32m'Database mutation failed in createInteractionLog:'[39m[33m,[39m error)[33m;[39m[22m
+[2m     [90m     |[39m             [31m[1m^[22m[2m[39m[22m
+[2m     [90m 433 |[39m     [36mthrow[39m error[33m;[39m[22m
+[2m     [90m 434 |[39m   }[22m
+[2m     [90m 435 |[39m   [36mreturn[39m newLogId[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/core/data/repositories.ts[2m:432:13)[22m[2m[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _next ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:17:9)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/features/sync/[22m[1mImageUploadQueue.native.spec.ts[22m
+  [1m● [22mConsole
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Enqueuing screenshot for log log-123, tempUri: temp-uri-path
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:69:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Copied file persistently to: mock-doc-dir/viber_uploads/log-123-1780878727206.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:100:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Enqueued task 1780878727206-qi1ec7c
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:124:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Enqueuing screenshot for log log-123, tempUri: temp-uri-path
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:69:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Copied file persistently to: mock-doc-dir/viber_uploads/log-123-1780878727209.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:100:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Enqueued task 1780878727209-tfxybtb
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:124:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-1 (log ID: log-123, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/uploaded-screenshot.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up local file: mock-doc-dir/viber_uploads/log-123.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:372:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Enabling aggressive low-res/high-loss compression.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:225:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-2 (log ID: log-456, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Aggressively compressing mock-doc-dir/viber_uploads/log-456.jpg for degraded network...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:277:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Aggressive compression completed: mock-compressed-uri
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:290:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/compressed-uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up local file: mock-doc-dir/viber_uploads/log-456.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:372:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up temp compressed file: mock-compressed-uri
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:412:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-3 (log ID: log-789, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      [ImageUploadQueue] Upload error for task task-native-3: Error: Upload failed with status code 500: Internal Server Error[39m
+[31m          at ImageUploadQueue.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.native.ts:330:19)[39m
+[31m          at Generator.next (<anonymous>)[39m
+[31m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[31m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[2m[22m
+[2m    [0m [90m 391 |[39m           }[22m
+[2m     [90m 392 |[39m         } [36mcatch[39m (uploadErr) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 393 |[39m           console[33m.[39merror([22m
+[2m     [90m     |[39m                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 394 |[39m             [32m`[ImageUploadQueue] Upload error for task ${task.id}:`[39m[33m,[39m[22m
+[2m     [90m 395 |[39m             uploadErr[33m,[39m[22m
+[2m     [90m 396 |[39m           )[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ImageUploadQueue.error ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:393:19)[22m[2m[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _next ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:17:9)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-4 (log ID: null, competitor ID: insight-123)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/insight-uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up local file: mock-doc-dir/viber_uploads/insight.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:372:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2m[33mconsole.warn[39m[22m
+[33m      [ImageUploadQueue] Failed to check network state, continuing... Error: NetInfo fetch failed[39m
+[33m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.native.spec.ts:248:9)[39m
+[33m          at Generator.next (<anonymous>)[39m
+[33m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[33m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[33m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[33m          at new Promise (<anonymous>)[39m
+[33m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[33m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[33m          at new Promise (<anonymous>)[39m
+[33m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[33m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[33m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[33m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[33m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[33m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[33m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[33m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[33m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[33m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 228 |[39m       }[22m
+[2m     [90m 229 |[39m     } [36mcatch[39m (netErr) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 230 |[39m       console[33m.[39mwarn([22m
+[2m     [90m     |[39m               [31m[1m^[22m[2m[39m[22m
+[2m     [90m 231 |[39m         [32m'[ImageUploadQueue] Failed to check network state, continuing...'[39m[33m,[39m[22m
+[2m     [90m 232 |[39m         netErr[33m,[39m[22m
+[2m     [90m 233 |[39m       )[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ImageUploadQueue.warn ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:230:15)[22m[2m[22m
+[2m          at Generator.throw (<anonymous>)[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _throw ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:20:9)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+[2m          at Generator.throw (<anonymous>)[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-5 (log ID: log-123, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up local file: mock-doc-dir/viber_uploads/log-123.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:372:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Retrying task task-123
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:36:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually paused.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as pause] ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:54:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually resumed.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as resume] ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:59:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Retrying task task-fail
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:36:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually paused.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as pause] ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:54:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue is manually paused. Skipping execution.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:211:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Enabling aggressive low-res/high-loss compression.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:225:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-fallback (log ID: log-456, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Aggressively compressing mock-doc-dir/viber_uploads/log-456.jpg for degraded network...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:277:21)[22m[2m[22m
+
+    [2m[33mconsole.warn[39m[22m
+[33m      [ImageUploadQueue] Failed to aggressively compress image under degraded network, falling back to original: Error: Manipulate error[39m
+[33m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.native.spec.ts:411:9)[39m
+[33m          at Generator.next (<anonymous>)[39m
+[33m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[33m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[33m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[33m          at new Promise (<anonymous>)[39m
+[33m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[33m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[33m          at new Promise (<anonymous>)[39m
+[33m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[33m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[33m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[33m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[33m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[33m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[33m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[33m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[33m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[33m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[33m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 292 |[39m             )[33m;[39m[22m
+[2m     [90m 293 |[39m           } [36mcatch[39m (manipErr) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 294 |[39m             console[33m.[39mwarn([22m
+[2m     [90m     |[39m                     [31m[1m^[22m[2m[39m[22m
+[2m     [90m 295 |[39m               [32m'[ImageUploadQueue] Failed to aggressively compress image under degraded network, falling back to original:'[39m[33m,[39m[22m
+[2m     [90m 296 |[39m               manipErr[33m,[39m[22m
+[2m     [90m 297 |[39m             )[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ImageUploadQueue.warn ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:294:21)[22m[2m[22m
+[2m          at Generator.throw (<anonymous>)[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _throw ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:20:9)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Cleaned up local file: mock-doc-dir/viber_uploads/log-456.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:372:25)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-empty-body (log ID: null, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:244:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:257:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-native-cleanup-err (log ID: log-cleanup, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:262:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:336:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.native.ts[2m:429:15)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/features/sync/[22m[1mImageUploadQueue.spec.ts[22m
+  [1m● [22mConsole
+
+    [2m[31mconsole.error[39m[22m
+[31m      [ImageUploadQueue] Error in subscriber callback: Error: Subscriber error[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.spec.ts:71:15[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:397:39[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:404:13[39m
+[31m          at mockConstructor (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-environment-node/node_modules/jest-mock/build/index.js:148:19)[39m
+[31m          at cb (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.web.ts:28:9)[39m
+[31m          at Set.forEach (<anonymous>)[39m
+[31m          at ImageUploadQueue.forEach [as notifySubscribers] (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.web.ts:26:34)[39m
+[31m          at notifySubscribers (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.spec.ts:78:37)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/expect/build/toThrowMatchers.js:74:11)[39m
+[31m          at Object.throwingMatcher [as toThrow] (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/expect/build/index.js:320:21)[39m
+[31m          at Object.toThrow (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.spec.ts:78:62)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 28 |[39m         cb()[33m;[39m[22m
+[2m     [90m 29 |[39m       } [36mcatch[39m (err) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 30 |[39m         console[33m.[39merror([32m'[ImageUploadQueue] Error in subscriber callback:'[39m[33m,[39m err)[33m;[39m[22m
+[2m     [90m    |[39m                 [31m[1m^[22m[2m[39m[22m
+[2m     [90m 31 |[39m       }[22m
+[2m     [90m 32 |[39m     })[33m;[39m[22m
+[2m     [90m 33 |[39m   }[0m[22m
+[2m[22m
+[2m      [2mat error ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:30:17)[22m[2m[22m
+[2m          at Set.forEach (<anonymous>)[22m
+[2m      [2mat ImageUploadQueue.forEach [as notifySubscribers] ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:26:34)[22m[2m[22m
+[2m      [2mat notifySubscribers ([22m[2m[0m[36msrc/features/sync/ImageUploadQueue.spec.ts[39m[0m[2m:78:37)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m../node_modules/expect/build/toThrowMatchers.js[2m:74:11)[22m[2m[22m
+[2m      [2mat Object.throwingMatcher [as toThrow] ([22m[2m../node_modules/expect/build/index.js[2m:320:21)[22m[2m[22m
+[2m      [2mat Object.toThrow ([22m[2m[0m[36msrc/features/sync/ImageUploadQueue.spec.ts[39m[0m[2m:78:62)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Retrying task task-123
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:36:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually paused.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as pause] ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:54:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually resumed.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as resume] ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:59:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 0 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue manually paused.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log [as pause] ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:54:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue is manually paused. Skipping execution.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:151:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-1 (log ID: log-1, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:183:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.server.com/screenshot123.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:236:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-2 (log ID: null, competitor ID: insight-1)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:183:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.server.com/screenshot123.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:236:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-3 (log ID: log-2, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:183:17)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      [ImageUploadQueue] Upload error for task task-3: Error: Upload failed[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.spec.ts:216:51)[39m
+[31m          at Generator.next (<anonymous>)[39m
+[31m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[31m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 274 |[39m           }[22m
+[2m     [90m 275 |[39m         } [36mcatch[39m (uploadErr) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 276 |[39m           console[33m.[39merror([22m
+[2m     [90m     |[39m                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 277 |[39m             [32m`[ImageUploadQueue] Upload error for task ${task.id}:`[39m[33m,[39m[22m
+[2m     [90m 278 |[39m             uploadErr[33m,[39m[22m
+[2m     [90m 279 |[39m           )[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ImageUploadQueue.error ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:276:19)[22m[2m[22m
+[2m          at Generator.throw (<anonymous>)[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _throw ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:20:9)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2m[31mconsole.error[39m[22m
+[31m      [ImageUploadQueue] Upload error for task task-4: Error: Upload failed[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/mobile-web/src/features/sync/ImageUploadQueue.spec.ts:216:51)[39m
+[31m          at Generator.next (<anonymous>)[39m
+[31m          at asyncGeneratorStep (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)[39m
+[31m          at _next (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)[39m
+[31m          at /Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at Object.<anonymous> (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)[39m
+[31m          at Promise.then.completed (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:298:28)[39m
+[31m          at new Promise (<anonymous>)[39m
+[31m          at callAsyncCircusFn (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/utils.js:231:10)[39m
+[31m          at _callCircusTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:316:40)[39m
+[31m          at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+[31m          at _runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:252:3)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:126:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at _runTestsForDescribeBlock (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:121:9)[39m
+[31m          at run (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/run.js:71:3)[39m
+[31m          at runAndTransformResultsToJestFormat (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)[39m
+[31m          at jestAdapter (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/@jest/core/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)[39m
+[31m          at runTestInternal (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:367:16)[39m
+[31m          at runTest (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/runTest.js:444:34)[39m
+[31m          at Object.worker (/Users/justin.zhang/Desktop/burma/burma-inventory/node_modules/jest-runner/build/testWorker.js:106:12)[39m
+[2m[22m
+[2m    [0m [90m 274 |[39m           }[22m
+[2m     [90m 275 |[39m         } [36mcatch[39m (uploadErr) {[22m
+[2m    [31m[1m>[22m[2m[39m[90m 276 |[39m           console[33m.[39merror([22m
+[2m     [90m     |[39m                   [31m[1m^[22m[2m[39m[22m
+[2m     [90m 277 |[39m             [32m`[ImageUploadQueue] Upload error for task ${task.id}:`[39m[33m,[39m[22m
+[2m     [90m 278 |[39m             uploadErr[33m,[39m[22m
+[2m     [90m 279 |[39m           )[33m;[39m[0m[22m
+[2m[22m
+[2m      [2mat ImageUploadQueue.error ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:276:19)[22m[2m[22m
+[2m          at Generator.throw (<anonymous>)[22m
+[2m      [2mat asyncGeneratorStep ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:3:17)[22m[2m[22m
+[2m      [2mat _throw ([22m[2m../node_modules/@babel/runtime/helpers/asyncToGenerator.js[2m:20:9)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-5 (log ID: null, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:183:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Retrying task task-fail
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:36:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Starting queue processor...
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:165:13)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Found 1 pending/failed tasks.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:178:15)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Processing task task-blob-fallback (log ID: log-1, competitor ID: null)
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:183:17)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Upload succeeded. Server URL: https://cdn.com/uploaded.jpg
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:236:21)[22m[2m[22m
+
+    [2mconsole.log[22m
+      [ImageUploadQueue] Queue processor loop ended.
+[2m[22m
+[2m      [2mat ImageUploadQueue.log ([22m[2msrc/features/sync/ImageUploadQueue.web.ts[2m:293:15)[22m[2m[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [0m[7m[37m mobile-web [39m[27m[0m [2msrc/core/trpc/[22m[1mtrpcClient.spec.ts[22m
+-----------------------------|---------|----------|---------|---------|-----------------------------------------
+File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                       
+-----------------------------|---------|----------|---------|---------|-----------------------------------------
+[33;1mAll files                   [0m | [33;1m  98.55[0m | [33;1m   94.01[0m | [33;1m  90.62[0m | [33;1m  98.55[0m | [31;1m                                       [0m 
+[32;1m config                     [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  appConfig.ts              [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m core/data                  [0m | [32;1m    100[0m | [33;1m    90.9[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  repositories.ts           [0m | [32;1m    100[0m | [33;1m    90.9[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m152,176,321,345-347,355                [0m 
+[32;1m core/store                 [0m | [32;1m    100[0m | [33;1m   94.73[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  cartStore.ts              [0m | [32;1m    100[0m | [33;1m   94.73[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m64                                     [0m 
+[32;1m core/trpc                  [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  trpcClient.ts             [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[33;1m core/utils                 [0m | [33;1m  99.69[0m | [32;1m   95.48[0m | [32;1m  95.65[0m | [33;1m  99.69[0m | [31;1m                                       [0m 
+[32;1m  ScannerThrottle.ts        [0m | [32;1m    100[0m | [33;1m   93.33[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m39                                     [0m 
+[32;1m  audit.ts                  [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[33;1m  crypto.ts                 [0m | [33;1m  98.21[0m | [33;1m    92.3[0m | [32;1m    100[0m | [33;1m  98.21[0m | [31;1m38-39                                  [0m 
+[32;1m  geo.ts                    [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  locationCache.ts          [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[32;1m  ocr.ts                    [0m | [32;1m    100[0m | [32;1m   95.83[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m16                                     [0m 
+[32;1m  pricing.ts                [0m | [32;1m    100[0m | [32;1m   97.22[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m38                                     [0m 
+[32;1m  stateRecovery.ts          [0m | [32;1m    100[0m | [33;1m   94.44[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m60                                     [0m 
+[32;1m  telemetry.ts              [0m | [32;1m    100[0m | [32;1m   95.83[0m | [33;1m     50[0m | [32;1m    100[0m | [33;1m24                                     [0m 
+[32;1m  thermalGuard.ts           [0m | [32;1m    100[0m | [33;1m   88.88[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m6                                      [0m 
+[33;1m features/sync              [0m | [33;1m  99.31[0m | [32;1m   94.84[0m | [33;1m  83.33[0m | [33;1m  99.31[0m | [31;1m                                       [0m 
+[33;1m  ImageUploadQueue.native.ts[0m | [33;1m  98.84[0m | [33;1m   90.74[0m | [33;1m  83.33[0m | [33;1m  98.84[0m | [31;1m417-421                                [0m 
+[32;1m  ImageUploadQueue.web.ts   [0m | [32;1m    100[0m | [32;1m     100[0m | [33;1m  83.33[0m | [32;1m    100[0m | [33;1m                                       [0m 
+[33;1m features/sync/hooks        [0m | [33;1m  79.19[0m | [33;1m   86.66[0m | [33;1m  66.66[0m | [33;1m  79.19[0m | [31;1m                                       [0m 
+[33;1m  useNetworkQuality.ts      [0m | [33;1m  79.19[0m | [33;1m   86.66[0m | [33;1m  66.66[0m | [33;1m  79.19[0m | [31;1m80-82,92,96-106,110-120,123-124,129-131[0m 
+-----------------------------|---------|----------|---------|---------|-----------------------------------------
+[1m[31mJest: "global" coverage threshold for statements (99.72%) not met: 98.55%[39m[22m
+[1m[31mJest: "global" coverage threshold for branches (94.78%) not met: 94.01%[39m[22m
+[1m[31mJest: "global" coverage threshold for lines (99.72%) not met: 98.55%[39m[22m
+[1m[31mJest: "global" coverage threshold for functions (94.91%) not met: 90.62%[39m[22m
+
+[1mTest Suites: [22m[1m[31m1 failed[39m[22m, [1m[32m16 passed[39m[22m, 17 total
+[1mTests:       [22m[1m[31m5 failed[39m[22m, [1m[32m180 passed[39m[22m, 185 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1.792 s, estimated 2 s
+[2mRan all test suites[22m[2m.[22m
+Warning: command "jest" exited with non-zero status code
+
+
+ NX   Running target test for project mobile-web failed
+
+Failed tasks:
+
+- mobile-web:test
+
+Hint: run the command with --verbose for more details.
+

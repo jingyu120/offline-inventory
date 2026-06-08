@@ -201,6 +201,17 @@ describe('SyncService', () => {
       expect(res.timestamp).toBeGreaterThanOrEqual(before);
     });
 
+    it('filters returned tables when targetTable is defined', async () => {
+      const res = await service.pullChanges(
+        Date.now(),
+        'device-1',
+        'user-1',
+        'item_stocks',
+      );
+      expect(res.changes.item_stocks).toBeDefined();
+      expect(res.changes.shops).toBeUndefined();
+    });
+
     it('throws error if table is not defined in pgSchema', async () => {
       const originalRegions = (schema.pgSchema as any).regions;
       delete (schema.pgSchema as any).regions;

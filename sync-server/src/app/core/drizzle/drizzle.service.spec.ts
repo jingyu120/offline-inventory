@@ -18,6 +18,7 @@ const mockDb = {
   insert: jest.fn().mockReturnThis(),
   values: jest.fn().mockReturnThis(),
   onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
+  execute: jest.fn().mockResolvedValue(undefined),
 };
 
 jest.mock('drizzle-orm/node-postgres', () => {
@@ -49,6 +50,20 @@ describe('DrizzleService', () => {
     const service = new DrizzleService();
     await service.onModuleInit();
     expect(mockDb.insert).toHaveBeenCalled();
+  });
+
+  it('handles database trigger configuration failure gracefully', async () => {
+    mockDb.execute.mockRejectedValueOnce(new Error('Execute fail'));
+    const service = new DrizzleService();
+    await expect(service.onModuleInit()).resolves.toBeUndefined();
+  });
+
+  it('handles general seed failure gracefully', async () => {
+    mockDb.insert.mockImplementationOnce(() => {
+      throw new Error('Insert fail');
+    });
+    const service = new DrizzleService();
+    await expect(service.onModuleInit()).resolves.toBeUndefined();
   });
 
   it('closes pools on module destroy', async () => {

@@ -137,6 +137,7 @@ export class TrpcRouter implements OnModuleInit {
           input.lastPulledAt,
           input.deviceId,
           input.userId,
+          input.targetTable,
         );
       },
       push: async (input) => {

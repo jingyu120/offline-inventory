@@ -8,17 +8,17 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'html'],
   coverageDirectory: '../coverage/mobile-web',
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|expo|@shopify|lucide-react-native|@react-native-community)/)',
+    'node_modules/(?!(react-native|@react-native|expo|@shopify|lucide-react-native|@react-native-community|@op-engineering)/)',
   ],
   collectCoverage: true,
   coverageReporters: ['text', 'lcov', 'json', 'html', 'json-summary'],
   coverageProvider: 'v8',
   coverageThreshold: {
     global: {
-      statements: 99.72,
-      branches: 94.78,
-      functions: 94.91,
-      lines: 99.72,
+      statements: 99.73,
+      branches: 95.05,
+      functions: 95.31,
+      lines: 99.73,
     },
   },
 };

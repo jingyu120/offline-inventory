@@ -3,6 +3,7 @@ import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
 import { AiQueueService } from '../../core/queue/ai-queue.service';
 import { AppConfig } from '../../core/config/app-config';
+import { InvalidationBroadcastEngine } from './invalidation-broadcast.engine';
 import { Response } from 'express';
 import {
   UnauthorizedException,
@@ -69,6 +70,13 @@ describe('SyncController', () => {
     osmUserAgent: 'agent',
   };
 
+  const mockInvalidationBroadcastEngine = {
+    getInvalidations: jest.fn().mockReturnValue({
+      pipe: jest.fn().mockReturnThis(),
+      subscribe: jest.fn(),
+    }),
+  };
+
   beforeAll(() => {
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -84,6 +92,10 @@ describe('SyncController', () => {
         { provide: SyncService, useValue: mockSyncService },
         { provide: AiQueueService, useValue: mockAiQueueService },
         { provide: AppConfig, useValue: mockAppConfig },
+        {
+          provide: InvalidationBroadcastEngine,
+          useValue: mockInvalidationBroadcastEngine,
+        },
       ],
     }).compile();
 
@@ -138,6 +150,20 @@ describe('SyncController', () => {
         null,
         expect.stringMatching(/^\d+-\d+$/),
       );
+    });
+  });
+
+  describe('liveInvalidations', () => {
+    it('returns the getInvalidations observable from engine', () => {
+      const mockObservable = { subscribe: jest.fn() };
+      mockInvalidationBroadcastEngine.getInvalidations.mockReturnValueOnce(
+        mockObservable,
+      );
+      const res = controller.liveInvalidations();
+      expect(
+        mockInvalidationBroadcastEngine.getInvalidations,
+      ).toHaveBeenCalled();
+      expect(res).toBe(mockObservable);
     });
   });
 
@@ -500,6 +526,37 @@ describe('SyncController', () => {
       expect(res.success).toBe(true);
 
       delete process.env.VIBER_BOT_TOKEN;
+    });
+
+    it('verifies signature automatically in development mode if token is missing', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      delete process.env.VIBER_BOT_TOKEN;
+
+      const body = {
+        phone_number: '123',
+        message: { media: 'YWJj' },
+      };
+
+      const res = await controller.viberWebhook(
+        {} as any,
+        body,
+        'some_invalid_signature',
+      );
+      expect(res.success).toBe(true);
+
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    it('throws BadRequestException if base64 decoding fails with a TypeError', async () => {
+      const body = {
+        phone_number: '123',
+        message: { media: { startsWith: () => false } }, // will pass startsWith check but fail includes check inside try block
+      };
+
+      await expect(
+        controller.viberWebhook({} as any, body, 'mock_signature'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

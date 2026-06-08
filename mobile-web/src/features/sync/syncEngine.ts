@@ -138,11 +138,39 @@ async function runDatabaseCompaction(): Promise<void> {
 
 let activeSyncPromise: Promise<void> | null = null;
 
-async function executeSyncCycle(): Promise<void> {
-  console.log('[SyncEngine] Starting sync cycle...');
-
+async function executeSyncCycle(targetTable?: string): Promise<void> {
   const devId = await getDeviceId();
   const userId = await getActiveRepId();
+
+  if (targetTable) {
+    console.log(
+      `[SyncEngine] Starting targeted pull for table: ${targetTable}`,
+    );
+    const lastSyncedAt = await getLastSyncedAt();
+
+    try {
+      const pullResponse = await trpcClient.sync.pull.query({
+        lastPulledAt: lastSyncedAt,
+        deviceId: devId,
+        userId: userId || undefined,
+        targetTable,
+      });
+
+      const { changes } = pullResponse;
+      await applyPullChanges(changes);
+      console.log(
+        `[SyncEngine] Targeted pull for ${targetTable} completed successfully.`,
+      );
+    } catch (error) {
+      console.error(
+        `[SyncEngine] Targeted pull for ${targetTable} failed:`,
+        error,
+      );
+    }
+    return;
+  }
+
+  console.log('[SyncEngine] Starting sync cycle...');
 
   // Network-Aware Queue Prioritization
   try {
@@ -385,7 +413,7 @@ async function executeSyncCycle(): Promise<void> {
   console.log('[SyncEngine] Sync cycle complete.');
 }
 
-export async function syncData(): Promise<void> {
+export async function syncData(targetTable?: string): Promise<void> {
   if (activeSyncPromise) {
     console.log(
       '[SyncEngine] Sync is already in progress, attaching to existing cycle.',
@@ -393,7 +421,7 @@ export async function syncData(): Promise<void> {
     return activeSyncPromise;
   }
 
-  activeSyncPromise = executeSyncCycle();
+  activeSyncPromise = executeSyncCycle(targetTable);
 
   try {
     await activeSyncPromise;

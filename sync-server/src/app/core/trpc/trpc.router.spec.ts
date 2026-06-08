@@ -258,6 +258,21 @@ describe('TrpcRouter & TrpcController', () => {
           1000,
           'd-1',
           'u-1',
+          undefined,
+        );
+
+        // sync.pull with targetTable
+        await resolvers.sync.pull({
+          lastPulledAt: 1000,
+          deviceId: 'd-1',
+          userId: 'u-1',
+          targetTable: 'item_stocks',
+        });
+        expect(mockSyncService.pullChanges).toHaveBeenCalledWith(
+          1000,
+          'd-1',
+          'u-1',
+          'item_stocks',
         );
 
         // sync.push
