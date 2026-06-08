@@ -215,7 +215,9 @@ const rawQuota = {
 const rawItemStock = {
   id: 'is1',
   item_id: 'i1',
-  quantity: 100,
+  good_stock_count: 100,
+  wet_stock_count: 0,
+  bad_stock_count: 0,
   pending_allocation_count: null,
   inventory_status: 'IN_STOCK',
   created_at: 1000,
@@ -330,7 +332,25 @@ describe('Row Mappers', () => {
     it('defaults pendingAllocationCount to 0 when null', () => {
       const stock = mapItemStock(rawItemStock);
       expect(stock.pendingAllocationCount).toBe(0);
-      expect(stock.quantity).toBe(100);
+      expect(stock.goodStockCount).toBe(100);
+    });
+
+    it('defaults all count fields to 0 when null/undefined', () => {
+      const stock = mapItemStock({
+        id: 'is1',
+        item_id: 'i1',
+        good_stock_count: null,
+        wet_stock_count: null,
+        bad_stock_count: null,
+        pending_allocation_count: null,
+        inventory_status: 'IN_STOCK',
+        created_at: 1000,
+        updated_at: 2000,
+      });
+      expect(stock.goodStockCount).toBe(0);
+      expect(stock.wetStockCount).toBe(0);
+      expect(stock.badStockCount).toBe(0);
+      expect(stock.pendingAllocationCount).toBe(0);
     });
   });
 
@@ -398,6 +418,11 @@ describe('getConversionMultiplier', () => {
 
   it('returns 1 for unknown unit', () => {
     expect(getConversionMultiplier(item, 'CRATE')).toBe(1);
+  });
+
+  it('returns 1 when unit matches item.unitType but conversionFactor is missing/null', () => {
+    const badItem = { ...item, conversionFactor: null as unknown as number };
+    expect(getConversionMultiplier(badItem, 'BOX')).toBe(1);
   });
 });
 
@@ -501,6 +526,19 @@ describe('fetchItemsAndStockLevel', () => {
     const { stocksMap } = await fetchItemsAndStockLevel();
     expect(stocksMap).toEqual({});
   });
+
+  it('defaults stock count to 0 in stocksMap when good_stock_count is null', async () => {
+    const itemChain = createQueryChain([rawItem]);
+    const stockChain = createQueryChain([
+      { ...rawItemStock, good_stock_count: null },
+    ]);
+    mockDb.select
+      .mockReturnValueOnce(itemChain as any)
+      .mockReturnValueOnce(stockChain as any);
+
+    const { stocksMap } = await fetchItemsAndStockLevel();
+    expect(stocksMap['i1']).toBe(0);
+  });
 });
 
 describe('fetchShops', () => {
@@ -569,6 +607,20 @@ describe('fetchShops', () => {
 
     const shops = await fetchShops();
     expect(shops[0].lastInteractionDate).toEqual(new Date(9000));
+  });
+
+  it('uses empty string fallback for region name when name is missing', async () => {
+    const shopsChain = createQueryChain([rawShop]);
+    const regionsChain = createQueryChain([{ ...rawRegion, name: null }]);
+    const logsChain = createQueryChain([]);
+
+    mockDb.select
+      .mockReturnValueOnce(shopsChain as any)
+      .mockReturnValueOnce(regionsChain as any)
+      .mockReturnValueOnce(logsChain as any);
+
+    const shops = await fetchShops();
+    expect(shops[0].regionName).toBe('Unknown Region');
   });
 });
 
@@ -839,5 +891,136 @@ describe('createInteractionLog', () => {
     expect(capturedValues.objection_reason).toBe('PRICE_TOO_HIGH');
     expect(capturedValues.competitor_price).toBe(11500);
     expect(capturedValues.viber_message_text).toBe('source message body');
+  });
+
+  it('correctly sets compliance_status = PENDING_APPROVAL and approved_by_id = null when price drops >15% below wholesale floor', async () => {
+    let capturedLog: any = null;
+    let capturedItem: any = null;
+
+    mockDb.transaction.mockImplementation(async (cb: any) => {
+      const mockTx = {
+        insert: jest.fn().mockImplementation((_table: any) => {
+          return {
+            values: jest.fn().mockImplementation((v: any) => {
+              if (v.negotiated_price !== undefined) {
+                capturedLog = v;
+              } else if (v.unit_price_at_sale !== undefined) {
+                capturedItem = v;
+              }
+              return Promise.resolve(undefined);
+            }),
+          };
+        }),
+      };
+      return cb(mockTx);
+    });
+
+    const sheraBoard: Item = {
+      id: 'item-1',
+      sku: 'SKU-SH-CEILING-2X2',
+      name: 'Shera Ceiling Board 2x2 (0.35x61x61)',
+      unitPrice: 47000,
+      category: 'Fiber Cement',
+      brandId: 'brand-shera',
+      thickness: null,
+      weight: null,
+      unitType: 'PAL',
+      conversionFactor: 100,
+      color: null,
+      materialSubType: null,
+      hardwareFinish: null,
+      isInDeficit: false,
+      baseWholesalePrice: 47000,
+      baseCurrency: 'MMK',
+      volumeDiscountBrackets: null,
+      inventoryStatus: 'AVAILABLE',
+      createdAt: 0,
+      updatedAt: 0,
+    };
+
+    await createInteractionLog(
+      'shop-3',
+      'rep-3',
+      'VISIT',
+      'SALE',
+      'negotiation notes',
+      null,
+      [{ item: sheraBoard, quantity: 1, unitPrice: 39500 }],
+    );
+
+    expect(capturedLog).toBeDefined();
+    expect(capturedLog.approved_by_id).toBeNull();
+    expect(capturedItem).toBeDefined();
+    expect(capturedItem.compliance_status).toBe('PENDING_APPROVAL');
+  });
+
+  it('uses actorId as activeActor when actorId is provided', async () => {
+    let capturedValues: any = null;
+    mockDb.transaction.mockImplementation(async (cb: any) => {
+      const mockTx = {
+        insert: jest.fn().mockImplementation((_table: any) => {
+          return {
+            values: jest.fn().mockImplementation((v: any) => {
+              if (v.executed_by_id !== undefined) {
+                capturedValues = v;
+              }
+              return Promise.resolve(undefined);
+            }),
+          };
+        }),
+      };
+      return cb(mockTx);
+    });
+
+    await createInteractionLog(
+      'sh1',
+      'rep1',
+      'VISIT',
+      'SALE',
+      '',
+      null,
+      [],
+      null,
+      undefined,
+      'actor1',
+    );
+
+    expect(capturedValues).toBeDefined();
+    expect(capturedValues.executed_by_id).toBe('actor1');
+  });
+
+  it('uses "system" as activeActor when both actorId and repId are missing/falsy', async () => {
+    let capturedValues: any = null;
+    mockDb.transaction.mockImplementation(async (cb: any) => {
+      const mockTx = {
+        insert: jest.fn().mockImplementation((_table: any) => {
+          return {
+            values: jest.fn().mockImplementation((v: any) => {
+              if (v.executed_by_id !== undefined) {
+                capturedValues = v;
+              }
+              return Promise.resolve(undefined);
+            }),
+          };
+        }),
+      };
+      return cb(mockTx);
+    });
+
+    await createInteractionLog(
+      'sh1',
+      '',
+      'VISIT',
+      'SALE',
+      '',
+      null,
+      [],
+      null,
+      undefined,
+      '',
+    );
+
+    expect(capturedValues).toBeDefined();
+    expect(capturedValues.executed_by_id).toBe('system');
   });
 });

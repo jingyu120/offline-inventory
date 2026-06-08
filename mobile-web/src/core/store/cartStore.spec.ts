@@ -139,4 +139,14 @@ describe('cartStore', () => {
       selectedShopId: 'shop-xyz',
     });
   });
+
+  it('supports setting preFillSku and preFillQty fields in session', () => {
+    useCartStore.getState().updateSession('shop-1', {
+      preFillSku: 'SKU-ABC',
+      preFillQty: 5,
+    });
+    const session = useCartStore.getState().getOrCreateSession('shop-1');
+    expect(session.preFillSku).toBe('SKU-ABC');
+    expect(session.preFillQty).toBe(5);
+  });
 });

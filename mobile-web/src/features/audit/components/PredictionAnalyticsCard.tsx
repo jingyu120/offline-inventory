@@ -8,6 +8,7 @@ import { useToast } from '../../../core/components/ToastProvider';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { API_BASE_URL, MOCK_PROJECT_CAPITALS } from '../../../config/appConfig';
 import { database } from '../../../core/database/database';
+import { useCartStore } from '../../../core/store/cartStore';
 
 interface PredictionAnalyticsCardProps {
   shop: Shop;
@@ -59,9 +60,12 @@ export const PredictionAnalyticsCard: React.FC<
     loadProjects();
   }, [loadProjects]);
 
+  const notesString = JSON.stringify(historicalNotes || []);
+
   React.useEffect(() => {
     const fetchSentimentAnalysis = async () => {
-      if (!historicalNotes || historicalNotes.length === 0) {
+      const parsedNotes = JSON.parse(notesString);
+      if (parsedNotes.length === 0) {
         setSentimentTrend('STABLE');
         setSentimentExplanation(
           'No historical interaction logs available to analyze.',
@@ -73,7 +77,7 @@ export const PredictionAnalyticsCard: React.FC<
         const response = await fetch(`${API_BASE_URL}/ai/analyze-sentiment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes: historicalNotes }),
+          body: JSON.stringify({ notes: parsedNotes }),
         });
         if (response.ok) {
           const data = await response.json();
@@ -87,7 +91,7 @@ export const PredictionAnalyticsCard: React.FC<
       }
     };
     fetchSentimentAnalysis();
-  }, [historicalNotes]);
+  }, [notesString]);
 
   if (!predictionLog) return null;
 
@@ -203,6 +207,10 @@ export const PredictionAnalyticsCard: React.FC<
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation?.();
+                    useCartStore.getState().updateSession(shop.id, {
+                      preFillSku: recommendedItem.sku,
+                      preFillQty: recommendedOrder.quantity,
+                    });
                     onLogInteraction?.(shop);
                     showToast(
                       t('preFilledInteractionToast').replace(

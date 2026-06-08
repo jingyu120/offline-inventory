@@ -99,6 +99,9 @@ export const items = pgTable(
     updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
     deleted_at: bigint('deleted_at', { mode: 'number' }),
     inventory_status: text('inventory_status').notNull().default('AVAILABLE'),
+    finish_code: text('finish_code'),
+    structural_class: text('structural_class'),
+    dimensions: text('dimensions'),
   },
   (table) => ({
     skuIdx: index('items_sku_idx').on(table.sku),
@@ -110,7 +113,9 @@ export const item_stocks = pgTable(
   {
     id: text('id').primaryKey(),
     item_id: text('item_id').notNull(),
-    quantity: integer('quantity').notNull().default(0),
+    good_stock_count: integer('good_stock_count').notNull().default(0),
+    wet_stock_count: integer('wet_stock_count').notNull().default(0),
+    bad_stock_count: integer('bad_stock_count').notNull().default(0),
     pending_allocation_count: integer('pending_allocation_count')
       .notNull()
       .default(0),

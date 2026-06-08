@@ -94,6 +94,9 @@ export const mapItem = (i: $Any): Item => ({
   inventoryStatus: i.inventory_status,
   createdAt: i.created_at,
   updatedAt: i.updated_at,
+  finishCode: i.finish_code,
+  structuralClass: i.structural_class,
+  dimensions: i.dimensions,
 });
 
 export const mapInteractionLog = (l: $Any): InteractionLog => ({
@@ -153,7 +156,9 @@ export const mapDailyQuota = (q: $Any): DailyQuota => ({
 export const mapItemStock = (s: $Any): ItemStock => ({
   id: s.id,
   itemId: s.item_id,
-  quantity: s.quantity,
+  goodStockCount: s.good_stock_count ?? 0,
+  wetStockCount: s.wet_stock_count ?? 0,
+  badStockCount: s.bad_stock_count ?? 0,
   pendingAllocationCount: s.pending_allocation_count ?? 0,
   inventoryStatus: s.inventory_status,
   createdAt: s.created_at,
@@ -292,7 +297,7 @@ export const fetchItemsAndStockLevel = async (): Promise<{
 
   const stocksMap: Record<string, number> = {};
   stocks.forEach((s: $Any) => {
-    stocksMap[s.item_id] = s.quantity;
+    stocksMap[s.item_id] = s.good_stock_count ?? 0;
   });
 
   return {
@@ -404,6 +409,15 @@ export const createInteractionLog = async (
             : selected.item.unitPrice * multiplier;
         const baseUnitPriceAtSale = negotiatedPrice / multiplier;
 
+        // Check if the price is >15% below wholesale floor
+        const wholesaleFloor =
+          selected.item.baseWholesalePrice !== undefined &&
+          selected.item.baseWholesalePrice !== null
+            ? selected.item.baseWholesalePrice
+            : selected.item.unitPrice;
+        const isBelowFloor = baseUnitPriceAtSale < wholesaleFloor * 0.85;
+        const complianceStatus = isBelowFloor ? 'PENDING_APPROVAL' : 'APPROVED';
+
         await tx.insert(sqliteSchema.interaction_items).values({
           id: newiiId,
           interaction_log_id: newLogId,
@@ -416,6 +430,7 @@ export const createInteractionLog = async (
           selected_unit: selectedUnit,
           stock_condition: selected.stockCondition || 'GOOD',
           fulfillment_status: 'PENDING_FULFILLMENT',
+          compliance_status: complianceStatus,
           created_at: now,
           updated_at: now,
         });

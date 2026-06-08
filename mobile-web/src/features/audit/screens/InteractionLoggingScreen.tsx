@@ -399,17 +399,22 @@ export function InteractionLoggingScreen({
   };
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     if (visible) {
       setIsDraftLoaded(false);
-      loadDraftCart();
-      loadItems();
-      loadRatesAndBook();
-      loadLastInteractionLog();
-      checkBlockedStatus();
+      const timer = setTimeout(() => {
+        loadDraftCart();
+        loadItems();
+        loadRatesAndBook();
+        loadLastInteractionLog();
+        checkBlockedStatus();
+      }, 0);
+      cleanup = () => clearTimeout(timer);
     } else {
       resetForm();
       setIsDraftLoaded(false);
     }
+    return cleanup;
   }, [visible, shop]);
 
   useEffect(() => {
@@ -463,6 +468,37 @@ export function InteractionLoggingScreen({
       const filtered = skuSearch ? semanticSearch(items, skuSearch) : items;
       setAvailableItems(filtered);
       setStocksMap(allStocks);
+
+      if (session.preFillSku) {
+        const itemToPrefill = items.find(
+          (i) => i.sku.toLowerCase() === session.preFillSku?.toLowerCase(),
+        );
+        if (itemToPrefill) {
+          const qty = session.preFillQty || 1;
+          const exists = selectedItems.find(
+            (si) => si.item.id === itemToPrefill.id,
+          );
+          if (!exists) {
+            const defaultPrice = getDiscountedUnitPrice(
+              itemToPrefill,
+              qty,
+              'PCS',
+            );
+            setSelectedItems([
+              ...selectedItems,
+              {
+                item: itemToPrefill,
+                quantity: qty,
+                selectedUnit: 'PCS',
+                unitPrice: defaultPrice,
+                stockCondition: 'GOOD',
+                pendingAllocationCount: 0,
+              },
+            ]);
+          }
+        }
+        updateSession(shopId, { preFillSku: null, preFillQty: null });
+      }
 
       if (skuSearch) {
         const perfectMatch = items.find(

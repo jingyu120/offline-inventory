@@ -83,6 +83,9 @@ export interface ItemRecord {
   inventory_status: string;
   created_at: number;
   updated_at: number;
+  finish_code?: string | null;
+  structural_class?: string | null;
+  dimensions?: string | null;
 }
 
 export interface InteractionLogRecord {
@@ -142,7 +145,9 @@ export interface DailyQuotaRecord {
 export interface ItemStockRecord {
   id: string;
   item_id: string;
-  quantity: number;
+  good_stock_count: number;
+  wet_stock_count: number;
+  bad_stock_count: number;
   pending_allocation_count: number;
   inventory_status: string;
   created_at: number;
@@ -389,6 +394,9 @@ export const ItemRecordSchema = z.object({
   inventory_status: z.string().default('AVAILABLE'),
   created_at: z.number(),
   updated_at: z.number(),
+  finish_code: z.string().nullable().optional(),
+  structural_class: z.string().nullable().optional(),
+  dimensions: z.string().nullable().optional(),
 });
 
 export const InteractionLogRecordSchema = z.object({
@@ -450,7 +458,9 @@ export const DailyQuotaRecordSchema = z.object({
 export const ItemStockRecordSchema = z.object({
   id: z.string(),
   item_id: z.string(),
-  quantity: z.number().int().nonnegative().default(0),
+  good_stock_count: z.number().int().default(0),
+  wet_stock_count: z.number().int().default(0),
+  bad_stock_count: z.number().int().default(0),
   pending_allocation_count: z.number().int().nonnegative().default(0),
   inventory_status: z.string().default('AVAILABLE'),
   created_at: z.number(),
@@ -907,6 +917,9 @@ export interface Item {
   inventoryStatus?: string;
   createdAt: number;
   updatedAt: number;
+  finishCode?: string | null;
+  structuralClass?: string | null;
+  dimensions?: string | null;
 }
 
 export interface InteractionLog {
@@ -966,7 +979,9 @@ export interface DailyQuota {
 export interface ItemStock {
   id: string;
   itemId: string;
-  quantity: number;
+  goodStockCount: number;
+  wetStockCount: number;
+  badStockCount: number;
   pendingAllocationCount: number;
   inventoryStatus?: string;
   createdAt: number;

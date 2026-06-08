@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { SyncService } from '../../features/sync/sync.service';
 import { AiService } from '../../features/ai/ai.service';
 import { AiQueueService } from '../queue/ai-queue.service';
+import { DrizzleService } from '../drizzle/drizzle.service';
 import { trpcResolvers } from '@burma-inventory/shared-types/server';
 import { requestStorage } from './request-context';
 import { TRPCError } from '@trpc/server';
@@ -12,6 +13,7 @@ export class TrpcRouter implements OnModuleInit {
     private readonly syncService: SyncService,
     private readonly aiService: AiService,
     private readonly aiQueueService: AiQueueService,
+    private readonly drizzleService: DrizzleService,
   ) {}
 
   private validateRequest(resolverName: string, input: unknown) {
@@ -30,8 +32,8 @@ export class TrpcRouter implements OnModuleInit {
     } else if (
       !hashChain ||
       typeof hashChain !== 'string' ||
-      hashChain.length !== 64 ||
-      !/^[0-9a-f]{64}$/.test(hashChain)
+      (hashChain !== 'genesis' &&
+        (hashChain.length !== 64 || !/^[0-9a-f]{64}$/.test(hashChain)))
     ) {
       isInvalid = true;
       reason =
@@ -69,6 +71,12 @@ export class TrpcRouter implements OnModuleInit {
 
   onModuleInit() {
     console.log('[TrpcRouter] Registering tRPC resolvers...');
+
+    trpcResolvers.seedDatabase = async () => {
+      this.validateRequest('seedDatabase', undefined);
+      await this.drizzleService.runDeterministicSeeding();
+      return { success: true };
+    };
 
     trpcResolvers.getSyncLogs = async (input) => {
       this.validateRequest('getSyncLogs', input);

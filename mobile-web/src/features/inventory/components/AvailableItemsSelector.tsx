@@ -158,10 +158,16 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                 ? isSelected.stockCondition
                 : null;
 
+              const isAvailable =
+                item.inventoryStatus === 'AVAILABLE' || !item.inventoryStatus;
+
               // Determine row background color or border depending on audit selection state
               let borderCol: keyof Theme['colors'] = 'borderColor';
               let bgCol: keyof Theme['colors'] = 'mainBackground';
-              if (isSelected) {
+              if (!isAvailable) {
+                bgCol = 'secondaryBackground';
+                borderCol = 'borderColor';
+              } else if (isSelected) {
                 if (selectedCond === 'DEPLETED') {
                   bgCol = 'dangerBg';
                   borderCol = 'dangerText';
@@ -181,6 +187,7 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                   renderLeftActions={renderLeftActions}
                   renderRightActions={renderRightActions}
                   onSwipeableOpen={(direction: 'left' | 'right') => {
+                    if (!isAvailable) return;
                     if (direction === 'left') {
                       onAuditSwipe(item.id, 'GOOD');
                     } else {
@@ -191,7 +198,15 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                     }, 400);
                   }}
                 >
-                  <TouchableOpacity onPress={() => toggleItem(item)}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (isAvailable) {
+                        toggleItem(item);
+                      }
+                    }}
+                    disabled={!isAvailable}
+                    style={{ opacity: isAvailable ? 1.0 : 0.5 }}
+                  >
                     <Box
                       p="s"
                       bg={bgCol}
@@ -236,6 +251,72 @@ export const AvailableItemsSelector: React.FC<AvailableItemsSelectorProps> = ({
                           </Box>
                         )}
                       </Box>
+                      {(item.finishCode ||
+                        item.structuralClass ||
+                        item.dimensions) && (
+                        <Box flexDirection="row" flexWrap="wrap" mt="xs">
+                          {item.finishCode ? (
+                            <Box
+                              bg="brandBg"
+                              borderColor="brandBorder"
+                              borderWidth={1}
+                              px="s"
+                              py="xs"
+                              borderRadius="s"
+                              mr="xs"
+                              mb="xs"
+                            >
+                              <Text
+                                variant="caption"
+                                color="brand"
+                                fontWeight="bold"
+                              >
+                                {item.finishCode}
+                              </Text>
+                            </Box>
+                          ) : null}
+                          {item.structuralClass ? (
+                            <Box
+                              bg="brandBg"
+                              borderColor="brandBorder"
+                              borderWidth={1}
+                              px="s"
+                              py="xs"
+                              borderRadius="s"
+                              mr="xs"
+                              mb="xs"
+                            >
+                              <Text
+                                variant="caption"
+                                color="brand"
+                                fontWeight="bold"
+                              >
+                                {item.structuralClass}
+                              </Text>
+                            </Box>
+                          ) : null}
+                          {item.dimensions ? (
+                            <Box
+                              bg="brandBg"
+                              borderColor="brandBorder"
+                              borderWidth={1}
+                              px="s"
+                              py="xs"
+                              borderRadius="s"
+                              mr="xs"
+                              mb="xs"
+                            >
+                              <Text
+                                variant="caption"
+                                color="brand"
+                                fontWeight="bold"
+                              >
+                                {item.dimensions}
+                              </Text>
+                            </Box>
+                          ) : null}
+                        </Box>
+                      )}
                       {item.isInDeficit && (
                         <Text
                           variant="bodySecondary"

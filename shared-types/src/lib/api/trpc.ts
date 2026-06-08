@@ -138,9 +138,14 @@ export const trpcResolvers = globalResolvers as {
   removeJob:
     | null
     | ((input: { jobId: string }) => Promise<{ success: boolean }>);
+  seedDatabase: null | (() => Promise<{ success: boolean }>);
 };
 
 export const appRouter = t.router({
+  seedDatabase: t.procedure.mutation(async () => {
+    if (!trpcResolvers.seedDatabase) throw new Error('Resolver not registered');
+    return trpcResolvers.seedDatabase();
+  }),
   getSyncLogs: t.procedure
     .input(
       z.object({

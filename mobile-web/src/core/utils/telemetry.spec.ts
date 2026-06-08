@@ -40,6 +40,7 @@ jest.mock('../../features/sync/hooks/useNetworkQuality', () => ({
 }));
 
 import { TelemetryLogger } from './telemetry';
+import { getActiveNetworkQuality } from '../../features/sync/hooks/useNetworkQuality';
 
 describe('TelemetryLogger', () => {
   beforeEach(() => {
@@ -118,6 +119,36 @@ describe('TelemetryLogger', () => {
       expect.objectContaining({
         thermal_status: null,
         network_generation_2G_EDGE: null,
+      }),
+    );
+  });
+
+  it('appends YES when network is degraded', async () => {
+    (getActiveNetworkQuality as jest.Mock).mockReturnValueOnce({
+      isConnected: true,
+      type: 'wifi',
+      isDegraded: true,
+    });
+
+    await TelemetryLogger.logEvent('sync_dropout', 'degraded network', 'error');
+
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        network_generation_2G_EDGE: 'YES',
+      }),
+    );
+  });
+
+  it('defaults to NO when getActiveNetworkQuality fails or throws', async () => {
+    (getActiveNetworkQuality as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('Mock error');
+    });
+
+    await TelemetryLogger.logEvent('sync_dropout', 'failed fetch', 'error');
+
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        network_generation_2G_EDGE: 'NO',
       }),
     );
   });

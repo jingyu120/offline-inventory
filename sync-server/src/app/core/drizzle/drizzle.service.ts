@@ -9,6 +9,8 @@ import { Pool } from 'pg';
 import * as schema from '@burma-inventory/shared-types';
 import * as bcrypt from 'bcryptjs';
 import { sql } from 'drizzle-orm';
+import { Queue } from 'bullmq';
+import { env } from '../../../env';
 
 @Injectable()
 export class DrizzleService implements OnModuleInit, OnModuleDestroy {
@@ -377,7 +379,9 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           .values({
             id: `stock-${item.id}`,
             item_id: item.id,
-            quantity: item.quantity,
+            good_stock_count: item.quantity,
+            wet_stock_count: 0,
+            bad_stock_count: 0,
             pending_allocation_count: item.pendingAllocationCount || 0,
             created_at: now,
             updated_at: now,
@@ -624,6 +628,297 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           .onConflictDoNothing();
       }
 
+      // 7. Seed Invoices & Payments (AR)
+      const dueOverdue = now - 45 * 24 * 3600 * 1000;
+      const duePending = now + 15 * 24 * 3600 * 1000;
+      const duePartiallyPaid = now - 5 * 24 * 3600 * 1000;
+      const duePaid = now - 20 * 24 * 3600 * 1000;
+
+      await this.db
+        .insert(schema.pgSchema.invoices)
+        .values([
+          {
+            id: 'inv-1',
+            shop_id: 'shop-1',
+            interaction_log_id: 'log-r1-d0-1',
+            amount: 1200000.0,
+            due_date: dueOverdue,
+            grace_period_days: 7,
+            state: 'OVERDUE',
+            created_at: now - 50 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+          {
+            id: 'inv-2',
+            shop_id: 'shop-1',
+            interaction_log_id: 'log-r1-d1-1',
+            amount: 850000.0,
+            due_date: duePending,
+            grace_period_days: 7,
+            state: 'PENDING',
+            created_at: now - 10 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+          {
+            id: 'inv-3',
+            shop_id: 'shop-1',
+            interaction_log_id: 'log-r1-d1-7',
+            amount: 500000.0,
+            due_date: duePartiallyPaid,
+            grace_period_days: 7,
+            state: 'PARTIALLY_PAID',
+            created_at: now - 15 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+          {
+            id: 'inv-4',
+            shop_id: 'shop-3',
+            interaction_log_id: 'log-r1-d0-2',
+            amount: 2500000.0,
+            due_date: now + 10 * 24 * 3600 * 1000,
+            grace_period_days: 7,
+            state: 'PENDING',
+            created_at: now - 5 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+          {
+            id: 'inv-5',
+            shop_id: 'shop-3',
+            interaction_log_id: 'log-r1-d1-2',
+            amount: 1800000.0,
+            due_date: duePaid,
+            grace_period_days: 7,
+            state: 'PAID',
+            created_at: now - 25 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      await this.db
+        .insert(schema.pgSchema.payments)
+        .values([
+          {
+            id: 'pay-1',
+            invoice_id: 'inv-3',
+            amount: 200000.0,
+            payment_date: now - 6 * 24 * 3600 * 1000,
+            transaction_ref: 'TXN-MMK-302198',
+            screenshot_url: '/api/sync/uploads/mock_pay_1.png',
+            reconciled_by: 'rep-4',
+            created_at: now - 6 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+          {
+            id: 'pay-2',
+            invoice_id: 'inv-5',
+            amount: 1800000.0,
+            payment_date: now - 20 * 24 * 3600 * 1000,
+            transaction_ref: 'TXN-MMK-109283',
+            screenshot_url: '/api/sync/uploads/mock_pay_2.png',
+            reconciled_by: 'rep-4',
+            created_at: now - 20 * 24 * 3600 * 1000,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      // 8. Seed Expected Inbounds (Transit forecast)
+      await this.db
+        .insert(schema.pgSchema.expected_inbounds)
+        .values([
+          {
+            id: 'inbound-1',
+            sku: 'SKU-SH-CEILING-2X2',
+            expected_quantity: 500,
+            origin: 'Thailand',
+            estimated_arrival_date: new Date(now + 2 * 24 * 3600 * 1000)
+              .toISOString()
+              .split('T')[0],
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'inbound-2',
+            sku: 'SKU-CR-GP-GROUT-20KG',
+            expected_quantity: 1000,
+            origin: 'Thailand',
+            estimated_arrival_date: new Date(now + 5 * 24 * 3600 * 1000)
+              .toISOString()
+              .split('T')[0],
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'inbound-3',
+            sku: 'SKU-K-15814X-8-CP',
+            expected_quantity: 250,
+            origin: 'Thailand',
+            estimated_arrival_date: new Date(now + 10 * 24 * 3600 * 1000)
+              .toISOString()
+              .split('T')[0],
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      // 9. Seed Pending Inventory Updates (Intake approvals queue)
+      await this.db
+        .insert(schema.pgSchema.pending_inventory_updates)
+        .values([
+          {
+            id: 'pend-up-1',
+            type: 'STOCK_ADJUSTMENT',
+            item_id: 'item-1',
+            location_id: 'loc-yangon-wh',
+            quantity_delta: 150,
+            submitted_by: 'manwesoe',
+            status: 'PENDING',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'pend-up-2',
+            type: 'STOCK_ADJUSTMENT',
+            item_id: 'item-7',
+            location_id: 'loc-yangon-wh',
+            quantity_delta: -50,
+            submitted_by: 'khaingyeewin',
+            status: 'PENDING',
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 'pend-up-3',
+            type: 'NEW_SKU',
+            item_id: null,
+            location_id: 'loc-yangon-wh',
+            quantity_delta: 300,
+            sku: 'SKU-GT-PVC-90',
+            name: 'Gator PVC Pipe 90mm',
+            unit_price: 12500,
+            category: 'Plumbing',
+            submitted_by: 'rep-1',
+            status: 'PENDING',
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .onConflictDoNothing();
+
+      // 10. Seed Audit Events (Security/Compliance)
+      await this.db
+        .insert(schema.pgSchema.audit_events)
+        .values([
+          {
+            event_id: 'evt-1',
+            trace_id: 'tr-001',
+            actor_id: 'rep-1',
+            device_id: 'dev-1',
+            entity_type: 'ORDER',
+            action: 'OVERRIDE',
+            previous_state: { unit_price_at_sale: 47000 },
+            new_state: { unit_price_at_sale: 40000 },
+            gps_coordinates: '16.9123, 96.1645',
+            hash: 'mock-hash-1',
+            status: 'VALID',
+            created_at: now - 3 * 3600 * 1000,
+            shop_id: 'shop-1',
+            executed_by_id: 'rep-1',
+            salesperson_id: 'rep-1',
+            approved_by_id: 'rep-3',
+          },
+          {
+            event_id: 'evt-2',
+            trace_id: 'tr-002',
+            actor_id: 'rep-3',
+            device_id: 'dev-1',
+            entity_type: 'SHOP',
+            action: 'UPDATE',
+            previous_state: { credit_limit_mmk: 10000000 },
+            new_state: { credit_limit_mmk: 12000000 },
+            gps_coordinates: '16.9234, 96.1756',
+            hash: 'mock-hash-2',
+            status: 'VALID',
+            created_at: now - 1 * 3600 * 1000,
+            shop_id: 'shop-3',
+            executed_by_id: 'rep-3',
+            salesperson_id: 'rep-3',
+            approved_by_id: 'rep-4',
+          },
+        ])
+        .onConflictDoNothing();
+
+      // 11. Seed Mismatch Logs (HITL verification queue)
+      await this.db
+        .insert(schema.pgSchema.interaction_logs)
+        .values({
+          id: 'log-mismatch-1',
+          shop_id: 'shop-1',
+          rep_id: 'viber_bot',
+          type: 'VIBER',
+          commercial_status: 'ORDER_PLACED',
+          notes:
+            'Viber order mismatch detected. OCR parsed 10 bags of GP Grout, but image shows 20 bags.',
+          ai_verification_status: 'MISMATCH',
+          ai_verification_notes: 'OCR mismatch: quantity check failed.',
+          viber_screenshot_url:
+            '/api/sync/uploads/mock_mismatch_screenshot.png',
+          created_at_local: now - 2 * 3600 * 1000,
+          device_id: 'viber_bot',
+          created_at: now - 2 * 3600 * 1000,
+          updated_at: now,
+        })
+        .onConflictDoNothing();
+
+      await this.db
+        .insert(schema.pgSchema.interaction_items)
+        .values({
+          id: 'ii-mismatch-1',
+          interaction_log_id: 'log-mismatch-1',
+          item_id: 'item-7',
+          quantity: 10,
+          unit_price_at_sale: 18000,
+          interest_level: 'HIGH',
+          selected_currency: 'MMK',
+          selected_unit: 'PCS',
+          stock_condition: 'GOOD',
+          fulfillment_status: 'PENDING_FULFILLMENT',
+          compliance_status: 'APPROVED',
+          created_at: now - 2 * 3600 * 1000,
+          updated_at: now,
+        })
+        .onConflictDoNothing();
+
+      // 12. Seed failed queue jobs (DLQ monitor)
+      try {
+        const queue = new Queue('ai-tasks', {
+          connection: { url: env.REDIS_URL },
+        });
+        const failedJobs = await queue.getFailed(0, 10);
+        if (failedJobs.length === 0) {
+          await queue.add('corrupted-transaction', {
+            reason: 'Signature mismatch on crypt-frame',
+            payload: {
+              transactionId: 'tx-err-999',
+              amount: 15000000,
+              repId: 'rep-1',
+            },
+          });
+          await queue.add('process-screenshot', {
+            interactionLogId: 'log-err-888',
+            filePath: '/nonexistent/screenshot.png',
+            reason: 'File not found on disk',
+          });
+        }
+        await queue.close();
+      } catch (err: $Any) {
+        this.logger.warn(
+          `Could not seed failed jobs to BullMQ: ${err.message || err}`,
+        );
+      }
+
       // Set up real-time invalidation triggers in PostgreSQL
       try {
         await this.db.execute(sql`
@@ -669,5 +964,564 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
         error.stack || error.message || error,
       );
     }
+  }
+
+  async runDeterministicSeeding() {
+    const now = Date.now();
+    const hashedPassword = await bcrypt.hash('changeme-rep-default', 10);
+
+    const tables = [
+      schema.pgSchema.payments,
+      schema.pgSchema.invoices,
+      schema.pgSchema.interaction_items,
+      schema.pgSchema.interaction_logs,
+      schema.pgSchema.contacts,
+      schema.pgSchema.items,
+      schema.pgSchema.shops,
+      schema.pgSchema.wards,
+      schema.pgSchema.townships,
+      schema.pgSchema.regions,
+      schema.pgSchema.daily_quotas,
+      schema.pgSchema.item_stocks,
+      schema.pgSchema.planned_routes,
+      schema.pgSchema.prediction_logs,
+      schema.pgSchema.recommended_orders,
+      schema.pgSchema.price_books,
+      schema.pgSchema.price_book_items,
+      schema.pgSchema.exchange_rates,
+      schema.pgSchema.rep_scores,
+      schema.pgSchema.points_logs,
+      schema.pgSchema.brands,
+      schema.pgSchema.stock_locations,
+      schema.pgSchema.stock_balances,
+      schema.pgSchema.projects,
+      schema.pgSchema.rep_kpis,
+      schema.pgSchema.currency_exchange_rates,
+      schema.pgSchema.competitor_insights,
+      schema.pgSchema.pending_inventory_updates,
+      schema.pgSchema.audit_events,
+      schema.pgSchema.expected_inbounds,
+      schema.pgSchema.users,
+    ];
+
+    for (const table of tables) {
+      try {
+        await this.db.delete(table);
+      } catch (err: $Any) {
+        this.logger.warn(
+          `Could not clear table during deterministic seed: ${err.message || err}`,
+        );
+      }
+    }
+
+    // 1. Seed Brands
+    await this.db.insert(schema.pgSchema.brands).values([
+      { id: 'brand-shera', name: 'Shera', created_at: now, updated_at: now },
+      {
+        id: 'brand-crocodile',
+        name: 'Crocodile',
+        created_at: now,
+        updated_at: now,
+      },
+      { id: 'brand-karat', name: 'Karat', created_at: now, updated_at: now },
+    ]);
+
+    // 2. Seed Regions, Townships, Wards
+    await this.db.insert(schema.pgSchema.regions).values([
+      {
+        id: 'region-yangon',
+        name: 'Yangon Region',
+        division: 'Yangon Division',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    await this.db.insert(schema.pgSchema.townships).values([
+      {
+        id: 'township-lanmadaw',
+        name: 'Lanmadaw Township',
+        region_id: 'region-yangon',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'township-northokkalar',
+        name: 'North Okkalar Township',
+        region_id: 'region-yangon',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    await this.db.insert(schema.pgSchema.wards).values([
+      {
+        id: 'ward-ward1',
+        name: 'Ward 1',
+        township_id: 'township-lanmadaw',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'ward-northokkalar-ward',
+        name: 'North Okkalar Ward',
+        township_id: 'township-northokkalar',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    // 3. Seed Users (Reps & Managers)
+    const usersData = [
+      {
+        id: 'rep-1',
+        username: 'wintthandar',
+        role: 'sales',
+        region_id: 'region-yangon',
+      },
+      {
+        id: 'rep-2',
+        username: 'yeyint',
+        role: 'sales',
+        region_id: 'region-yangon',
+      },
+      {
+        id: 'rep-3',
+        username: 'khaingyeewin',
+        role: 'sales',
+        region_id: 'region-yangon',
+      },
+      { id: 'rep-4', username: 'urobin', role: 'manager', region_id: null },
+      { id: 'rep-5', username: 'manwesoe', role: 'manager', region_id: null },
+    ];
+
+    for (const u of usersData) {
+      await this.db.insert(schema.pgSchema.users).values({
+        id: u.id,
+        username: u.username,
+        password: hashedPassword,
+        role: u.role,
+        region_id: u.region_id,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // 4. Seed Price Books
+    await this.db.insert(schema.pgSchema.price_books).values([
+      {
+        id: 'pb-yangon',
+        name: 'Yangon Retail Book',
+        region_id: 'region-yangon',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    // 5. Seed Products (items)
+    const itemsData = [
+      {
+        id: 'item-7',
+        sku: 'SKU-CR-GP-GROUT-20KG',
+        name: 'Crocodile GP Grout (Grey), 20Kg',
+        unit_price: 18000,
+        category: 'Grout',
+        brand_id: 'brand-crocodile',
+        color: 'Grey',
+        weight: '20kg',
+        good: -1756,
+        wet: 0,
+        bad: 498,
+      },
+      {
+        id: 'item-1',
+        sku: 'SKU-SH-CEILING-2X2',
+        name: 'Shera Ceiling Board 2x2 (0.35x61x61)',
+        unit_price: 47000,
+        category: 'Fiber Cement',
+        brand_id: 'brand-shera',
+        dimensions: '2x2 (0.35x61x61)',
+        good: 94765,
+        wet: 16137,
+        bad: 7060,
+      },
+      {
+        id: 'item-3',
+        sku: 'SKU-K-15814X-8-CP',
+        name: 'K-15814X-8-CP CAPRI Kitchen Faucet',
+        unit_price: 35000,
+        category: 'Fittings',
+        brand_id: 'brand-karat',
+        finish_code: 'CP',
+        good: 100,
+        wet: 0,
+        bad: 0,
+      },
+    ];
+
+    for (const item of itemsData) {
+      await this.db.insert(schema.pgSchema.items).values({
+        id: item.id,
+        sku: item.sku,
+        name: item.name,
+        unit_price: item.unit_price,
+        category: item.category,
+        brand_id: item.brand_id,
+        color: (item as $Any).color || null,
+        weight: (item as $Any).weight || null,
+        finish_code: (item as $Any).finish_code || null,
+        dimensions: (item as $Any).dimensions || null,
+        created_at: now,
+        updated_at: now,
+      });
+
+      await this.db.insert(schema.pgSchema.item_stocks).values({
+        id: `stock-${item.id}`,
+        item_id: item.id,
+        good_stock_count: item.good,
+        wet_stock_count: item.wet,
+        bad_stock_count: item.bad,
+        pending_allocation_count: item.id === 'item-7' ? 1756 : 0,
+        created_at: now,
+        updated_at: now,
+      });
+
+      await this.db.insert(schema.pgSchema.price_book_items).values({
+        id: `pbi-y-${item.id}`,
+        price_book_id: 'pb-yangon',
+        item_id: item.id,
+        price: item.unit_price,
+        currency: 'MMK',
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // 6. Seed Shops
+    const shopsData = [
+      {
+        id: 'shop-1',
+        name: 'Soe Moe Khaing (North Okkalar)',
+        address: 'North Okkalar, Yangon',
+        latitude: 16.9123,
+        longitude: 96.1645,
+        region_id: 'region-yangon',
+        credit_limit_mmk: 5000000,
+        price_book_id: 'pb-yangon',
+        assigned_rep_id: 'rep-3',
+      },
+      {
+        id: 'shop-2',
+        name: 'Taw Win (South Dagon)',
+        address: 'South Dagon, Yangon',
+        latitude: 16.8543,
+        longitude: 96.2134,
+        region_id: 'region-yangon',
+        credit_limit_mmk: 2500000,
+        price_book_id: 'pb-yangon',
+        assigned_rep_id: 'rep-1',
+      },
+      {
+        id: 'shop-3',
+        name: 'Thingaha (North Okkalar)',
+        address: 'North Okkalar, Yangon',
+        latitude: 16.9234,
+        longitude: 96.1756,
+        region_id: 'region-yangon',
+        credit_limit_mmk: 10000000,
+        price_book_id: 'pb-yangon',
+        assigned_rep_id: 'rep-3',
+      },
+    ];
+
+    for (const s of shopsData) {
+      await this.db.insert(schema.pgSchema.shops).values({
+        id: s.id,
+        name: s.name,
+        address: s.address,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        region_id: s.region_id,
+        price_book_id: s.price_book_id,
+        credit_limit_mmk: s.credit_limit_mmk,
+        lifetime_value: 0,
+        sentiment_trend: 'STABLE',
+        price_tier: 'Retailer',
+        assigned_rep_id: s.assigned_rep_id,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // 7. Seed Invoices & Payments (AR)
+    const dueOverdue = now - 45 * 24 * 3600 * 1000;
+    const duePending = now + 15 * 24 * 3600 * 1000;
+    const duePartiallyPaid = now - 5 * 24 * 3600 * 1000;
+    const duePaid = now - 20 * 24 * 3600 * 1000;
+
+    await this.db.insert(schema.pgSchema.invoices).values([
+      {
+        id: 'inv-1',
+        shop_id: 'shop-1',
+        interaction_log_id: 'log-r1-d0-1',
+        amount: 1200000.0,
+        due_date: dueOverdue,
+        grace_period_days: 7,
+        state: 'OVERDUE',
+        created_at: now - 50 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+      {
+        id: 'inv-2',
+        shop_id: 'shop-1',
+        interaction_log_id: 'log-r1-d1-1',
+        amount: 850000.0,
+        due_date: duePending,
+        grace_period_days: 7,
+        state: 'PENDING',
+        created_at: now - 10 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+      {
+        id: 'inv-3',
+        shop_id: 'shop-1',
+        interaction_log_id: 'log-r1-d1-7',
+        amount: 500000.0,
+        due_date: duePartiallyPaid,
+        grace_period_days: 7,
+        state: 'PARTIALLY_PAID',
+        created_at: now - 15 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+      {
+        id: 'inv-4',
+        shop_id: 'shop-3',
+        interaction_log_id: 'log-r1-d0-2',
+        amount: 2500000.0,
+        due_date: now + 10 * 24 * 3600 * 1000,
+        grace_period_days: 7,
+        state: 'PENDING',
+        created_at: now - 5 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+      {
+        id: 'inv-5',
+        shop_id: 'shop-3',
+        interaction_log_id: 'log-r1-d1-2',
+        amount: 1800000.0,
+        due_date: duePaid,
+        grace_period_days: 7,
+        state: 'PAID',
+        created_at: now - 25 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+    ]);
+
+    await this.db.insert(schema.pgSchema.payments).values([
+      {
+        id: 'pay-1',
+        invoice_id: 'inv-3',
+        amount: 200000.0,
+        payment_date: now - 6 * 24 * 3600 * 1000,
+        transaction_ref: 'TXN-MMK-302198',
+        screenshot_url: '/api/sync/uploads/mock_pay_1.png',
+        reconciled_by: 'rep-4',
+        created_at: now - 6 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+      {
+        id: 'pay-2',
+        invoice_id: 'inv-5',
+        amount: 1800000.0,
+        payment_date: now - 20 * 24 * 3600 * 1000,
+        transaction_ref: 'TXN-MMK-109283',
+        screenshot_url: '/api/sync/uploads/mock_pay_2.png',
+        reconciled_by: 'rep-4',
+        created_at: now - 20 * 24 * 3600 * 1000,
+        updated_at: now,
+      },
+    ]);
+
+    // 8. Seed Expected Inbounds (Transit forecast)
+    await this.db.insert(schema.pgSchema.expected_inbounds).values([
+      {
+        id: 'inbound-1',
+        sku: 'SKU-SH-CEILING-2X2',
+        expected_quantity: 500,
+        origin: 'Thailand',
+        estimated_arrival_date: new Date(now + 2 * 24 * 3600 * 1000)
+          .toISOString()
+          .split('T')[0],
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'inbound-2',
+        sku: 'SKU-CR-GP-GROUT-20KG',
+        expected_quantity: 1000,
+        origin: 'Thailand',
+        estimated_arrival_date: new Date(now + 5 * 24 * 3600 * 1000)
+          .toISOString()
+          .split('T')[0],
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'inbound-3',
+        sku: 'SKU-K-15814X-8-CP',
+        expected_quantity: 250,
+        origin: 'Thailand',
+        estimated_arrival_date: new Date(now + 10 * 24 * 3600 * 1000)
+          .toISOString()
+          .split('T')[0],
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    // 9. Seed Pending Inventory Updates (Intake approvals queue)
+    await this.db.insert(schema.pgSchema.pending_inventory_updates).values([
+      {
+        id: 'pend-up-1',
+        type: 'STOCK_ADJUSTMENT',
+        item_id: 'item-1',
+        location_id: 'loc-yangon-wh',
+        quantity_delta: 150,
+        submitted_by: 'manwesoe',
+        status: 'PENDING',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'pend-up-2',
+        type: 'STOCK_ADJUSTMENT',
+        item_id: 'item-7',
+        location_id: 'loc-yangon-wh',
+        quantity_delta: -50,
+        submitted_by: 'khaingyeewin',
+        status: 'PENDING',
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: 'pend-up-3',
+        type: 'NEW_SKU',
+        item_id: null,
+        location_id: 'loc-yangon-wh',
+        quantity_delta: 300,
+        sku: 'SKU-GT-PVC-90',
+        name: 'Gator PVC Pipe 90mm',
+        unit_price: 12500,
+        category: 'Plumbing',
+        submitted_by: 'rep-1',
+        status: 'PENDING',
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+
+    // 10. Seed Audit Events (Security/Compliance)
+    await this.db.insert(schema.pgSchema.audit_events).values([
+      {
+        event_id: 'evt-1',
+        trace_id: 'tr-001',
+        actor_id: 'rep-1',
+        device_id: 'dev-1',
+        entity_type: 'ORDER',
+        action: 'OVERRIDE',
+        previous_state: { unit_price_at_sale: 47000 },
+        new_state: { unit_price_at_sale: 40000 },
+        gps_coordinates: '16.9123, 96.1645',
+        hash: 'mock-hash-1',
+        status: 'VALID',
+        created_at: now - 3 * 3600 * 1000,
+        shop_id: 'shop-1',
+        executed_by_id: 'rep-1',
+        salesperson_id: 'rep-1',
+        approved_by_id: 'rep-3',
+      },
+      {
+        event_id: 'evt-2',
+        trace_id: 'tr-002',
+        actor_id: 'rep-3',
+        device_id: 'dev-1',
+        entity_type: 'SHOP',
+        action: 'UPDATE',
+        previous_state: { credit_limit_mmk: 10000000 },
+        new_state: { credit_limit_mmk: 12000000 },
+        gps_coordinates: '16.9234, 96.1756',
+        hash: 'mock-hash-2',
+        status: 'VALID',
+        created_at: now - 1 * 3600 * 1000,
+        shop_id: 'shop-3',
+        executed_by_id: 'rep-3',
+        salesperson_id: 'rep-3',
+        approved_by_id: 'rep-4',
+      },
+    ]);
+
+    // 11. Seed Mismatch Logs (HITL verification queue)
+    await this.db.insert(schema.pgSchema.interaction_logs).values({
+      id: 'log-mismatch-1',
+      shop_id: 'shop-1',
+      rep_id: 'viber_bot',
+      type: 'VIBER',
+      commercial_status: 'ORDER_PLACED',
+      notes:
+        'Viber order mismatch detected. OCR parsed 10 bags of GP Grout, but image shows 20 bags.',
+      ai_verification_status: 'MISMATCH',
+      ai_verification_notes: 'OCR mismatch: quantity check failed.',
+      viber_screenshot_url: '/api/sync/uploads/mock_mismatch_screenshot.png',
+      created_at_local: now - 2 * 3600 * 1000,
+      device_id: 'viber_bot',
+      created_at: now - 2 * 3600 * 1000,
+      updated_at: now,
+    });
+
+    await this.db.insert(schema.pgSchema.interaction_items).values({
+      id: 'ii-mismatch-1',
+      interaction_log_id: 'log-mismatch-1',
+      item_id: 'item-7',
+      quantity: 10,
+      unit_price_at_sale: 18000,
+      interest_level: 'HIGH',
+      selected_currency: 'MMK',
+      selected_unit: 'PCS',
+      stock_condition: 'GOOD',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      compliance_status: 'APPROVED',
+      created_at: now - 2 * 3600 * 1000,
+      updated_at: now,
+    });
+
+    // 12. Seed failed queue jobs (DLQ monitor)
+    try {
+      const queue = new Queue('ai-tasks', {
+        connection: { url: env.REDIS_URL },
+      });
+      const failedJobs = await queue.getFailed(0, 10);
+      if (failedJobs.length === 0) {
+        await queue.add('corrupted-transaction', {
+          reason: 'Signature mismatch on crypt-frame',
+          payload: {
+            transactionId: 'tx-err-999',
+            amount: 15000000,
+            repId: 'rep-1',
+          },
+        });
+        await queue.add('process-screenshot', {
+          interactionLogId: 'log-err-888',
+          filePath: '/nonexistent/screenshot.png',
+          reason: 'File not found on disk',
+        });
+      }
+      await queue.close();
+    } catch (err: $Any) {
+      this.logger.warn(
+        `Could not seed failed jobs to BullMQ: ${err.message || err}`,
+      );
+    }
+
+    this.logger.log('Deterministic seeding completed successfully');
   }
 }

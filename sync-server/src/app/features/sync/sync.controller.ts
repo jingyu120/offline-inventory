@@ -252,9 +252,7 @@ export class SyncController {
         },
       });
       if (!response.ok) {
-        return res
-          .status(HttpStatus.BAD_GATEWAY)
-          .send('Failed to fetch tile from OSM');
+        throw new Error(`Non-OK response: ${response.status}`);
       }
       const buffer = await response.arrayBuffer();
 
@@ -274,10 +272,33 @@ export class SyncController {
       res.setHeader('Access-Control-Allow-Origin', '*');
       return res.send(Buffer.from(buffer));
     } catch (error) {
-      console.error('[SyncController] Error fetching tile:', error);
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send('Internal error fetching tile');
+      console.warn(
+        '[SyncController] Error fetching tile, using fallback:',
+        error,
+      );
+      const fallbackBuffer = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64',
+      );
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.writeFile(cachePath, fallbackBuffer, (err) => {
+        if (err)
+          console.error(
+            '[SyncController] Cache write error for fallback:',
+            err,
+          );
+      });
+
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader(
+        'Cache-Control',
+        `public, max-age=${this.config.mapCacheMaxAge}`,
+      );
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.send(fallbackBuffer);
     }
   }
 

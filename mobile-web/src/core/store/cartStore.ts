@@ -25,6 +25,8 @@ export interface CartSession {
   objectionReason: string;
   competitorPrice: string;
   viberMessageText: string;
+  preFillSku?: string | null;
+  preFillQty?: number | null;
 }
 
 export const defaultSession: CartSession = {
@@ -42,6 +44,8 @@ export const defaultSession: CartSession = {
   objectionReason: '',
   competitorPrice: '',
   viberMessageText: '',
+  preFillSku: null,
+  preFillQty: null,
 };
 
 interface CartState {

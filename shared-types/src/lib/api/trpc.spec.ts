@@ -295,4 +295,21 @@ describe('tRPC Router', () => {
       expect(trpcResolvers.sync.push).toHaveBeenCalledWith(input);
     });
   });
+
+  describe('seedDatabase', () => {
+    it('throws when resolver is not registered', async () => {
+      await expect(caller.seedDatabase()).rejects.toThrow(
+        'Resolver not registered',
+      );
+    });
+
+    it('returns success when resolver is registered', async () => {
+      const mockResult = { success: true };
+      trpcResolvers.seedDatabase = jest.fn().mockResolvedValue(mockResult);
+
+      const res = await caller.seedDatabase();
+      expect(res).toEqual(mockResult);
+      expect(trpcResolvers.seedDatabase).toHaveBeenCalled();
+    });
+  });
 });

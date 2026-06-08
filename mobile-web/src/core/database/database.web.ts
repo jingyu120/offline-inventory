@@ -146,6 +146,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         ward_id TEXT,
         assigned_rep_id TEXT,
         lifetime_value REAL NOT NULL DEFAULT 0,
+        credit_limit_mmk REAL NOT NULL DEFAULT 0,
         sentiment_trend TEXT NOT NULL DEFAULT 'STABLE',
         price_book_id TEXT,
         price_tier TEXT NOT NULL DEFAULT 'Retailer',
@@ -183,15 +184,22 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         volume_discount_brackets TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        deleted_at INTEGER
+        deleted_at INTEGER,
+        inventory_status TEXT NOT NULL DEFAULT 'AVAILABLE',
+        finish_code TEXT,
+        structural_class TEXT,
+        dimensions TEXT
       );
       CREATE TABLE IF NOT EXISTS item_stocks (
         id TEXT PRIMARY KEY NOT NULL,
         item_id TEXT NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 0,
+        good_stock_count INTEGER NOT NULL DEFAULT 0,
+        wet_stock_count INTEGER NOT NULL DEFAULT 0,
+        bad_stock_count INTEGER NOT NULL DEFAULT 0,
         pending_allocation_count INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        inventory_status TEXT NOT NULL DEFAULT 'AVAILABLE'
       );
       CREATE TABLE IF NOT EXISTS interaction_logs (
         id TEXT PRIMARY KEY NOT NULL,
@@ -211,7 +219,11 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         updated_at INTEGER NOT NULL,
         assigned_driver_id TEXT,
         dispatched_at INTEGER,
-        pod_image_url TEXT
+        pod_image_url TEXT,
+        negotiated_price REAL,
+        objection_reason TEXT,
+        competitor_price REAL,
+        viber_message_text TEXT
       );
       CREATE TABLE IF NOT EXISTS interaction_items (
         id TEXT PRIMARY KEY NOT NULL,
@@ -600,7 +612,18 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
     alterTable('shops', 'deleted_at', 'INTEGER');
     alterTable('shops', 'township_id', 'TEXT');
     alterTable('shops', 'ward_id', 'TEXT');
+    alterTable('shops', 'credit_limit_mmk', 'REAL NOT NULL DEFAULT 0');
     alterTable('items', 'deleted_at', 'INTEGER');
+    alterTable('items', 'finish_code', 'TEXT');
+    alterTable('items', 'structural_class', 'TEXT');
+    alterTable('items', 'dimensions', 'TEXT');
+    alterTable('interaction_logs', 'negotiated_price', 'REAL');
+    alterTable('interaction_logs', 'objection_reason', 'TEXT');
+    alterTable('interaction_logs', 'competitor_price', 'REAL');
+    alterTable('interaction_logs', 'viber_message_text', 'TEXT');
+    alterTable('item_stocks', 'good_stock_count', 'INTEGER NOT NULL DEFAULT 0');
+    alterTable('item_stocks', 'wet_stock_count', 'INTEGER NOT NULL DEFAULT 0');
+    alterTable('item_stocks', 'bad_stock_count', 'INTEGER NOT NULL DEFAULT 0');
     alterTable('projects', 'deleted_at', 'INTEGER');
     alterTable('draft_carts', 'trace_id', 'TEXT');
     alterTable('draft_carts', 'actor_id', 'TEXT');

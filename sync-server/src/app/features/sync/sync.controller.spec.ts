@@ -417,34 +417,102 @@ describe('SyncController', () => {
       expect(mockRes.send).toHaveBeenCalled();
     });
 
-    it('returns status 502 when fetch from OSM fails', async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-      (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-      } as any);
+    it('downloads tile from OSM templates, handles cache write error gracefully', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(false);
+      (fs.writeFile as unknown as jest.Mock).mockImplementationOnce(
+        (path, data, cb) => cb(new Error('Write error')),
+      );
 
       const mockRes = {
-        status: jest.fn().mockReturnThis(),
+        setHeader: jest.fn(),
         send: jest.fn(),
       } as unknown as Response;
 
       await controller.getTile('2', '1', '1', mockRes);
-      expect(mockRes.status).toHaveBeenCalledWith(502);
+      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(mockRes.send).toHaveBeenCalled();
     });
 
-    it('returns status 500 when fetch throws an error', async () => {
+    it('returns transparent fallback tile buffer when fetch from OSM fails', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+      } as any);
+
+      const mockRes = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      await controller.getTile('2', '1', '1', mockRes);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'image/png',
+      );
+      expect(mockRes.send).toHaveBeenCalledWith(
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      );
+    });
+
+    it('returns transparent fallback tile buffer when fetch throws an error', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true);
       (globalThis.fetch as jest.Mock).mockRejectedValueOnce(
         new Error('Network error'),
       );
 
       const mockRes = {
-        status: jest.fn().mockReturnThis(),
+        setHeader: jest.fn(),
         send: jest.fn(),
       } as unknown as Response;
 
       await controller.getTile('2', '1', '1', mockRes);
-      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'image/png',
+      );
+      expect(mockRes.send).toHaveBeenCalledWith(
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      );
+    });
+
+    it('returns transparent fallback tile buffer and handles cache write error for fallback', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(false);
+      (fs.writeFile as unknown as jest.Mock).mockImplementationOnce(
+        (path, data, cb) => cb(new Error('Write error')),
+      );
+      (globalThis.fetch as jest.Mock).mockRejectedValueOnce(
+        new Error('Network error'),
+      );
+
+      const mockRes = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      await controller.getTile('2', '1', '1', mockRes);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'image/png',
+      );
+      expect(mockRes.send).toHaveBeenCalledWith(
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      );
     });
   });
 

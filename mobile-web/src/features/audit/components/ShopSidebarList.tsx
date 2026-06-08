@@ -105,7 +105,7 @@ export const ShopSidebarList: React.FC<ShopSidebarListProps> = ({
           if (!item) continue;
 
           const stock = allStocks.find((s: $Any) => s.item_id === itemId);
-          const stockQty = stock ? stock.quantity : 0;
+          const stockQty = stock ? stock.good_stock_count : 0;
 
           // Simple moving average calculation
           const firstDate = Math.min(...sales.dates);

@@ -4,6 +4,7 @@ import { TrpcController } from './trpc.controller';
 import { SyncService } from '../../features/sync/sync.service';
 import { AiService } from '../../features/ai/ai.service';
 import { AiQueueService } from '../queue/ai-queue.service';
+import { DrizzleService } from '../drizzle/drizzle.service';
 import { trpcResolvers } from '@burma-inventory/shared-types/server';
 import { requestStorage } from './request-context';
 import { TRPCError } from '@trpc/server';
@@ -43,6 +44,10 @@ describe('TrpcRouter & TrpcController', () => {
     removeJob: jest.fn().mockResolvedValue({ success: true }),
   };
 
+  const mockDrizzleService = {
+    runDeterministicSeeding: jest.fn().mockResolvedValue(undefined),
+  };
+
   const resolvers = trpcResolvers as $Any;
 
   beforeEach(async () => {
@@ -55,6 +60,7 @@ describe('TrpcRouter & TrpcController', () => {
         { provide: SyncService, useValue: mockSyncService },
         { provide: AiService, useValue: mockAiService },
         { provide: AiQueueService, useValue: mockAiQueueService },
+        { provide: DrizzleService, useValue: mockDrizzleService },
       ],
     }).compile();
 
@@ -82,6 +88,24 @@ describe('TrpcRouter & TrpcController', () => {
         headers: {
           'x-trace-id': 'trace-1234',
           'x-hash-chain': 'a'.repeat(64),
+        },
+        url: '/getSyncLogs',
+        method: 'GET',
+      } as any;
+
+      await requestStorage.run(mockReq, async () => {
+        const res = await resolvers.getSyncLogs({ limit: 20 });
+        expect(res.success).toBe(true);
+      });
+
+      expect(mockSyncService.getSyncLogs).toHaveBeenCalledWith(undefined, 20);
+    });
+
+    it('passes validation when request contains genesis hash chain', async () => {
+      const mockReq = {
+        headers: {
+          'x-trace-id': 'trace-1234',
+          'x-hash-chain': 'genesis',
         },
         url: '/getSyncLogs',
         method: 'GET',
@@ -193,6 +217,10 @@ describe('TrpcRouter & TrpcController', () => {
       } as any;
 
       await requestStorage.run(mockReq, async () => {
+        // seedDatabase
+        await resolvers.seedDatabase();
+        expect(mockDrizzleService.runDeterministicSeeding).toHaveBeenCalled();
+
         // quotaOptimizations
         await resolvers.quotaOptimizations();
         expect(mockAiService.getDynamicQuotaOptimizations).toHaveBeenCalled();

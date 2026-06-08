@@ -59,7 +59,7 @@ export function PendingIntakeApproval() {
           sku: itemObj.sku,
           name: itemObj.name,
           category: itemObj.category,
-          quantity: stock.quantity,
+          quantity: stock.good_stock_count,
           createdAt: stock.created_at,
         };
       });

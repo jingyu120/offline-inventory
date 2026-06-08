@@ -1,7 +1,6 @@
 import { database } from '../database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { ThermalGuard, ThermalState } from './thermalGuard';
-import { NetworkQualityObserver } from '../../features/sync/hooks/useNetworkQuality';
 
 export function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -12,16 +11,10 @@ export function generateUUID(): string {
 }
 
 let activeThermalState: ThermalState = 'NOMINAL';
-let activeNetworkGen2GEdge: 'YES' | 'NO' = 'NO';
 
 // Subscribe to ThermalGuard
 ThermalGuard.subscribe((state) => {
   activeThermalState = state;
-});
-
-// Subscribe to NetworkQualityObserver
-NetworkQualityObserver.subscribe((quality) => {
-  activeNetworkGen2GEdge = quality.isDegraded ? 'YES' : 'NO';
 });
 
 export class TelemetryLogger {
@@ -36,6 +29,21 @@ export class TelemetryLogger {
         eventType.includes('exception') ||
         eventType.includes('dropout');
 
+      let activeNetworkGen2GEdge: 'YES' | 'NO' | null = null;
+      if (isExceptionOrDropout) {
+        try {
+          const r = require;
+          const { getActiveNetworkQuality } = r(
+            '../../features/sync/hooks/useNetworkQuality',
+          );
+          activeNetworkGen2GEdge = getActiveNetworkQuality().isDegraded
+            ? 'YES'
+            : 'NO';
+        } catch {
+          activeNetworkGen2GEdge = 'NO';
+        }
+      }
+
       await database.insert(sqliteSchema.telemetry_logs).values({
         id: generateUUID(),
         level,
@@ -44,9 +52,7 @@ export class TelemetryLogger {
         timestamp: now,
         synced_at_server: null,
         thermal_status: isExceptionOrDropout ? activeThermalState : null,
-        network_generation_2G_EDGE: isExceptionOrDropout
-          ? activeNetworkGen2GEdge
-          : null,
+        network_generation_2G_EDGE: activeNetworkGen2GEdge,
         created_at: Math.floor(now / 1000),
         updated_at: Math.floor(now / 1000),
       } as $Any);

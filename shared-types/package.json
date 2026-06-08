@@ -10,8 +10,8 @@
       "default": "./dist/src/index.js"
     },
     "./server": {
-      "types": "./dist/src/lib/trpc.d.ts",
-      "default": "./dist/src/lib/trpc.js"
+      "types": "./dist/src/lib/api/trpc.d.ts",
+      "default": "./dist/src/lib/api/trpc.js"
     }
   },
   "dependencies": {

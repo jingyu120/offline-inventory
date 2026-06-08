@@ -159,7 +159,7 @@ export function IntakeScreen() {
       const extended = mappedItems.map((item: Item) => {
         const stockRecord = stocksMap.get(item.id);
         const itemObj = item as ExtendedItem;
-        itemObj.stockQty = stockRecord ? stockRecord.quantity : 0;
+        itemObj.stockQty = stockRecord ? stockRecord.goodStockCount : 0;
         return itemObj;
       });
 
@@ -229,7 +229,7 @@ export function IntakeScreen() {
           await database
             .update(sqliteSchema.item_stocks)
             .set({
-              quantity: Math.max(0, record.quantity + delta),
+              good_stock_count: Math.max(0, record.good_stock_count + delta),
               inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
               updated_at: now,
             })
@@ -239,7 +239,9 @@ export function IntakeScreen() {
           await database.insert(sqliteSchema.item_stocks).values({
             id: stockId,
             item_id: item.id,
-            quantity: Math.max(0, delta),
+            good_stock_count: Math.max(0, delta),
+            wet_stock_count: 0,
+            bad_stock_count: 0,
             inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
             created_at: now,
             updated_at: now,
@@ -344,7 +346,9 @@ export function IntakeScreen() {
         await database.insert(sqliteSchema.item_stocks).values({
           id: newStockId,
           item_id: newItemId,
-          quantity: Math.max(0, parsedStock),
+          good_stock_count: Math.max(0, parsedStock),
+          wet_stock_count: 0,
+          bad_stock_count: 0,
           inventory_status: INVENTORY_STATUS.PENDING_APPROVAL,
           created_at: now,
           updated_at: now,
@@ -394,9 +398,9 @@ export function IntakeScreen() {
             await database
               .update(sqliteSchema.item_stocks)
               .set({
-                quantity: Math.max(
+                good_stock_count: Math.max(
                   0,
-                  record.quantity + (update.quantity_delta || 0),
+                  record.good_stock_count + (update.quantity_delta || 0),
                 ),
                 inventory_status: INVENTORY_STATUS.AVAILABLE,
                 updated_at: now,
@@ -407,7 +411,9 @@ export function IntakeScreen() {
             await database.insert(sqliteSchema.item_stocks).values({
               id: stockId,
               item_id: update.item_id,
-              quantity: Math.max(0, update.quantity_delta || 0),
+              good_stock_count: Math.max(0, update.quantity_delta || 0),
+              wet_stock_count: 0,
+              bad_stock_count: 0,
               inventory_status: INVENTORY_STATUS.AVAILABLE,
               created_at: now,
               updated_at: now,
@@ -433,7 +439,9 @@ export function IntakeScreen() {
           await database.insert(sqliteSchema.item_stocks).values({
             id: newStockId,
             item_id: newItemId,
-            quantity: Math.max(0, update.quantity_delta || 0),
+            good_stock_count: Math.max(0, update.quantity_delta || 0),
+            wet_stock_count: 0,
+            bad_stock_count: 0,
             inventory_status: INVENTORY_STATUS.AVAILABLE,
             created_at: now,
             updated_at: now,
