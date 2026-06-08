@@ -37,6 +37,8 @@ interface MapFilterPanelProps {
   /** Whether the TSP optimal route polyline is shown on the map */
   showRouteLine: boolean;
   setShowRouteLine: (val: boolean) => void;
+  simplifiedMap: boolean;
+  setSimplifiedMap: (val: boolean) => void;
 }
 
 export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
@@ -57,6 +59,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
   availableReps,
   showRouteLine,
   setShowRouteLine,
+  simplifiedMap,
+  setSimplifiedMap,
 }) => {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -105,7 +109,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         alignItems="center"
       >
         {/* Region selector */}
-        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
+        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('region')}
             selectedValue={selectedRegion}
@@ -116,7 +120,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Rep selector — options come from actual shop assignedRepId data */}
-        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
+        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('salesRep')}
             selectedValue={selectedRep}
@@ -127,7 +131,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* SKU Interest Selector */}
-        <Box width={isDesktop ? '18%' : '100%'} minWidth={140} mb="s">
+        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('skuInterest')}
             selectedValue={selectedSku}
@@ -142,8 +146,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '18%' : '100%'}
-          minWidth={140}
+          width={isDesktop ? '14%' : '100%'}
+          minWidth={120}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
           <Box mr="s">
@@ -165,8 +169,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '18%' : '100%'}
-          minWidth={140}
+          width={isDesktop ? '14%' : '100%'}
+          minWidth={120}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
           style={{ opacity: routeLineDisabled ? 0.4 : 1 }}
         >
@@ -189,14 +193,37 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           />
         </Box>
 
+        {/* Simplified Map Switch */}
+        <Box
+          flexDirection="row"
+          alignItems="center"
+          mb="s"
+          width={isDesktop ? '14%' : '100%'}
+          minWidth={120}
+          justifyContent={isDesktop ? 'flex-end' : 'space-between'}
+        >
+          <Box mr="s">
+            <Text variant="body" fontWeight="bold">
+              {t('simplifiedMap')}
+            </Text>
+            <Text variant="bodySecondary">{t('uniformSmallDots')}</Text>
+          </Box>
+          <Switch
+            value={simplifiedMap}
+            onValueChange={setSimplifiedMap}
+            trackColor={{ false: '#767577', true: '#10B981' }}
+            thumbColor={simplifiedMap ? '#fff' : '#f4f3f4'}
+          />
+        </Box>
+
         {/* Pre-Cache Offline Map */}
         {Platform.OS === PLATFORM_WEB && (
           <Box
             flexDirection="row"
             alignItems="center"
             mb="s"
-            width={isDesktop ? '22%' : '100%'}
-            minWidth={160}
+            width={isDesktop ? '18%' : '100%'}
+            minWidth={140}
             justifyContent={isDesktop ? 'flex-end' : 'flex-start'}
           >
             <TouchableOpacity

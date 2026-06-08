@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { ThemeProvider } from '@shopify/restyle';
-import { Modal } from 'react-native';
+import { Modal, Platform } from 'react-native';
 import { DropdownSelector } from './DropdownSelector';
 import { theme } from './theme';
 
@@ -153,5 +153,66 @@ describe('DropdownSelector', () => {
     });
 
     expect(queryByText('Option B')).toBeNull();
+  });
+
+  describe('Web specific behavior', () => {
+    let originalOS: string;
+
+    beforeAll(() => {
+      originalOS = Platform.OS;
+    });
+
+    afterAll(() => {
+      Object.defineProperty(Platform, 'OS', {
+        get: () => originalOS,
+        configurable: true,
+      });
+    });
+
+    it('renders native select on web', () => {
+      Object.defineProperty(Platform, 'OS', {
+        get: () => 'web',
+        configurable: true,
+      });
+
+      const onValueChangeMock = jest.fn();
+      const { getByText, queryByText, getByTestId } = renderWithTheme(
+        <DropdownSelector
+          label="Select Web Letter"
+          selectedValue=""
+          options={options}
+          onValueChange={onValueChangeMock}
+          placeholder="Choose web..."
+          disabled={false}
+        />,
+      );
+
+      expect(getByText('Select Web Letter')).toBeTruthy();
+      expect(queryByText('Choose web...')).toBeNull(); // Placeholder is rendered as an option, so queryByText of placeholder might be null or found depending on test, but modal cancel shouldn't be found
+      expect(queryByText('Cancel')).toBeNull();
+
+      const select = getByTestId('web-select');
+      fireEvent(select, 'change', { target: { value: 'b' } });
+      expect(onValueChangeMock).toHaveBeenCalledWith('b');
+    });
+
+    it('renders native select disabled on web', () => {
+      Object.defineProperty(Platform, 'OS', {
+        get: () => 'web',
+        configurable: true,
+      });
+
+      const { getByText } = renderWithTheme(
+        <DropdownSelector
+          label="Select Web Letter"
+          selectedValue="a"
+          options={options}
+          onValueChange={jest.fn()}
+          disabled={true}
+        />,
+      );
+
+      expect(getByText('Select Web Letter')).toBeTruthy();
+    });
   });
 });

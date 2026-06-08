@@ -503,6 +503,19 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
           ltv: 150000.0,
           trend: 'IMPROVING',
         },
+        {
+          id: 'shop-5',
+          name: 'Mandalay Royal Palace Shop',
+          address: '73rd St, Mandalay',
+          latitude: 21.9902,
+          longitude: 96.0965,
+          region_id: 'region-mandalay',
+          township_id: 'township-chanayethazan',
+          ward_id: 'ward-pyigyimyatshin',
+          price_book_id: 'pb-mandalay',
+          ltv: 250000.0,
+          trend: 'STABLE',
+        },
       ];
 
       for (const s of shopsData) {
@@ -573,7 +586,7 @@ export class DrizzleService implements OnModuleInit, OnModuleDestroy {
             id: 'route-ko-hla',
             rep_id: 'rep-2',
             date: new Date().toISOString().split('T')[0],
-            shop_ids: JSON.stringify(['shop-2', 'shop-4']),
+            shop_ids: JSON.stringify(['shop-4', 'shop-5']),
             created_at: now,
             updated_at: now,
           },

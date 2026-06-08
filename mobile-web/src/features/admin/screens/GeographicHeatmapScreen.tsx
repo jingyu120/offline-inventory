@@ -153,6 +153,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
     availableReps,
   } = useGeographicHeatmapData();
 
+  const [simplifiedMap, setSimplifiedMap] = useState(false);
+
   const sheetMaxHeight = isDesktop ? 500 : Math.min(height * 0.6, 440);
   const legendBottom = selectedShop
     ? isDesktop
@@ -284,19 +286,24 @@ export const GeographicHeatmapScreen: React.FC = () => {
       .filter((shop) => shop.latitude && shop.longitude)
       .map((shop) => {
         const color = getRecencyColor(shop.lastContactDate);
-        const radius = getBubbleRadius(shop.lifetimeValue);
+        const radius = simplifiedMap ? 7 : getBubbleRadius(shop.lifetimeValue);
+        const isGreen = color === '#22C55E' || color === '#4ADE80';
 
         const marker = L.circleMarker(
           [shop.latitude ?? 0, shop.longitude ?? 0],
           {
             radius,
             fillColor: color,
-            color: '#ffffff',
-            weight: 1.5,
+            color: isGreen ? '#ffffff' : '#cbd5e1',
+            weight: isGreen ? 2.5 : 1,
             opacity: 1,
-            fillOpacity: 0.85,
+            fillOpacity: isGreen ? 1.0 : simplifiedMap ? 0.6 : 0.85,
           },
         ).addTo(mapInstance);
+
+        if (isGreen) {
+          marker.bringToFront();
+        }
 
         marker.on('click', () => {
           handleShopSelect(shop);
@@ -318,7 +325,9 @@ export const GeographicHeatmapScreen: React.FC = () => {
         const markerData = newMarkers.map((m) => {
           const latLng = m.getLatLng();
           const p = mapInstance.latLngToContainerPoint(latLng);
-          const r = getBubbleRadius((m as $Any).shopData.lifetimeValue);
+          const r = simplifiedMap
+            ? 7
+            : getBubbleRadius((m as $Any).shopData.lifetimeValue);
           return { marker: m, shop: (m as $Any).shopData, p, r };
         });
 
@@ -433,6 +442,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
     t,
     showRouteLine,
     selectedRegion,
+    simplifiedMap,
   ]);
 
   if (loading) {
@@ -482,17 +492,14 @@ export const GeographicHeatmapScreen: React.FC = () => {
           showRouteLine={showRouteLine}
           setShowRouteLine={setShowRouteLine}
           availableReps={availableReps}
+          simplifiedMap={simplifiedMap}
+          setSimplifiedMap={setSimplifiedMap}
         />
 
         {/* Map + Side Panel Split View */}
-        <Box flex={1} flexDirection="row" flexWrap="wrap">
+        <Box flex={1} flexDirection="row" style={{ minHeight: 520, gap: 16 }}>
           {/* Left Side: Map Block */}
-          <Box
-            flex={7}
-            minWidth={350}
-            height={500}
-            style={{ position: 'relative' }}
-          >
+          <Box flex={7} style={{ position: 'relative', minHeight: 520 }}>
             {isThermalCritical ? (
               <Box
                 flex={1}
@@ -503,7 +510,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 borderRadius="m"
                 justifyContent="center"
                 alignItems="center"
-                height={500}
+                style={{ minHeight: 520 }}
               >
                 <Text
                   variant="body"
@@ -537,6 +544,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 style={{
                   width: '100%',
                   height: '100%',
+                  minHeight: 520,
                   borderRadius: '8px',
                   border: '1px solid #EAEAEA',
                 }}
@@ -548,12 +556,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
           </Box>
 
           {/* Right Side: Context Ledger Sidebar */}
-          <Box
-            flex={3}
-            minWidth={300}
-            pl={Platform.OS === 'web' ? 'm' : 'none'}
-            pt={Platform.OS === 'web' ? 'none' : 'm'}
-          >
+          <Box flex={3} style={{ minHeight: 520, minWidth: 280 }}>
             {selectedShop ? (
               <MapDetailPane
                 selectedShop={selectedShop}
@@ -702,6 +705,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
               showRouteLine={showRouteLine}
               setShowRouteLine={setShowRouteLine}
               availableReps={availableReps}
+              simplifiedMap={simplifiedMap}
+              setSimplifiedMap={setSimplifiedMap}
             />
           </Box>
         </>

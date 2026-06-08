@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Box, Text } from './Primitives';
 import { Card } from './Card';
@@ -40,6 +41,72 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
     setIsOpen(false);
   };
 
+  // ── Web: use a native <select> for proper inline dropdown behavior ──────────
+  // This avoids the full-screen Modal overlay that blocks the map/other content
+  // and provides native browser dropdown UX (accessible, keyboard-friendly).
+  if (Platform.OS === 'web') {
+    return (
+      <Box mb="s" width="100%">
+        {label && (
+          <Text
+            variant="bodySecondary"
+            fontWeight="bold"
+            mb="xs"
+            style={disabled ? { opacity: 0.6 } : undefined}
+          >
+            {label}
+          </Text>
+        )}
+        <Box
+          borderWidth={1}
+          borderColor="borderColor"
+          borderRadius="m"
+          bg={disabled ? 'secondaryBackground' : 'cardBackground'}
+          px="m"
+          style={{ overflow: 'hidden', opacity: disabled ? 0.6 : 1 }}
+        >
+          <select
+            {...({ testID: 'web-select' } as Record<string, unknown>)}
+            value={selectedValue}
+            disabled={disabled}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              onValueChange(e.target.value)
+            }
+            style={{
+              width: '100%',
+              minHeight: 40,
+              border: 'none',
+              background: 'transparent',
+              fontSize: 14,
+              color: selectedValue ? 'inherit' : '#9CA3AF',
+              outline: 'none',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              paddingRight: 24,
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 8px center',
+            }}
+          >
+            {!selectedValue && (
+              <option value="" disabled>
+                {placeholder}
+              </option>
+            )}
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </Box>
+      </Box>
+    );
+  }
+
+  // ── Native (iOS / Android): keep the Modal picker ───────────────────────────
   return (
     <Box mb="s" width="100%">
       {label && (

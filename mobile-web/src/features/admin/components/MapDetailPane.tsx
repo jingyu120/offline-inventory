@@ -199,7 +199,7 @@ export const MapDetailPane: React.FC<MapDetailPaneProps> = ({
 
   return (
     <ScrollView
-      style={{ maxHeight: maxHeight ?? 500 }}
+      style={{ maxHeight: maxHeight ?? '100%' }}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
     >
