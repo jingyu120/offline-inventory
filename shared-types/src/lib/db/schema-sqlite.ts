@@ -141,6 +141,10 @@ export const interaction_logs = sqliteTable(
     executed_by_id: text('executed_by_id'),
     salesperson_id: text('salesperson_id'),
     approved_by_id: text('approved_by_id'),
+    // Delivery lifecycle fields (Sprint 35)
+    assigned_driver_id: text('assigned_driver_id'),
+    dispatched_at: integer('dispatched_at'),
+    pod_image_url: text('pod_image_url'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -381,6 +385,7 @@ export const image_upload_queue = sqliteTable('image_upload_queue', {
   local_file_path: text('local_file_path').notNull(),
   interaction_log_id: text('interaction_log_id'),
   competitor_insight_id: text('competitor_insight_id'),
+  image_type: text('image_type'), // 'viber' | 'pod'
   status: text('status').notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
   trace_id: text('trace_id'),
   actor_id: text('actor_id'),
@@ -539,3 +544,42 @@ export const expected_inbounds = sqliteTable('expected_inbounds', {
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
+
+// ─── Accounts Receivable – read-only pull-down (Sprint 35) ──────────────────
+
+export const invoices = sqliteTable(
+  'invoices',
+  {
+    id: text('id').primaryKey(),
+    shop_id: text('shop_id').notNull(),
+    interaction_log_id: text('interaction_log_id'),
+    amount: real('amount').notNull(),
+    due_date: integer('due_date').notNull(),
+    grace_period_days: integer('grace_period_days').notNull().default(7),
+    // PENDING | PARTIALLY_PAID | PAID | OVERDUE | WRITTEN_OFF
+    state: text('state').notNull().default('PENDING'),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    shopIdIdx: index('invoices_shop_id_idx').on(table.shop_id),
+  }),
+);
+
+export const payments = sqliteTable(
+  'payments',
+  {
+    id: text('id').primaryKey(),
+    invoice_id: text('invoice_id').notNull(),
+    amount: real('amount').notNull(),
+    payment_date: integer('payment_date').notNull(),
+    transaction_ref: text('transaction_ref'),
+    screenshot_url: text('screenshot_url'),
+    reconciled_by: text('reconciled_by'),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    invoiceIdIdx: index('payments_invoice_id_idx').on(table.invoice_id),
+  }),
+);

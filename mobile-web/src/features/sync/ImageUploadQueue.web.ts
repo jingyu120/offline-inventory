@@ -84,6 +84,7 @@ export class ImageUploadQueue {
         id: queueId,
         local_file_path: localFilePath,
         interaction_log_id: interactionLogId,
+        image_type: 'viber',
         status: 'pending',
         trace_id: traceId || null,
         actor_id: actorId || null,
@@ -99,6 +100,51 @@ export class ImageUploadQueue {
     } catch (err) {
       console.error(
         '[ImageUploadQueue] Failed to write queue entry to local db:',
+        err,
+      );
+    }
+  }
+
+  static async enqueuePodImage(
+    interactionLogId: string,
+    tempUri: string,
+    traceId?: string,
+    actorId?: string,
+  ): Promise<void> {
+    console.log(
+      `[ImageUploadQueue] Enqueuing POD image for log ${interactionLogId}, tempUri: ${tempUri}`,
+    );
+
+    const localFilePath = tempUri;
+
+    if (tempUri.startsWith('blob:')) {
+      activeSessionBlobs.add(tempUri);
+    }
+
+    const queueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+      await database.insert(sqliteSchema.image_upload_queue).values({
+        id: queueId,
+        local_file_path: localFilePath,
+        interaction_log_id: interactionLogId,
+        image_type: 'pod',
+        status: 'pending',
+        trace_id: traceId || null,
+        actor_id: actorId || null,
+        created_at: now,
+        updated_at: now,
+      });
+      console.log(`[ImageUploadQueue] Enqueued POD task ${queueId}`);
+      ImageUploadQueue.notifySubscribers();
+
+      this.processQueue().catch((err) => {
+        console.error('[ImageUploadQueue] background process error:', err);
+      });
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to write POD queue entry to local db:',
         err,
       );
     }
@@ -217,6 +263,9 @@ export class ImageUploadQueue {
             formData.append('competitorInsightId', task.competitor_insight_id);
           } else {
             formData.append('interactionLogId', task.interaction_log_id || '');
+            if ((task as $Any).image_type === 'pod') {
+              formData.append('imageType', 'pod');
+            }
           }
 
           const uploadRes = await axios.post(
@@ -251,10 +300,11 @@ export class ImageUploadQueue {
                   ),
                 );
             } else if (task.interaction_log_id) {
+              const isPod = (task as $Any).image_type === 'pod';
               await database
                 .update(sqliteSchema.interaction_logs)
                 .set({
-                  viber_screenshot_url: serverUrl,
+                  [isPod ? 'pod_image_url' : 'viber_screenshot_url']: serverUrl,
                   synced_at_server: null,
                   updated_at: Math.floor(Date.now() / 1000),
                 })

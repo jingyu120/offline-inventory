@@ -208,7 +208,10 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         is_offline_entry INTEGER NOT NULL DEFAULT 0,
         device_id TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        assigned_driver_id TEXT,
+        dispatched_at INTEGER,
+        pod_image_url TEXT
       );
       CREATE TABLE IF NOT EXISTS interaction_items (
         id TEXT PRIMARY KEY NOT NULL,
@@ -345,6 +348,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         local_file_path TEXT NOT NULL,
         interaction_log_id TEXT,
         competitor_insight_id TEXT,
+        image_type TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -437,6 +441,28 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS invoices (
+        id TEXT PRIMARY KEY NOT NULL,
+        shop_id TEXT NOT NULL,
+        interaction_log_id TEXT,
+        amount REAL NOT NULL,
+        due_date INTEGER NOT NULL,
+        grace_period_days INTEGER NOT NULL DEFAULT 7,
+        state TEXT NOT NULL DEFAULT 'PENDING',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS payments (
+        id TEXT PRIMARY KEY NOT NULL,
+        invoice_id TEXT NOT NULL,
+        amount REAL NOT NULL,
+        payment_date INTEGER NOT NULL,
+        transaction_ref TEXT,
+        screenshot_url TEXT,
+        reconciled_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
 
     // Run table creation as migration as well in case DB is already initialized
@@ -482,6 +508,28 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         executed_by_id TEXT,
         salesperson_id TEXT,
         approved_by_id TEXT
+      );
+      CREATE TABLE IF NOT EXISTS invoices (
+        id TEXT PRIMARY KEY NOT NULL,
+        shop_id TEXT NOT NULL,
+        interaction_log_id TEXT,
+        amount REAL NOT NULL,
+        due_date INTEGER NOT NULL,
+        grace_period_days INTEGER NOT NULL DEFAULT 7,
+        state TEXT NOT NULL DEFAULT 'PENDING',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS payments (
+        id TEXT PRIMARY KEY NOT NULL,
+        invoice_id TEXT NOT NULL,
+        amount REAL NOT NULL,
+        payment_date INTEGER NOT NULL,
+        transaction_ref TEXT,
+        screenshot_url TEXT,
+        reconciled_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
       );
     `);
 
@@ -580,6 +628,10 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
     alterTable('draft_carts', 'approved_by_id', 'TEXT');
     alterTable('telemetry_logs', 'thermal_status', 'TEXT');
     alterTable('telemetry_logs', 'network_generation_2G_EDGE', 'TEXT');
+    alterTable('interaction_logs', 'assigned_driver_id', 'TEXT');
+    alterTable('interaction_logs', 'dispatched_at', 'INTEGER');
+    alterTable('interaction_logs', 'pod_image_url', 'TEXT');
+    alterTable('image_upload_queue', 'image_type', 'TEXT');
 
     // Check if shops table is empty
     let isEmpty = true;

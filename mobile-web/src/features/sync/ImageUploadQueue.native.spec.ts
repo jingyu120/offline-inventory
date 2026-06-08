@@ -506,5 +506,79 @@ describe('ImageUploadQueue (Native)', () => {
       );
       consoleWarnSpy.mockRestore();
     });
+
+    it('handles temp compressed file delete/cleanup errors gracefully', async () => {
+      (global as any).__mockNetworkDegraded = true;
+
+      const mockTask = {
+        id: 'task-native-temp-cleanup-err',
+        local_file_path: 'mock-doc-dir/viber_uploads/log-cleanup-temp.jpg',
+        interaction_log_id: 'log-cleanup-temp',
+        status: 'pending',
+      };
+
+      mockDb.select.mockReturnValue(createQueryChain([mockTask]) as any);
+      mockDb.update.mockReturnValue(createQueryChain([]) as any);
+      mockDb.delete.mockReturnValue(createQueryChain([]) as any);
+
+      (FileSystem.uploadAsync as jest.Mock).mockResolvedValue({
+        status: 200,
+        body: JSON.stringify({ url: 'https://cdn.com/uploaded.jpg' }),
+      });
+
+      (FileSystem.deleteAsync as jest.Mock)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Temp delete error'));
+
+      const consoleWarnSpy = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      await ImageUploadQueue.processQueue();
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[ImageUploadQueue] Failed to delete temp compressed file:',
+        ),
+        expect.any(Error),
+      );
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should upload native POD images, update interaction logs pod_image_url, and delete task', async () => {
+      const mockTask = {
+        id: 'task-native-pod-1',
+        local_file_path: 'mock-doc-dir/viber_uploads/log-pod-native.jpg',
+        interaction_log_id: 'log-pod-native',
+        status: 'pending',
+        image_type: 'pod',
+      };
+
+      mockDb.select.mockReturnValue(createQueryChain([mockTask]) as any);
+      mockDb.update.mockReturnValue(createQueryChain([]) as any);
+      mockDb.delete.mockReturnValue(createQueryChain([]) as any);
+
+      (FileSystem.uploadAsync as jest.Mock).mockResolvedValue({
+        status: 200,
+        body: JSON.stringify({
+          url: 'https://cdn.com/uploaded-pod.jpg',
+        }),
+      });
+
+      await ImageUploadQueue.processQueue();
+
+      expect(FileSystem.uploadAsync).toHaveBeenCalledWith(
+        expect.any(String),
+        'mock-doc-dir/viber_uploads/log-pod-native.jpg',
+        expect.objectContaining({
+          parameters: expect.objectContaining({
+            imageType: 'pod',
+          }),
+        }),
+      );
+
+      expect(mockDb.update).toHaveBeenNthCalledWith(2, expect.any(Object));
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
   });
 });

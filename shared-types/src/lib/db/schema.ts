@@ -147,6 +147,10 @@ export const interaction_logs = pgTable(
     executed_by_id: text('executed_by_id'),
     salesperson_id: text('salesperson_id'),
     approved_by_id: text('approved_by_id'),
+    // Delivery lifecycle fields (Sprint 35)
+    assigned_driver_id: text('assigned_driver_id'),
+    dispatched_at: bigint('dispatched_at', { mode: 'number' }),
+    pod_image_url: text('pod_image_url'),
   },
   (table) => ({
     shopIdIdx: index('interaction_logs_shop_id_idx').on(table.shop_id),
@@ -569,3 +573,43 @@ export const expected_inbounds = pgTable('expected_inbounds', {
   created_at: bigint('created_at', { mode: 'number' }).notNull(),
   updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
 });
+
+// ─── Accounts Receivable (Sprint 35) ──────────────────────────────────────────
+
+export const invoices = pgTable(
+  'invoices',
+  {
+    id: text('id').primaryKey(),
+    shop_id: text('shop_id').notNull(),
+    interaction_log_id: text('interaction_log_id'),
+    amount: doublePrecision('amount').notNull(),
+    due_date: bigint('due_date', { mode: 'number' }).notNull(),
+    grace_period_days: integer('grace_period_days').notNull().default(7),
+    // PENDING | PARTIALLY_PAID | PAID | OVERDUE | WRITTEN_OFF
+    state: text('state').notNull().default('PENDING'),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    shopIdIdx: index('invoices_shop_id_idx').on(table.shop_id),
+    logIdIdx: index('invoices_log_id_idx').on(table.interaction_log_id),
+  }),
+);
+
+export const payments = pgTable(
+  'payments',
+  {
+    id: text('id').primaryKey(),
+    invoice_id: text('invoice_id').notNull(),
+    amount: doublePrecision('amount').notNull(),
+    payment_date: bigint('payment_date', { mode: 'number' }).notNull(),
+    transaction_ref: text('transaction_ref'),
+    screenshot_url: text('screenshot_url'),
+    reconciled_by: text('reconciled_by'),
+    created_at: bigint('created_at', { mode: 'number' }).notNull(),
+    updated_at: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table) => ({
+    invoiceIdIdx: index('payments_invoice_id_idx').on(table.invoice_id),
+  }),
+);

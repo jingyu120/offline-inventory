@@ -346,5 +346,44 @@ describe('ImageUploadQueue (Web)', () => {
       await ImageUploadQueue.processQueue();
       expect(mockDb.delete).toHaveBeenCalled();
     });
+
+    it('should upload POD images, update interaction logs pod_image_url, and delete task', async () => {
+      const mockTask = {
+        id: 'task-pod-1',
+        local_file_path: 'data:image/jpeg;base64,mock-data',
+        interaction_log_id: 'log-pod-1',
+        status: 'pending',
+        image_type: 'pod',
+      };
+
+      const selectChain = createQueryChain([mockTask]);
+      mockDb.select.mockReturnValue(selectChain as any);
+
+      const updateChain = createQueryChain([]);
+      mockDb.update.mockReturnValue(updateChain as any);
+
+      const deleteChain = createQueryChain([]);
+      mockDb.delete.mockReturnValue(deleteChain as any);
+
+      (axios.post as jest.Mock).mockResolvedValue({
+        data: { url: 'https://cdn.server.com/pod123.jpg' },
+      });
+
+      const mockBlob = new Blob(['mock-binary-data'], { type: 'image/jpeg' });
+      global.fetch = jest.fn().mockResolvedValue({
+        blob: jest.fn().mockResolvedValue(mockBlob),
+      });
+
+      await ImageUploadQueue.processQueue();
+
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/upload'),
+        expect.any(FormData),
+        expect.any(Object),
+      );
+
+      expect(mockDb.update).toHaveBeenNthCalledWith(2, expect.any(Object));
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
   });
 });

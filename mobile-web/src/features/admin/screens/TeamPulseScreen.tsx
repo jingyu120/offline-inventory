@@ -29,11 +29,13 @@ import { HitlVerificationPanel } from '../components/HitlVerificationPanel';
 import { DlqDashboard } from '../components/DlqDashboard';
 import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
 import { PendingSalesApproval } from '../components/PendingSalesApproval';
+import { PendingReconciliationPanel } from '../components/PendingReconciliationPanel';
 
 const TAB_OVERSIGHT = 'oversight';
 const TAB_HITL = 'hitl';
 const TAB_DLQ = 'dlq';
 const TAB_APPROVALS = 'approvals';
+const TAB_RECONCILIATION = 'reconciliation';
 
 const DATE_FORMAT_PLACEHOLDER = 'YYYY-MM-DD';
 const PLATFORM_WEB = 'web';
@@ -81,7 +83,7 @@ export const TeamPulseScreen: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'oversight' | 'hitl' | 'dlq' | 'approvals'
+    'oversight' | 'hitl' | 'dlq' | 'approvals' | 'reconciliation'
   >(TAB_OVERSIGHT);
 
   // Focus states for emerald focus rings on inputs
@@ -259,6 +261,27 @@ export const TeamPulseScreen: React.FC = () => {
             </Text>
           </Box>
         </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setActiveTab(TAB_RECONCILIATION)}>
+          <Box
+            py="s"
+            px="m"
+            borderBottomWidth={2}
+            borderBottomColor={
+              activeTab === TAB_RECONCILIATION ? 'brand' : 'transparent'
+            }
+          >
+            <Text
+              variant="body"
+              fontWeight="bold"
+              color={
+                activeTab === TAB_RECONCILIATION ? 'brand' : 'secondaryText'
+              }
+            >
+              {t('arReconciliation')}
+            </Text>
+          </Box>
+        </TouchableOpacity>
       </Box>
 
       {activeTab === TAB_HITL && <HitlVerificationPanel shops={shops} />}
@@ -275,6 +298,8 @@ export const TeamPulseScreen: React.FC = () => {
           </Box>
         </Box>
       )}
+
+      {activeTab === TAB_RECONCILIATION && <PendingReconciliationPanel />}
 
       {activeTab === TAB_OVERSIGHT && (
         <>

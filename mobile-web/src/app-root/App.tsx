@@ -17,6 +17,7 @@ import { GeographicHeatmapScreen } from '../features/admin/screens/GeographicHea
 import { TeamPulseScreen } from '../features/admin/screens/TeamPulseScreen';
 import { IntakeScreen } from '../features/inventory/screens/IntakeScreen';
 import { ViberSimulator } from '../features/viber/components/ViberSimulator';
+import { DriverManifestScreen } from '../features/audit/screens/DriverManifestScreen';
 import { SyncConflictModal } from '../features/sync/components/SyncConflictModal';
 import { ToastProvider } from '../core/components/ToastProvider';
 import { LanguageProvider, useTranslation } from '../core/i18n/i18n';
@@ -81,7 +82,12 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
   const setRecoveryState = useCartStore((state) => state.setRecoveryState);
 
   const [currentScreen, setCurrentScreen] = useState<
-    'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot'
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest'
   >(recoveryState?.currentScreen || 'ledger');
 
   const [thermalState, setThermalState] = useState<ThermalState>(
@@ -339,6 +345,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
         {currentScreen === 'leadership' && <TeamPulseScreen />}
         {currentScreen === 'intake' && <IntakeScreen />}
         {currentScreen === 'viber-bot' && <ViberSimulator />}
+        {currentScreen === 'driver-manifest' && <DriverManifestScreen />}
       </Box>
 
       {/* Sortly-style Mobile Bottom Navigation Tab Bar */}

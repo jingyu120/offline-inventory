@@ -6,7 +6,7 @@ import { Shop, Contact, sqliteSchema } from '@burma-inventory/shared-types';
 import { LogWithItems, mapItem } from '../../../core/data/repositories';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { database } from '../../../core/database/database';
-import { eq } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
 import { getCachedLocation } from '../../../core/utils/locationCache';
@@ -19,6 +19,7 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  AlertTriangle,
 } from 'lucide-react-native';
 import {
   calculateDistance,
@@ -146,6 +147,12 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   const [repScore, setRepScore] = React.useState<$Any>(null);
   const [pointsLogs, setPointsLogs] = React.useState<$Any[]>([]);
   const [repKpis, setRepKpis] = React.useState<$Any>(null);
+  // AR Aging state (Sprint 35)
+  const [invoiceArState, setInvoiceArState] = React.useState<{
+    totalOverdue: number;
+    overdueAgingDays: number;
+    isFrozen: boolean;
+  }>({ totalOverdue: 0, overdueAgingDays: 0, isFrozen: false });
   const [activeMobileTab, setActiveMobileTab] = React.useState<
     'checkin' | 'history' | 'ai_insights' | 'scorecard'
   >('checkin');
@@ -287,6 +294,41 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
             }
           : null,
       );
+
+      // 8. AR Aging (Sprint 35) – query invoices for this shop
+      const now = Date.now();
+      const allInvoices = await database
+        .select()
+        .from(sqliteSchema.invoices)
+        .where(
+          and(
+            eq(sqliteSchema.invoices.shop_id, shop.id),
+            or(
+              eq(sqliteSchema.invoices.state, 'PENDING'),
+              eq(sqliteSchema.invoices.state, 'PARTIALLY_PAID'),
+              eq(sqliteSchema.invoices.state, 'OVERDUE'),
+            ),
+          ),
+        );
+
+      let totalOverdue = 0;
+      let maxAgingDays = 0;
+      for (const inv of allInvoices) {
+        const effectiveDue =
+          inv.due_date + inv.grace_period_days * 24 * 60 * 60 * 1000;
+        if (now > effectiveDue) {
+          totalOverdue += inv.amount;
+          const agingDays = Math.floor(
+            (now - effectiveDue) / (24 * 60 * 60 * 1000),
+          );
+          if (agingDays > maxAgingDays) maxAgingDays = agingDays;
+        }
+      }
+      setInvoiceArState({
+        totalOverdue,
+        overdueAgingDays: maxAgingDays,
+        isFrozen: maxAgingDays >= 30,
+      });
     } catch (e) {
       console.error('Failed to load shop details:', e);
     }
@@ -458,11 +500,47 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           )}
         </Box>
         <Box style={!isDesktop ? { alignSelf: 'stretch' } : undefined}>
-          <Button
-            title={t('logInteraction')}
-            onPress={handleStartAudit}
-            variant="primary"
-          />
+          {invoiceArState.isFrozen ? (
+            // Account frozen – show lock banner, disable interaction button
+            <Box
+              bg="dangerBg"
+              borderRadius="s"
+              px="m"
+              py="s"
+              flexDirection="row"
+              alignItems="center"
+              style={{ gap: 8 }}
+            >
+              <AlertTriangle size={18} color={theme.colors.dangerText} />
+              <Box flex={1}>
+                <Text
+                  variant="bodySecondary"
+                  color="dangerText"
+                  fontWeight="bold"
+                  fontSize={13}
+                >
+                  {t('accountFrozenAr')}
+                </Text>
+                <Text variant="bodySecondary" color="dangerText" fontSize={11}>
+                  {t('arOverdueOutstanding')
+                    .replace(
+                      '{days}',
+                      invoiceArState.overdueAgingDays.toString(),
+                    )
+                    .replace(
+                      '{amount}',
+                      invoiceArState.totalOverdue.toLocaleString(),
+                    )}
+                </Text>
+              </Box>
+            </Box>
+          ) : (
+            <Button
+              title={t('logInteraction')}
+              onPress={handleStartAudit}
+              variant="primary"
+            />
+          )}
         </Box>
       </Box>
 

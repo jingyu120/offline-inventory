@@ -251,4 +251,18 @@ export const TABLE_REGISTRY: Record<string, TableSyncConfig> = {
     toRecord: (r) => r,
     toDrizzle: (r) => r,
   },
+  invoices: {
+    delegate: 'invoices',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
+  },
+  payments: {
+    delegate: 'payments',
+    softDelete: false,
+    hasTimestamps: true,
+    toRecord: (r) => r,
+    toDrizzle: (r) => r,
+  },
 };

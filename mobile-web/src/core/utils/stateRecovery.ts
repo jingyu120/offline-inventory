@@ -3,7 +3,13 @@ import { Platform } from 'react-native';
 const RECOVERY_STATE_KEY = 'burma_app_recovery_state';
 
 export interface AppRecoveryState {
-  currentScreen?: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot';
+  currentScreen?:
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest';
   selectedShopId?: string | null;
   activeRowIndex?: number | null;
   loggingModalVisible?: boolean;

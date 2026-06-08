@@ -34,6 +34,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import * as multer from 'multer';
+import { AiService } from '../ai/ai.service';
 
 const configInstance = new AppConfig();
 
@@ -60,6 +61,7 @@ export class SyncController {
     private readonly aiQueueService: AiQueueService,
     private readonly config: AppConfig,
     private readonly invalidationEngine: InvalidationBroadcastEngine,
+    private readonly aiService: AiService,
   ) {}
 
   @Sse('live-invalidations')
@@ -141,6 +143,7 @@ export class SyncController {
     @Req() req: $Any,
     @Body('interactionLogId') interactionLogId?: string,
     @Body('competitorInsightId') competitorInsightId?: string,
+    @Body('imageType') imageType?: string,
   ) {
     if (!file) {
       return { success: false, error: 'No file uploaded' };
@@ -161,23 +164,35 @@ export class SyncController {
       };
     }
 
-    const url = await this.syncService.updateInteractionLogScreenshot(
-      interactionLogId,
-      file.filename,
-    );
+    const isPod = imageType === 'pod';
+    const url = isPod
+      ? await this.syncService.updateInteractionLogPodImage(
+          interactionLogId,
+          file.filename,
+        )
+      : await this.syncService.updateInteractionLogScreenshot(
+          interactionLogId,
+          file.filename,
+        );
 
-    // Trigger local asynchronous multimodal screenshot auditing via BullMQ
-    const traceId = req.traceId || req.headers?.['x-trace-id'];
-    const actorId = req.actorId || req.headers?.['x-actor-id'] || 'system';
-    const fullPath = join(process.cwd(), this.config.uploadsDir, file.filename);
-    await this.aiQueueService.addScreenshotJob(
-      interactionLogId,
-      fullPath,
-      traceId,
-      actorId,
-    );
+    if (!isPod) {
+      // Trigger local asynchronous multimodal screenshot auditing via BullMQ (Viber screenshot only)
+      const traceId = req.traceId || req.headers?.['x-trace-id'];
+      const actorId = req.actorId || req.headers?.['x-actor-id'] || 'system';
+      const fullPath = join(
+        process.cwd(),
+        this.config.uploadsDir,
+        file.filename,
+      );
+      await this.aiQueueService.addScreenshotJob(
+        interactionLogId,
+        fullPath,
+        traceId,
+        actorId,
+      );
+    }
 
-    return { success: true, viberScreenshotUrl: url };
+    return { success: true, url, viberScreenshotUrl: isPod ? undefined : url };
   }
 
   @Get('uploads/:filename')
@@ -379,5 +394,62 @@ export class SyncController {
       shopId: contact.shop_id,
       screenshotUrl,
     };
+  }
+
+  // ─── Payment OCR & Reconciliation (Sprint 35) ─────────────────────────────────
+
+  /**
+   * POST /api/sync/ai/parse-payment-transfer
+   * Accepts a multipart image upload and returns structured payment metadata
+   * extracted via the multimodal LLM.
+   */
+  @Post('ai/parse-payment-transfer')
+  @UseInterceptors(FileInterceptor('file', { storage }))
+  async parsePaymentTransfer(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+    const imageBuffer = fs.readFileSync(file.path);
+    const base64Image = imageBuffer.toString('base64');
+    const result = await this.aiService.parsePaymentTransfer(base64Image);
+    const screenshotUrl = `/api/sync/uploads/${file.filename}`;
+    return {
+      ...result,
+      screenshotUrl,
+    };
+  }
+
+  /**
+   * POST /api/sync/ai/reconcile-payment
+   * Applies FIFO payment reconciliation for a shop's outstanding invoices.
+   * Body: { shopId, paymentAmount, transactionRef?, screenshotUrl?, actorId? }
+   */
+  @Post('ai/reconcile-payment')
+  async reconcilePayment(
+    @Body()
+    body: {
+      shopId: string;
+      paymentAmount: number;
+      transactionRef?: string;
+      screenshotUrl?: string;
+      actorId?: string;
+    },
+    @Headers('x-actor-id') headerActorId?: string,
+  ) {
+    const { shopId, paymentAmount, transactionRef, screenshotUrl } = body;
+    if (!shopId || !paymentAmount || paymentAmount <= 0) {
+      throw new BadRequestException(
+        'shopId and a positive paymentAmount are required',
+      );
+    }
+    const actorId = body.actorId || headerActorId || 'system';
+    const result = await this.aiService.reconcilePaymentFifo(
+      shopId,
+      paymentAmount,
+      transactionRef ?? null,
+      screenshotUrl ?? null,
+      actorId,
+    );
+    return result;
   }
 }

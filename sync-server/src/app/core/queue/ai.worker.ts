@@ -24,6 +24,13 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
               traceId,
               actorId,
             );
+          } else if (name === 'parse-payment-transfer') {
+            const { base64Image } = data;
+            const result =
+              await this.aiService.parsePaymentTransfer(base64Image);
+            console.log(
+              `[AiWorker] Payment transfer parsed: confidence=${result.confidence}, amount=${result.amount}, txId=${result.transactionId}`,
+            );
           } else if (name === 'eod-digest') {
             const { dateStr } = data;
             await this.aiService.generateEodDigest(dateStr);

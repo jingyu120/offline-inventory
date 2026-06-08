@@ -10,12 +10,25 @@ import {
   Activity,
   Package,
   MessageSquare,
+  Truck,
 } from 'lucide-react-native';
 
 interface BottomTabBarProps {
-  currentScreen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot';
+  currentScreen:
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest';
   setCurrentScreen: (
-    screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
+    screen:
+      | 'ledger'
+      | 'heatmap'
+      | 'leadership'
+      | 'intake'
+      | 'viber-bot'
+      | 'driver-manifest',
   ) => void;
   activeTheme: $Any;
 }
@@ -64,6 +77,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         } else if (screen === 'viber-bot') {
           label = language === 'my' ? 'အော်ဒါဆွဲသူ' : 'Drafter';
           IconComponent = MessageSquare;
+        } else if (screen === 'driver-manifest') {
+          label = language === 'my' ? 'ပို့ဆောင်မှု' : 'Manifest';
+          IconComponent = Truck;
         }
 
         return (

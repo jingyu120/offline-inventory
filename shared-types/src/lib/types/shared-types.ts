@@ -808,7 +808,9 @@ export type SyncTableName =
   | 'competitor_insights'
   | 'pending_inventory_updates'
   | 'audit_events'
-  | 'expected_inbounds';
+  | 'expected_inbounds'
+  | 'invoices'
+  | 'payments';
 
 /** Full pull-response payload returned by sync-server. */
 export interface PullChangesResponse {
@@ -1179,3 +1181,30 @@ export const ExpectedInboundRecordSchema = z.object({
   created_at: z.number(),
   updated_at: z.number(),
 });
+
+// ─── Accounts Receivable (Sprint 35) ──────────────────────────────────────────
+
+export interface Invoice {
+  id: string;
+  shopId: string;
+  interactionLogId: string | null;
+  amount: number;
+  dueDate: number; // Unix ms
+  gracePeriodDays: number;
+  /** PENDING | PARTIALLY_PAID | PAID | OVERDUE | WRITTEN_OFF */
+  state: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  amount: number;
+  paymentDate: number; // Unix ms
+  transactionRef: string | null;
+  screenshotUrl: string | null;
+  reconciledBy: string | null;
+  createdAt: number;
+  updatedAt: number;
+}

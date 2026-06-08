@@ -18,9 +18,17 @@ export const AI_ANALYZE_SENTIMENT_URL = `${API_BASE_URL}/ai/analyze-sentiment`;
 export const AI_EOD_DIGEST_URL = `${API_BASE_URL}/ai/eod-digest`;
 export const AI_QUOTAS_OPTIMIZATIONS_URL = `${API_BASE_URL}/ai/quota-optimizations`;
 export const AI_OCR_INVOICE_URL = `${API_BASE_URL}/ai/ocr-invoice`;
+export const AI_PAYMENT_TRANSFER_URL = `${API_BASE_URL}/ai/parse-payment-transfer`;
+export const AI_RECONCILE_PAYMENT_URL = `${API_BASE_URL}/ai/reconcile-payment`;
 
 export interface ScreenConfig {
-  value: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot';
+  value:
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest';
   labelKey: string;
   icon: string;
 }
@@ -72,12 +80,26 @@ export interface SkuMetricConfig {
 // 1. Roles and Screens configuration
 export const ROLE_SCREENS: Record<
   string,
-  ('ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot')[]
+  (
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest'
+  )[]
 > = {
-  sales: ['ledger'],
+  sales: ['ledger', 'driver-manifest'],
   manager: ['heatmap', 'leadership'],
   intake: ['intake'],
-  admin: ['ledger', 'heatmap', 'leadership', 'intake', 'viber-bot'],
+  admin: [
+    'ledger',
+    'heatmap',
+    'leadership',
+    'intake',
+    'viber-bot',
+    'driver-manifest',
+  ],
 };
 
 export const SCREENS: ScreenConfig[] = [
@@ -86,6 +108,7 @@ export const SCREENS: ScreenConfig[] = [
   { value: 'leadership', labelKey: 'leadershipOversight', icon: '📊' },
   { value: 'intake', labelKey: 'intake', icon: '📦' },
   { value: 'viber-bot', labelKey: 'orderDrafter', icon: '💬' },
+  { value: 'driver-manifest', labelKey: 'driverManifest', icon: '🚚' },
 ];
 
 // 2. Commercial Status configurations
@@ -113,6 +136,25 @@ export const COMMERCIAL_STATUSES: CommercialStatusConfig[] = [
     labelKey: 'statusNoDeal',
     badgeBg: 'dangerBg',
     badgeColor: 'dangerText',
+  },
+  // Delivery lifecycle statuses (Sprint 35) – set on interaction_logs by drivers
+  {
+    value: 'PENDING_DISPATCH',
+    labelKey: 'statusPendingDispatch',
+    badgeBg: 'warningBg',
+    badgeColor: 'warningText',
+  },
+  {
+    value: 'DISPATCHED',
+    labelKey: 'statusDispatched',
+    badgeBg: 'infoBg',
+    badgeColor: 'infoText',
+  },
+  {
+    value: 'DELIVERED',
+    labelKey: 'statusDelivered',
+    badgeBg: 'successBg',
+    badgeColor: 'successText',
   },
 ];
 

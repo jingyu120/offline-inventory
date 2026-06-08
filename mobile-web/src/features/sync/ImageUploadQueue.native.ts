@@ -115,6 +115,7 @@ export class ImageUploadQueue {
         id: queueId,
         local_file_path: localFilePath,
         interaction_log_id: interactionLogId,
+        image_type: 'viber',
         status: 'pending',
         trace_id: traceId || null,
         actor_id: actorId || null,
@@ -130,6 +131,82 @@ export class ImageUploadQueue {
     } catch (err) {
       console.error(
         '[ImageUploadQueue] Failed to write queue entry to local db:',
+        err,
+      );
+    }
+  }
+
+  static async enqueuePodImage(
+    interactionLogId: string,
+    tempUri: string,
+    traceId?: string,
+    actorId?: string,
+  ): Promise<void> {
+    console.log(
+      `[ImageUploadQueue] Enqueuing POD image for log ${interactionLogId}, tempUri: ${tempUri}`,
+    );
+
+    let localFilePath = tempUri;
+
+    try {
+      const ImageManipulator = (require as $Any)('expo-image-manipulator');
+      const manipResult = await ImageManipulator.manipulateAsync(
+        tempUri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      tempUri = manipResult.uri;
+    } catch (err) {
+      console.warn(
+        '[ImageUploadQueue] Failed to compress image before enqueuing:',
+        err,
+      );
+    }
+
+    try {
+      const fsAny = FileSystem as $Any;
+      const dir = fsAny.documentDirectory + 'pod_uploads/';
+      const dirInfo = await FileSystem.getInfoAsync(dir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+      }
+      const filename = `${interactionLogId}-${Date.now()}.jpg`;
+      localFilePath = dir + filename;
+      await FileSystem.copyAsync({ from: tempUri, to: localFilePath });
+      console.log(
+        `[ImageUploadQueue] Copied file persistently to: ${localFilePath}`,
+      );
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to save persistent local file copy:',
+        err,
+      );
+    }
+
+    const queueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+      await database.insert(sqliteSchema.image_upload_queue).values({
+        id: queueId,
+        local_file_path: localFilePath,
+        interaction_log_id: interactionLogId,
+        image_type: 'pod',
+        status: 'pending',
+        trace_id: traceId || null,
+        actor_id: actorId || null,
+        created_at: now,
+        updated_at: now,
+      });
+      console.log(`[ImageUploadQueue] Enqueued POD task ${queueId}`);
+      ImageUploadQueue.notifySubscribers();
+
+      this.processQueue().catch((err) => {
+        console.error('[ImageUploadQueue] background process error:', err);
+      });
+    } catch (err) {
+      console.error(
+        '[ImageUploadQueue] Failed to write POD queue entry to local db:',
         err,
       );
     }
@@ -306,6 +383,9 @@ export class ImageUploadQueue {
             uploadParams.competitorInsightId = task.competitor_insight_id;
           } else {
             uploadParams.interactionLogId = task.interaction_log_id || '';
+            if ((task as $Any).image_type === 'pod') {
+              uploadParams.imageType = 'pod';
+            }
           }
 
           const uploadResult = await FileSystem.uploadAsync(
@@ -351,10 +431,11 @@ export class ImageUploadQueue {
                   ),
                 );
             } else if (task.interaction_log_id) {
+              const isPod = (task as $Any).image_type === 'pod';
               await database
                 .update(sqliteSchema.interaction_logs)
                 .set({
-                  viber_screenshot_url: serverUrl,
+                  [isPod ? 'pod_image_url' : 'viber_screenshot_url']: serverUrl,
                   synced_at_server: null,
                   updated_at: Math.floor(Date.now() / 1000),
                 })

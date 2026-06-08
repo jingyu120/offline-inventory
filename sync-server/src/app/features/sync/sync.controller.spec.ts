@@ -5,6 +5,7 @@ import { AiQueueService } from '../../core/queue/ai-queue.service';
 import { AppConfig } from '../../core/config/app-config';
 import { InvalidationBroadcastEngine } from './invalidation-broadcast.engine';
 import { Response } from 'express';
+import { AiService } from '../ai/ai.service';
 import {
   UnauthorizedException,
   BadRequestException,
@@ -12,6 +13,19 @@ import {
 } from '@nestjs/common';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
+
+// Prevent env.ts from calling process.exit(1) when DATABASE_URL is missing in CI
+jest.mock('../../../env', () => ({
+  env: {
+    DATABASE_URL: 'postgresql://test:test@localhost:5433/test_db',
+    DATABASE_REPLICA_URL: undefined,
+    GEMMA_API_URL: 'http://localhost:11434',
+    REDIS_URL: 'redis://localhost:6379',
+    SYNC_SERVER_PORT: 3000,
+    SYNC_SERVER_PREFIX: 'api',
+    NODE_ENV: 'test',
+  },
+}));
 
 jest.mock('multer', () => {
   const original = jest.requireActual('multer');
@@ -31,6 +45,7 @@ jest.mock('fs', () => {
     existsSync: jest.fn().mockReturnValue(true),
     mkdirSync: jest.fn(),
     writeFile: jest.fn().mockImplementation((path, data, cb) => cb(null)),
+    readFileSync: jest.fn(),
     promises: {
       writeFile: jest.fn().mockResolvedValue(undefined),
     },
@@ -77,6 +92,11 @@ describe('SyncController', () => {
     }),
   };
 
+  const mockAiService = {
+    parsePaymentTransfer: jest.fn(),
+    reconcilePaymentFifo: jest.fn(),
+  };
+
   beforeAll(() => {
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -96,6 +116,7 @@ describe('SyncController', () => {
           provide: InvalidationBroadcastEngine,
           useValue: mockInvalidationBroadcastEngine,
         },
+        { provide: AiService, useValue: mockAiService },
       ],
     }).compile();
 
@@ -295,6 +316,7 @@ describe('SyncController', () => {
       );
       expect(res).toEqual({
         success: true,
+        url: 'url-screenshot',
         viberScreenshotUrl: 'url-screenshot',
       });
     });
@@ -557,6 +579,133 @@ describe('SyncController', () => {
       await expect(
         controller.viberWebhook({} as any, body, 'mock_signature'),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('AI Endpoints', () => {
+    describe('parsePaymentTransfer', () => {
+      it('throws BadRequestException if no file is provided', async () => {
+        await expect(
+          controller.parsePaymentTransfer(undefined as any),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('reads the uploaded file, encodes it as base64, calls aiService, and returns the result', async () => {
+        const file = {
+          path: 'temp-path.jpg',
+          filename: 'temp-filename.jpg',
+        } as Express.Multer.File;
+
+        (fs.readFileSync as jest.Mock).mockReturnValueOnce(
+          Buffer.from('test-image-data'),
+        );
+        mockAiService.parsePaymentTransfer.mockResolvedValueOnce({
+          success: true,
+          amount: 150000,
+          transactionRef: 'TXN-ABC',
+        });
+
+        const res = await controller.parsePaymentTransfer(file);
+
+        expect(fs.readFileSync).toHaveBeenCalledWith('temp-path.jpg');
+        expect(mockAiService.parsePaymentTransfer).toHaveBeenCalledWith(
+          Buffer.from('test-image-data').toString('base64'),
+        );
+        expect(res).toEqual({
+          success: true,
+          amount: 150000,
+          transactionRef: 'TXN-ABC',
+          screenshotUrl: '/api/sync/uploads/temp-filename.jpg',
+        });
+      });
+    });
+
+    describe('reconcilePayment', () => {
+      it('throws BadRequestException if shopId is missing', async () => {
+        await expect(
+          controller.reconcilePayment(
+            { shopId: '', paymentAmount: 5000 },
+            'header-actor',
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('throws BadRequestException if paymentAmount is missing or non-positive', async () => {
+        await expect(
+          controller.reconcilePayment(
+            { shopId: 'shop-1', paymentAmount: 0 },
+            'header-actor',
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('calls reconcilePaymentFifo and returns the result', async () => {
+        const body = {
+          shopId: 'shop-1',
+          paymentAmount: 5000,
+          transactionRef: 'REF-123',
+          screenshotUrl: 'url-1',
+          actorId: 'custom-actor',
+        };
+
+        mockAiService.reconcilePaymentFifo.mockResolvedValueOnce({
+          success: true,
+          allocated: [],
+        });
+
+        const res = await controller.reconcilePayment(body, 'header-actor');
+
+        expect(mockAiService.reconcilePaymentFifo).toHaveBeenCalledWith(
+          'shop-1',
+          5000,
+          'REF-123',
+          'url-1',
+          'custom-actor',
+        );
+        expect(res).toEqual({ success: true, allocated: [] });
+      });
+
+      it('uses header-actor-id as fallback for actorId', async () => {
+        const body = {
+          shopId: 'shop-1',
+          paymentAmount: 5000,
+        };
+
+        mockAiService.reconcilePaymentFifo.mockResolvedValueOnce({
+          success: true,
+        });
+
+        await controller.reconcilePayment(body, 'header-actor');
+
+        expect(mockAiService.reconcilePaymentFifo).toHaveBeenCalledWith(
+          'shop-1',
+          5000,
+          null,
+          null,
+          'header-actor',
+        );
+      });
+
+      it('uses system as fallback if both actorId and header-actor-id are missing', async () => {
+        const body = {
+          shopId: 'shop-1',
+          paymentAmount: 5000,
+        };
+
+        mockAiService.reconcilePaymentFifo.mockResolvedValueOnce({
+          success: true,
+        });
+
+        await controller.reconcilePayment(body, undefined);
+
+        expect(mockAiService.reconcilePaymentFifo).toHaveBeenCalledWith(
+          'shop-1',
+          5000,
+          null,
+          null,
+          'system',
+        );
+      });
     });
   });
 });

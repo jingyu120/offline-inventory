@@ -17,9 +17,21 @@ interface NavBarProps {
   themeMode: 'light' | 'dark';
   setThemeMode: (mode: 'light' | 'dark') => void;
   activeTheme: $Any;
-  currentScreen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot';
+  currentScreen:
+    | 'ledger'
+    | 'heatmap'
+    | 'leadership'
+    | 'intake'
+    | 'viber-bot'
+    | 'driver-manifest';
   setCurrentScreen: (
-    screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
+    screen:
+      | 'ledger'
+      | 'heatmap'
+      | 'leadership'
+      | 'intake'
+      | 'viber-bot'
+      | 'driver-manifest',
   ) => void;
   isDesktop: boolean;
   isSyncing: boolean;
@@ -59,7 +71,13 @@ export const NavBar: React.FC<NavBarProps> = ({
   }, []);
 
   const getScreenDetails = (
-    screen: 'ledger' | 'heatmap' | 'leadership' | 'intake' | 'viber-bot',
+    screen:
+      | 'ledger'
+      | 'heatmap'
+      | 'leadership'
+      | 'intake'
+      | 'viber-bot'
+      | 'driver-manifest',
   ) => {
     const cfg = SCREENS.find((s) => s.value === screen);
     if (cfg) {

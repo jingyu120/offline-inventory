@@ -401,6 +401,55 @@ export class SyncService {
                 );
               }
             }
+
+            // ── Auto-Invoice (Sprint 35) ──────────────────────────────────────
+            // When an ORDER_PLACED interaction log is pushed, auto-generate an
+            // invoice for the shop so AR aging can begin immediately.
+            if (tableName === 'interaction_logs') {
+              const orderPlacedLogs = changeset.created.filter(
+                (r: $Any) => r.commercial_status === 'ORDER_PLACED',
+              );
+              for (const log of orderPlacedLogs) {
+                // Sum all interaction_items for this log to compute invoice amount
+                const items = await tx
+                  .select()
+                  .from(schema.pgSchema.interaction_items)
+                  .where(
+                    eq(
+                      schema.pgSchema.interaction_items.interaction_log_id,
+                      log.id,
+                    ),
+                  );
+                const amount = items.reduce(
+                  (sum: number, item: $Any) =>
+                    sum + (item.unit_price_at_sale || 0) * (item.quantity || 1),
+                  0,
+                );
+                const now = Date.now();
+                // Due in 30 days from the local creation timestamp
+                const logRec = log as unknown as schema.InteractionLogRecord;
+                const dueDate =
+                  (logRec.created_at_local || now) + 30 * 24 * 60 * 60 * 1000;
+                const invoiceId = `inv-${this.generateSequentialId()}`;
+                await tx
+                  .insert(schema.pgSchema.invoices)
+                  .values({
+                    id: invoiceId,
+                    shop_id: logRec.shop_id,
+                    interaction_log_id: log.id,
+                    amount,
+                    due_date: dueDate,
+                    grace_period_days: 7,
+                    state: 'PENDING',
+                    created_at: now,
+                    updated_at: now,
+                  })
+                  .onConflictDoNothing();
+                this.logger.log(
+                  `[AutoInvoice] Created invoice ${invoiceId} for log ${log.id} (shop ${logRec.shop_id}), amount=${amount}, due=${new Date(dueDate).toISOString()}`,
+                );
+              }
+            }
           }
 
           // Updates
@@ -798,6 +847,38 @@ export class SyncService {
     } else {
       this.logger.log(
         `[SyncService] Screenshot uploaded for ${interactionLogId}, but log does not exist on server yet. URL ${url} will sync via client push.`,
+      );
+    }
+
+    return url;
+  }
+
+  async updateInteractionLogPodImage(
+    interactionLogId: string,
+    filename: string,
+  ): Promise<string> {
+    const url = `/api/sync/uploads/${filename}`;
+    const existingRows = await this.drizzle.db
+      .select()
+      .from(schema.pgSchema.interaction_logs)
+      .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId))
+      .limit(1);
+    const existing = existingRows[0] || null;
+
+    if (existing) {
+      await this.drizzle.db
+        .update(schema.pgSchema.interaction_logs)
+        .set({
+          pod_image_url: url,
+          updated_at: Date.now(),
+        })
+        .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId));
+      this.logger.log(
+        `[SyncService] Updated interaction log ${interactionLogId} POD image URL to ${url}`,
+      );
+    } else {
+      this.logger.log(
+        `[SyncService] POD image uploaded for ${interactionLogId}, but log does not exist on server yet. URL ${url} will sync via client push.`,
       );
     }
 
