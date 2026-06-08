@@ -426,6 +426,9 @@ export const translations = {
     optimalVisitOrder: 'Optimal visit order',
     simplifiedMap: 'Simple Map',
     uniformSmallDots: 'Uniform dots',
+    mapStyle: 'Map Style',
+    mapStyleStandard: 'Standard Map',
+    mapStyleMuted: 'Clean / Muted',
 
     visualTileGallery: 'Visual Tile Design Gallery',
     visualTileGalleryDesc:
@@ -1268,6 +1271,9 @@ export const translations = {
     optimalVisitOrder: 'အကောင်းဆုံး သွားရောက်မှုအစီအစဉ်',
     simplifiedMap: 'မြေပုံအကျဉ်း',
     uniformSmallDots: 'အစက်သေးပုံစံ',
+    mapStyle: 'မြေပုံစတိုင်',
+    mapStyleStandard: 'ပုံမှန်',
+    mapStyleMuted: 'ရှင်းလင်းသောစတိုင်',
 
     visualTileGallery: '🎨 Visual Tile Design Gallery',
     visualTileGalleryDesc:

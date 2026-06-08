@@ -7,6 +7,7 @@ export class AppConfig {
   readonly osmUserAgent = 'BurmaInventory/1.0 (contact@burmainventory.org)';
   readonly osmThrottleDelayMs = 200;
   readonly osmTileUrlTemplate = 'https://tile.openstreetmap.org';
+  readonly mutedTileUrlTemplate = 'https://a.basemaps.cartocdn.com/light_all';
   readonly ollamaModel = 'gemma4';
   readonly ollamaTimeoutMs = 30000;
   readonly gemmaApiUrl = process.env.GEMMA_API_URL || 'http://localhost:11434';

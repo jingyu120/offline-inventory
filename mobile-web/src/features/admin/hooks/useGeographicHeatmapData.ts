@@ -49,6 +49,7 @@ export const useGeographicHeatmapData = () => {
   const [selectedRep, setSelectedRep] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
   const [neglectedOnly, setNeglectedOnly] = useState(false);
+  const [mapStyle, setMapStyle] = useState<'standard' | 'muted'>('standard');
 
   // Route line visibility — only meaningful when a specific region is selected
   const [showRouteLine, setShowRouteLine] = useState(false);
@@ -126,8 +127,8 @@ export const useGeographicHeatmapData = () => {
     let completed = 0;
 
     for (const tile of tileRequests) {
-      const url = `${SYNC_API_URL}/tiles/${tile.z}/${tile.x}/${tile.y}.png`;
-      const key = `tile-${tile.z}-${tile.x}-${tile.y}`;
+      const url = `${SYNC_API_URL}/tiles/${tile.z}/${tile.x}/${tile.y}.png?style=${mapStyle}`;
+      const key = `tile-${mapStyle}-${tile.z}-${tile.x}-${tile.y}`;
 
       try {
         const response = await fetch(url, { mode: 'cors' });
@@ -332,6 +333,8 @@ export const useGeographicHeatmapData = () => {
     showRouteLine,
     setShowRouteLine,
     availableReps,
+    mapStyle,
+    setMapStyle,
   };
 };
 export type UseGeographicHeatmapDataReturn = ReturnType<

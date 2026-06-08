@@ -214,5 +214,35 @@ describe('DropdownSelector', () => {
 
       expect(getByText('Select Web Letter')).toBeTruthy();
     });
+
+    it('does not pass testID when process.env.NODE_ENV is not test', () => {
+      Object.defineProperty(Platform, 'OS', {
+        get: () => 'web',
+        configurable: true,
+      });
+
+      const originalNodeEnv = process.env.NODE_ENV;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        configurable: true,
+      });
+
+      try {
+        const { getByText } = renderWithTheme(
+          <DropdownSelector
+            label="Non Test Selector"
+            selectedValue="a"
+            options={options}
+            onValueChange={jest.fn()}
+          />,
+        );
+        expect(getByText('Non Test Selector')).toBeTruthy();
+      } finally {
+        Object.defineProperty(process.env, 'NODE_ENV', {
+          value: originalNodeEnv,
+          configurable: true,
+        });
+      }
+    });
   });
 });

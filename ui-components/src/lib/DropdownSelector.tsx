@@ -66,7 +66,10 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
           style={{ overflow: 'hidden', opacity: disabled ? 0.6 : 1 }}
         >
           <select
-            {...({ testID: 'web-select' } as Record<string, unknown>)}
+            data-testid="web-select"
+            {...(process.env.NODE_ENV === 'test'
+              ? { testID: 'web-select' }
+              : {})}
             value={selectedValue}
             disabled={disabled}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>

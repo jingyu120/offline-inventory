@@ -39,6 +39,8 @@ interface MapFilterPanelProps {
   setShowRouteLine: (val: boolean) => void;
   simplifiedMap: boolean;
   setSimplifiedMap: (val: boolean) => void;
+  mapStyle: 'standard' | 'muted';
+  setMapStyle: (val: 'standard' | 'muted') => void;
 }
 
 export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
@@ -61,6 +63,8 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
   setShowRouteLine,
   simplifiedMap,
   setSimplifiedMap,
+  mapStyle,
+  setMapStyle,
 }) => {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -89,6 +93,11 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
     ...items.map((i) => ({ label: `${i.name} (${i.sku})`, value: i.id })),
   ];
 
+  const mapStyleOptions = [
+    { label: t('mapStyleStandard'), value: 'standard' },
+    { label: t('mapStyleMuted'), value: 'muted' },
+  ];
+
   // When the region is reset to "all regions" auto-hide the route line since it
   // only makes sense for a focused area.
   const handleRegionChange = (regionId: string) => {
@@ -109,7 +118,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         alignItems="center"
       >
         {/* Region selector */}
-        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
+        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('region')}
             selectedValue={selectedRegion}
@@ -120,7 +129,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Rep selector — options come from actual shop assignedRepId data */}
-        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
+        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('salesRep')}
             selectedValue={selectedRep}
@@ -131,7 +140,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* SKU Interest Selector */}
-        <Box width={isDesktop ? '12%' : '100%'} minWidth={120} mb="s">
+        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
           <DropdownSelector
             label={t('skuInterest')}
             selectedValue={selectedSku}
@@ -141,12 +150,23 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           />
         </Box>
 
+        {/* Map Style Selector */}
+        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
+          <DropdownSelector
+            label={t('mapStyle')}
+            selectedValue={mapStyle}
+            onValueChange={(val: $Any) => setMapStyle(val)}
+            options={mapStyleOptions}
+            placeholder={t('mapStyleStandard')}
+          />
+        </Box>
+
         {/* Neglected Only Switch */}
         <Box
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '14%' : '100%'}
+          width={isDesktop ? '13%' : '100%'}
           minWidth={120}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
@@ -169,7 +189,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '14%' : '100%'}
+          width={isDesktop ? '13%' : '100%'}
           minWidth={120}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
           style={{ opacity: routeLineDisabled ? 0.4 : 1 }}
@@ -198,7 +218,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '14%' : '100%'}
+          width={isDesktop ? '13%' : '100%'}
           minWidth={120}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
@@ -222,7 +242,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
             flexDirection="row"
             alignItems="center"
             mb="s"
-            width={isDesktop ? '18%' : '100%'}
+            width={isDesktop ? '15%' : '100%'}
             minWidth={140}
             justifyContent={isDesktop ? 'flex-end' : 'flex-start'}
           >

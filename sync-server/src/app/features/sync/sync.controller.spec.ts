@@ -377,7 +377,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '5', '5', mockRes);
+      await controller.getTile('2', '5', '5', undefined, mockRes);
       expect(mockRes.status).toHaveBeenCalledWith(400);
     });
 
@@ -387,7 +387,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '-1', '1', mockRes);
+      await controller.getTile('2', '-1', '1', undefined, mockRes);
       expect(mockRes.status).toHaveBeenCalledWith(400);
     });
 
@@ -398,7 +398,18 @@ describe('SyncController', () => {
         sendFile: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
+      expect(mockRes.sendFile).toHaveBeenCalled();
+    });
+
+    it('returns cached muted tile image when existing in cache path', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValueOnce(true);
+      const mockRes = {
+        setHeader: jest.fn(),
+        sendFile: jest.fn(),
+      } as unknown as Response;
+
+      await controller.getTile('2', '1', '1', 'muted', mockRes);
       expect(mockRes.sendFile).toHaveBeenCalled();
     });
 
@@ -412,7 +423,22 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
+      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(mockRes.send).toHaveBeenCalled();
+    });
+
+    it('downloads tile from OSM templates with muted style, cache saves and responds buffer', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(false) // cache file exists check
+        .mockReturnValueOnce(false); // cache folder exists check
+
+      const mockRes = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      await controller.getTile('2', '1', '1', 'muted', mockRes);
       expect(globalThis.fetch).toHaveBeenCalled();
       expect(mockRes.send).toHaveBeenCalled();
     });
@@ -430,7 +456,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
       expect(globalThis.fetch).toHaveBeenCalled();
       expect(mockRes.send).toHaveBeenCalled();
     });
@@ -447,7 +473,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'Content-Type',
         'image/png',
@@ -473,7 +499,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'Content-Type',
         'image/png',
@@ -502,7 +528,7 @@ describe('SyncController', () => {
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getTile('2', '1', '1', mockRes);
+      await controller.getTile('2', '1', '1', undefined, mockRes);
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'Content-Type',
         'image/png',

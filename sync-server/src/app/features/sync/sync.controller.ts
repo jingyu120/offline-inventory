@@ -209,6 +209,7 @@ export class SyncController {
     @Param('z') z: string,
     @Param('x') x: string,
     @Param('y') y: string,
+    @Query('style') style: string | undefined,
     @Res() res: Response,
   ) {
     const cleanY = y.replace('.png', '');
@@ -226,7 +227,8 @@ export class SyncController {
     }
 
     const cacheDir = join(process.cwd(), this.config.uploadsDir, 'tiles-cache');
-    const cachePath = join(cacheDir, `${z}-${x}-${cleanY}.png`);
+    const suffix = style === 'muted' ? '-muted' : '';
+    const cachePath = join(cacheDir, `${z}-${x}-${cleanY}${suffix}.png`);
 
     if (fs.existsSync(cachePath)) {
       res.setHeader('Content-Type', 'image/png');
@@ -239,7 +241,11 @@ export class SyncController {
       return res.sendFile(cachePath);
     }
 
-    const url = `${this.config.osmTileUrlTemplate}/${z}/${x}/${cleanY}.png`;
+    const template =
+      style === 'muted'
+        ? this.config.mutedTileUrlTemplate
+        : this.config.osmTileUrlTemplate;
+    const url = `${template}/${z}/${x}/${cleanY}.png`;
     try {
       // Small throttle delay for concurrent OSM requests
       await new Promise((resolve) =>

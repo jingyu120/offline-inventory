@@ -151,9 +151,11 @@ export const GeographicHeatmapScreen: React.FC = () => {
     showRouteLine,
     setShowRouteLine,
     availableReps,
+    mapStyle,
+    setMapStyle,
   } = useGeographicHeatmapData();
 
-  const [simplifiedMap, setSimplifiedMap] = useState(false);
+  const [simplifiedMap, setSimplifiedMap] = useState(true);
 
   const sheetMaxHeight = isDesktop ? 500 : Math.min(height * 0.6, 440);
   const legendBottom = selectedShop
@@ -195,6 +197,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
     return base + bonus;
   };
 
+  const tileLayerRef = useRef<$Any>(null);
+
   // 3. Initialize Map Instance
   useEffect(() => {
     console.log(
@@ -214,12 +218,40 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
     const L = (window as $Any).L;
 
-    // Custom Offline-First TileLayer checking IndexedDB base64 data URL
+    // Map setup centered on Myanmar (Yangon)
+    const map = L.map(mapContainerRef.current, {
+      minZoom: 6,
+      maxZoom: 14,
+    }).setView([16.8409, 96.1735], 12);
+
+    setMapInstance(map);
+
+    return () => {
+      map.remove();
+      setMapInstance(null);
+    };
+  }, [leafletLoaded, loading, isDesktop]);
+
+  // 3b. Manage Tile Layer style dynamically
+  useEffect(() => {
+    if (!leafletLoaded || !mapInstance || isThermalCritical) return;
+    const L = (window as $Any).L;
+
+    // Remove old tile layer if exists
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+      tileLayerRef.current = null;
+    }
+
+    const effectiveMapStyle =
+      mapStyle === 'muted' || simplifiedMap ? 'muted' : 'standard';
+
     const OfflineTileLayer = L.TileLayer.extend({
       createTile(coords: $Any, done: $Any) {
         const tile = document.createElement('img');
         tile.crossOrigin = 'anonymous';
-        const key = `tile-${coords.z}-${coords.x}-${coords.y}`;
+        const style = this.options.mapStyle || 'standard';
+        const key = `tile-${style}-${coords.z}-${coords.x}-${coords.y}`;
         const fallbackUrl = this.getTileUrl(coords);
 
         tileDb
@@ -245,26 +277,29 @@ export const GeographicHeatmapScreen: React.FC = () => {
       },
     });
 
-    // Map setup centered on Myanmar (Yangon)
-    const map = L.map(mapContainerRef.current, {
-      minZoom: 6,
-      maxZoom: 14,
-    }).setView([16.8409, 96.1735], 12);
+    const tileLayer = new OfflineTileLayer(
+      `${SYNC_API_URL}/tiles/{z}/{x}/{y}.png?style=${effectiveMapStyle}`,
+      {
+        attribution:
+          effectiveMapStyle === 'muted'
+            ? '&copy; OpenStreetMap contributors, &copy; CARTO'
+            : '&copy; OpenStreetMap contributors',
+        crossOrigin: 'anonymous',
+        minZoom: 6,
+        maxZoom: 14,
+        mapStyle: effectiveMapStyle,
+      },
+    ).addTo(mapInstance);
 
-    new OfflineTileLayer(`${SYNC_API_URL}/tiles/{z}/{x}/{y}.png`, {
-      attribution: '&copy; OpenStreetMap contributors',
-      crossOrigin: 'anonymous',
-      minZoom: 6,
-      maxZoom: 14,
-    }).addTo(map);
-
-    setMapInstance(map);
+    tileLayerRef.current = tileLayer;
 
     return () => {
-      map.remove();
-      setMapInstance(null);
+      if (tileLayerRef.current) {
+        tileLayerRef.current.remove();
+        tileLayerRef.current = null;
+      }
     };
-  }, [leafletLoaded, loading, isDesktop]);
+  }, [leafletLoaded, mapInstance, mapStyle, simplifiedMap, isThermalCritical]);
 
   // 4. Update Circle Markers on Filtered Shops Change
   useEffect(() => {
@@ -285,23 +320,28 @@ export const GeographicHeatmapScreen: React.FC = () => {
     const newMarkers = filteredShops
       .filter((shop) => shop.latitude && shop.longitude)
       .map((shop) => {
+        const isSelected = selectedShop && selectedShop.id === shop.id;
         const color = getRecencyColor(shop.lastContactDate);
-        const radius = simplifiedMap ? 7 : getBubbleRadius(shop.lifetimeValue);
+        let radius = simplifiedMap ? 7 : getBubbleRadius(shop.lifetimeValue);
+        if (isSelected) {
+          radius = Math.max(radius + 6, 14);
+        }
         const isGreen = color === '#22C55E' || color === '#4ADE80';
 
         const marker = L.circleMarker(
           [shop.latitude ?? 0, shop.longitude ?? 0],
           {
             radius,
-            fillColor: color,
-            color: isGreen ? '#ffffff' : '#cbd5e1',
-            weight: isGreen ? 2.5 : 1,
+            fillColor: isSelected ? '#4F46E5' : color, // Highlight selected with Indigo
+            color: isSelected ? '#FFFFFF' : isGreen ? '#ffffff' : '#cbd5e1',
+            weight: isSelected ? 4 : isGreen ? 2.5 : 1,
             opacity: 1,
-            fillOpacity: isGreen ? 1.0 : simplifiedMap ? 0.6 : 0.85,
+            fillOpacity:
+              isSelected || isGreen ? 1.0 : simplifiedMap ? 0.6 : 0.85,
           },
         ).addTo(mapInstance);
 
-        if (isGreen) {
+        if (isSelected || isGreen) {
           marker.bringToFront();
         }
 
@@ -443,6 +483,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
     showRouteLine,
     selectedRegion,
     simplifiedMap,
+    selectedShop,
   ]);
 
   if (loading) {
@@ -494,6 +535,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
           availableReps={availableReps}
           simplifiedMap={simplifiedMap}
           setSimplifiedMap={setSimplifiedMap}
+          mapStyle={mapStyle}
+          setMapStyle={setMapStyle}
         />
 
         {/* Map + Side Panel Split View */}
@@ -707,6 +750,8 @@ export const GeographicHeatmapScreen: React.FC = () => {
               availableReps={availableReps}
               simplifiedMap={simplifiedMap}
               setSimplifiedMap={setSimplifiedMap}
+              mapStyle={mapStyle}
+              setMapStyle={setMapStyle}
             />
           </Box>
         </>

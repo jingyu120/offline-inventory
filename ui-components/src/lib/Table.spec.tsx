@@ -37,7 +37,12 @@ describe('Table', () => {
 
   it('renders headers and row values correctly', () => {
     const { getByText } = renderWithTheme(
-      <Table data={data} columns={columns} keyExtractor={(item) => item.id} />,
+      <Table
+        data={data}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        minWidth={500}
+      />,
     );
 
     // Headers
