@@ -1,72 +1,59 @@
-# Client Application Module (`mobile-web`)
+# Client Application (`mobile-web`)
 
-The client application is built with React Native and Expo, targeting both modern desktop web browsers and native mobile applications. It uses an offline-first data lifecycle powered by WatermelonDB and synchronizes with a central server.
+Expo (React Native) app targeting **native devices and the web** (via
+`react-native-web`). Offline-first: it reads/writes a local SQLite database at
+zero latency and syncs to `sync-server` in the background.
 
----
+> System design lives in [`ARCHITECTURE.md`](../ARCHITECTURE.md); engineering
+> rules in [`.agents/rules/`](../.agents/rules). This README is a package map.
 
-## 📂 Project Architecture
+## Structure
 
 ```
 mobile-web/src/
-├── app-root/                 # Views, Navigation, and Screens
-│   ├── components/           # Subcomponents (ledger sidebar, detail sheets, filter cards)
-│   ├── App.tsx               # Top-level shell with viewport-aware layout navigation
-│   ├── ShopLedgerScreen.tsx  # Customer Ledger container (split-screen / card navigation)
-│   ├── GeographicHeatmapScreen.tsx # Leaflet Map plotting client locations
-│   └── TeamPulseScreen.tsx   # Manager dashboard tracking representative compliance
-├── data/                     # WatermelonDB schemas, repositories, and models
-│   ├── database.ts           # Local DB instance instantiation
-│   └── repositories.ts       # Database helper queries for shops, contacts, logs
-├── hooks/                    # Context fetching logic and query wrappers
-├── utils/                    # Localization utilities (i18n), and authentication hooks
-└── sync.ts                   # Sync synchronization coordinator
+├── app-root/App.tsx         # Thin composition shell + lifecycle hooks
+├── config/appConfig.ts      # Typed client config (no raw process.env)
+├── core/                    # Infrastructure
+│   ├── database/            # SQLite: database.native.ts (op-sqlite) / .web.ts (sql.js+IndexedDB)
+│   ├── data/repositories.ts # THE local data-access layer (mappers + fetchers)
+│   ├── i18n/translations.ts # Burmese (my) / English (en) dictionaries
+│   ├── store/               # Zustand stores
+│   ├── trpc/trpcClient.ts   # Typed client for the server AppRouter
+│   └── utils/               # crypto, geo, pricing, telemetry, guards, …
+└── features/<domain>/       # admin · audit · inventory · sync · viber
+    ├── screens/             # Declarative screen shells
+    ├── components/          # Presentational sub-components (<200 lines)
+    └── hooks/               # Data fetching, mutations, state machines
 ```
 
----
+## Conventions (enforced — see `.agents/rules/coding.md`)
 
-## 💾 Local Storage (WatermelonDB)
+- **Data-access boundary:** screens/components never import `database` or
+  `trpcClient` directly — they go through `core/data` repositories surfaced via
+  a `features/<domain>/hooks/use*` hook. All async writes use `guardAsync`.
+- **Decomposition:** screen > ~200 lines → extract a hook + sub-components.
+  Reference patterns: `features/audit` (ShopLedger), `features/viber`
+  (Order Drafter), `features/inventory` (Intake).
+- **Styling:** Shopify Restyle tokens via `@burma-inventory/ui-components` only —
+  no Tailwind, `StyleSheet.create`, or raw `<View>`/`<TouchableOpacity>`.
+- **Platform code:** `*.native.ts` / `*.web.ts` extension pairs, not
+  `Platform.OS` branches in shared logic.
 
-- **Source of Truth**: The client stores all transactional and master data in WatermelonDB.
-- **Web Storage**: On web targets, WatermelonDB compiles schema changes to a browser-backed **IndexedDB** engine.
-- **Native Storage**: On iOS/Android, it falls back to native **SQLite**.
-- **Query Bindings**: React components observe data queries using `@nozbe/watermelondb` utilities. This ensures the UI updates reactively when data is added or modified locally.
+## Local storage
 
----
+A local **SQLite** DB accessed through **Drizzle ORM** —
+`@op-engineering/op-sqlite` (synchronous JSI) on native, `sql.js` (WASM)
+persisted to **IndexedDB** on web. Table definitions live in
+`@burma-inventory/shared-types` `db/schema-sqlite.ts`; the runtime DDL lives in
+`core/database/database.{web,native}.ts` (keep the two in sync).
 
-## 📱 Responsive Layout Strategy
+## Responsive layout
 
-The UI dynamically adapts to the browser viewport size using `useWindowDimensions()` at a breakpoint of `768px`.
+Adapts at a `768px` breakpoint via `useWindowDimensions()`: a dense multi-pane
+desktop layout (header tab navigation) and a card-based mobile layout (bottom
+tab bar).
 
-- **Desktop Mode (`isDesktop = width >= 768`)**:
-  - Emulates **Katana Cloud Inventory** ERP.
-  - Screen options are toggled in a top header panel using horizontal tab pills.
-  - Lists and Details are shown side-by-side using multi-pane desktop layouts.
-  - High information density with compact table components.
-- **Mobile Mode (`!isDesktop`)**:
-  - Emulates **Sortly** visual card aesthetics.
-  - Active screens are managed via a fixed **Bottom Tab Navigation Bar** with distinct Lucide icons.
-  - Shop lists render visual avatar cards with initials and green/red/indigo sentiment rings.
-  - Shop interaction logs feature inline quick-actions (⚡ **Log Interaction**) directly on the list cards.
-  - Tapping a card transitions the view to a dedicated full-screen pane with a clean "Back" arrow button.
+## Develop
 
----
-
-## 🔄 Synchronization System
-
-- **Background Sync Trigger**: Synchronization is initiated by `syncData(database)` inside a background cycle or manual click.
-- **Request Mechanics**:
-  - Fetches modifications from local storage since the last sync.
-  - Queries `GET /api/sync` to pull backend changes.
-  - Posts local changes via `POST /api/sync` inside a single API payload.
-- **Timestamp Tracking**: Records offline interaction logs with the exact local device timestamp (`createdAtLocal`), allowing correct daily velocity graphing on the dashboard.
-- **Image Compression**: Screenshots are compressed to `<200KB` on-device before writing to storage to conserve field representative bandwidth.
-
----
-
-## 🌐 Localization (i18n)
-
-The application fully supports multilingual configuration matching the Myanmar regional market:
-
-- **Burmese (`my`)**: Primary translation target for field representatives.
-- **English (`en`)**: Primary translation target for managers.
-- Language configuration is toggled in the header and persisted locally.
+From the repo root: `npm run dev` (starts server + Metro); web opens at
+`http://localhost:8081`.

@@ -2,75 +2,201 @@
 trigger: always_on
 ---
 
-# CLAUDE.md - Codebase Memory & Behavioral Contract
+# Engineering Standards & Guardrails
 
-## Build & Verification Commands
+The enforceable engineering contract for this repo. Pair it with
+[`ai-instructions.md`](./ai-instructions.md) (product domain + offline-first
+architecture). When these rules and a stale doc disagree, **these rules win** —
+then fix the stale doc.
 
-- **Build project:** `npm run build` or `nest build`
-- **Run linting:** `npm run lint` or `eslint . --fix`
-- **Run type-checks:** `npx tsc --noEmit`
-- **Run tests:** `npm run test`
+## 0. Golden rules (read first)
 
-## 1. Code Generation Workflow
+These exist because the codebase previously accumulated 1,000–1,500 line "god"
+files, components doing their own DB access, copy-pasted logic, and docs that
+described a stack that no longer existed. Do not reintroduce any of it.
 
-- **No Code Omissions:** You must output complete functional blocks or precise file diffs. Never use placeholders like `// ... rest of code remains unchanged` or `// TODO`.
-- **Plan-Then-Execute:** Before modifying or creating files, output a brief, high-density plan outlining architectural impact, database schema/migration requirements, and a list of target files. Wait for user confirmation.
-- **Atomic Refactoring:** Implement changes incrementally (e.g., Schema -> Core Logic -> API Router -> Frontend Integration). Run verification checks at each layer.
-- **Test Co-Generation:** Every new service, custom hook, utility function, or API endpoint _must_ be accompanied by a corresponding test file (e.g., `*.spec.ts` or `*.test.tsx`).
-- **Mocking over Network:** Tests must isolate logic by mocking external network calls and database layers unless explicitly writing an integration test. Never leave an existing test suite broken.
-- **Max File Modification Size:** If a refactor requires modifying more than ~150 lines of code in a single file, you must break the task down into sub-tasks within your "Plan-Then-Execute" phase.
-- **Component Splitting:** For frontend development, if a React component exceeds 200 lines, automatically extract logical sub-components or move business logic into a separate custom hook.
+1. **No god files.** A server service > ~400 lines or a React component > ~200
+   lines must be decomposed (see §3, §4). Split _before_ it grows, not after.
+2. **Respect the layers.** Components/controllers do IO and rendering only.
+   Business logic lives in services/hooks; data access lives in
+   repositories/the data layer. Never skip a layer (see §3).
+3. **No `any` / `$Any`.** Use real types, `unknown` + narrowing, or utility
+   types. (Tests may use `any` only where a mock genuinely requires it.)
+4. **Wrap every async DB/network op in `guardAsync`** (from
+   `@burma-inventory/shared-types`). No bare `fetch`/`axios`/`db` calls that can
+   throw an unhandled rejection.
+5. **No magic values.** Extract to a typed config layer (`AppConfig` on the
+   server, `config/appConfig.ts` on the client) or named `readonly` constants.
+6. **Never lower coverage thresholds** to make tests pass (see §8).
+7. **Keep docs in sync — automatically and unprompted.** If a change makes any
+   doc stale (README, `ARCHITECTURE.md`, these rule files, code comments,
+   `.env.example`), update it in the **same change**, without being asked — a
+   task is not done while a doc it touched is wrong (see §9). Stale docs are how
+   this repo ended up describing Prisma/WatermelonDB it never used.
 
-## 2. Type Safety & Language Standards (TypeScript)
+## 1. Build & verification commands
 
-- **Strict Mode:** Adhere to strict TypeScript standards. Usage of `any` is strictly prohibited.
-- **Explicit Signatures:** All functions, API endpoints, hooks, and services must declare explicit return types and parameter types. Do not rely on implicit inference for public interfaces.
+This is an **Nx monorepo** on **Node 22** (`.nvmrc`). Run `nvm use` before any
+node command. Verify with the workspace scripts (never hand-roll per-project
+commands):
 
-## 3. Backend Architecture (NestJS / Modular Patterns)
+- **Typecheck:** `npm run typecheck`
+- **Lint:** `npm run lint`
+- **Test (with coverage gate):** `npm run test`
+- **Format:** `npm run format` / `npm run format:check`
+- **Everything:** `npm run check`
+- **Run the app:** `npm run dev` (see `scripts/` and root `README.md`)
 
-- **Layer Separation:** Enforce strict separation of concerns using a Controller-Service-Repository pattern. Controllers handle routing/IO, Services encapsulate pure business logic, and Repositories handle data access.
-- **Boundary Validation:** Every incoming request payload must map to a strictly typed Data Transfer Object (DTO) validated at runtime via `Zod` or `class-validator`.
-- **Output Serialization:** Never leak raw database models. Utilize explicit entity serialization or transformer mappings on all outbound responses.
-- **API Documentation Alignment:** If an API endpoint or DTO is modified, you must immediately update its corresponding Swagger/OpenAPI decorators (e.g., `@ApiProperty()`, `@ApiOperation()`) to ensure local documentation stays perfectly synced with codebase changes.
-- **SQL Injection & ORM Safety:** Never use raw string interpolation for database queries. Always use the ORM/Query Builder's parameterized inputs.
-- **Secret Management:** Never hardcode API keys, tokens, or credentials. Always read from environment variables via a configuration service, and ensure `.env.example` is updated if a new variable is introduced.
+## 2. Workflow
 
-## 4. Frontend & Mobile Architecture (React / React Native)
+- **Plan-Then-Execute:** For non-trivial work, output a brief, high-density plan
+  (architectural impact, schema/migration needs, target files) and wait for
+  confirmation before editing.
+- **No code omissions:** Output complete blocks or precise diffs. Never leave
+  `// ... unchanged` or `// TODO` placeholders.
+- **Atomic, layered changes:** Schema → core logic → API/router → UI, verifying
+  at each layer. Keep a single logical change per step.
+- **Test co-generation:** Every new service, hook, util, or endpoint ships with
+  a co-located `*.spec.ts(x)` (see §8).
+- **Never leave the tree broken:** typecheck, lint, and tests must pass before
+  you consider a task done.
 
-- **Isolated Component State:** Components must remain purely declarative UI shells. Data fetching, mutations, local storage access, and state machines must reside exclusively within custom hooks or state managers.
-- **Defensive UI States:** Every data-driven component must explicitly handle and display three distinct states: Fetching, Empty/Null, and Error.
-- **XSS Prevention:** On the frontend, avoid `dangerouslySetInnerHTML` or equivalent raw HTML rendering unless the input is explicitly passed through a trusted sanitization library (e.g., `dompurify`).
+## 3. Layering & module boundaries (server)
 
-## 5. Data Integrity & Resilience (Local-First / Offline Constraints)
+Strict **Controller/Router → Service → Repository → Drizzle** flow.
 
-- **Query Optimization:** Forbid N+1 query patterns. Database transactions wrapped inside loops or iterative maps are unauthorized. Use eager loading or batching relations.
-- **Atomic Mutations:** Multi-table or multi-step operations must execute within explicit atomic database transactions (commit/rollback).
-- **Network Resiliency:** Data sync layers and network requests must incorporate automated exponential backoff retry mechanisms, idempotent transaction keys, and offline synchronization queues.
+- **Controllers/tRPC resolvers** handle transport/IO only: validate input
+  (zod/DTO), call a service, shape the response. No business logic, no queries.
+- **Services** hold business logic and orchestration. A service method does
+  **one** logical thing; if it orchestrates many, it delegates to focused
+  collaborator services (e.g. `ConflictResolutionService`,
+  `AnomalyDetectionService`, `EodCompilerService`).
+- **Repositories / the Drizzle layer** own query construction. Do not scatter
+  raw Drizzle queries across services when they represent reusable data access.
+- **Never inline raw SQL** or string-interpolate queries — use Drizzle's
+  parameterized builder.
+- **Validate at the boundary:** every request payload maps to a zod schema /
+  DTO. Don't leak raw DB rows outbound; map to response shapes.
+- **Heavy/async work off the request path:** LLM/OCR/analytics go through BullMQ
+  (return `202`-style immediately); never block the sync pipeline.
 
-## 6. Error Handling & Diagnostics
+## 4. Layering & module boundaries (client)
 
-- **Standardized Payloads:** Catch block exceptions must be mapped to standardized domain error instances. Return structured payloads matching the RFC 7807 Problem Details specification.
-- **Defensive Coding Checklist:** Before writing logic, explicitly account for and handle the following edge cases:
-  - What if the database returns `null` or `undefined`?
-  - What if an array or string input is empty?
-  - What if a network request times out?
-  - What if numbers overflow or are negative when expecting positives?
+Strict **Screen → Hook(s) → Presentational components**, backed by the data
+layer. Reference implementations: `features/audit` (ShopLedger),
+`features/viber` (Order Drafter), `features/inventory` (Intake).
 
-## 7. Clean Code Standards & Single Responsibility (SRP)
+- **Components are declarative shells.** No data fetching, mutations, DB access,
+  `fetch`/`trpcClient` calls, pricing/credit math, or state machines in a
+  component body — those live in custom hooks (`features/<x>/hooks/`) or pure
+  helper modules (`features/<x>/<topic>.ts`).
+- **Data-access boundary (hard rule):** components and screens **must not**
+  import `database` or `trpcClient` directly. Local reads/writes go through the
+  data layer (`core/data/*` repositories) surfaced via a feature hook; server
+  calls live in hooks. If a query is missing, add it to the hook or a feature
+  helper — not inline in JSX.
+- **Three states always:** every data-driven view renders Fetching, Empty/Null,
+  and Error.
+- **Decompose at the limits:** screen > ~200 lines → extract a `use<Feature>`
+  hook for data/state and split JSX into sub-200-line presentational components.
+  Reuse existing components in the feature folder; don't duplicate them.
+- **Platform isolation:** no `Platform.OS` branching inside shared data-logic
+  files — use `*.native.ts` / `*.web.ts` extension pairs.
 
-- **Zero Magic Values:** Hardcoded strings or magic numbers are strictly forbidden. All constants, configuration flags, domain-specific values, or status strings must be extracted into explicit `readonly` constants, `enums`, or configuration objects.
-- **Single Responsibility Principle (SRP):** Functions, hooks, and classes must do exactly one thing. If a utility function exceeds 25 lines, or a service method handles more than one logical orchestrator step, it must be decomposed into smaller, isolated pure functions.
-- **Self-Documenting Code:** Code must be expressive and clear on its face. Inline comments (`//`) are unauthorized if they simply describe _what_ the code is doing. Use comments exclusively to explain _why_ non-obvious business constraints or performance optimizations exist.
-- **Descriptive Naming Over Brevity:** Use highly descriptive, semantic names for functions and variables (e.g., `isUserEligibleForDiscount` instead of `checkDisc`).
+## 5. Type safety
 
-## 8. Configuration-Driven Architecture
+- **Strict TypeScript, no `any`/`$Any`** (Golden Rule 3). Cast to `unknown` and
+  narrow, or use `Record<string, unknown>` / concrete types.
+- **Explicit signatures:** public functions, hooks, services, and endpoints
+  declare explicit parameter and return types.
+- **Single source of truth for types:** derive variants with `Pick`/`Omit`/
+  `Partial`/`ReturnType` and Drizzle `InferSelectModel`; never hand-duplicate a
+  type that already exists in `@burma-inventory/shared-types`.
+- **No ESLint disable comments.** Refactor to satisfy the rule (e.g. `_`-prefix
+  unused args) instead of `// eslint-disable-next-line`.
+- **Workspace import aliases only** (`@burma-inventory/...`). No `../../../`
+  relative-path spaghetti across packages.
 
-- **Centralized Environment & App Configuration:** Direct access to raw global objects like `process.env` or `window.ENV` outside of a central configuration service/module is strictly unauthorized. All environment values must be channeled through a strongly-typed, runtime-validated config layer (e.g., NestJS `ConfigService` or a dedicated config schema module).
-- **Business Logic Parameters:** Any parameter that dictates application behavior—such as pagination limits, rate limits, retry intervals, or threshold amounts—must be read from configuration files or database tables, never hardcoded into services.
-- **Data-Driven UI Components (Frontend):** Avoid writing redundant structural markup. Repetitive UI components like forms, tables, sidebars, or navigation paths must be driven by data arrays, configurations, or JSON schemas rather than stacked JSX blocks.
+## 6. Error handling & resilience
 
-## 9. DRY (Don't Repeat Yourself) & Wise Abstraction
+- **`guardAsync` everywhere** for async DB/network/file work (Golden Rule 4);
+  surface failures through the UI's toast/error-boundary, don't swallow them.
+- **Defensive by default:** handle null/undefined returns, empty arrays/strings,
+  timeouts, and negative/overflowing numbers before writing the happy path.
+- **Offline-first:** failed network writes degrade to the local SQLite queue and
+  retry on reconnect — never crash the runtime.
 
-- **The Rule of Three:** If a logical block, algorithmic calculation, or pattern is copied and used in three or more places, you MUST extract it into a generic helper function, shared hook, or reusable base service.
-- **Avoid Premature/Blind Abstraction:** Do not abstract code just because two distinct domain features look identical today. Ensure the underlying business domain intent is truly shared before merging code paths. If a change to feature A shouldn't change feature B, keep them separated (Aha's Rule: Duplication is cheaper than the wrong abstraction).
-- **Single Source of Truth for Types:** Never duplicate TypeScript type definitions or interfaces across layers. If an external API schema or database interface changes, its dependent structures must update automatically. Use TypeScript utility types (`Pick`, `Omit`, `Partial`, `ReturnType`) to derive variants from a single source of truth.
+## 7. Clean code & SRP
+
+- **SRP:** functions/hooks/classes do one thing. A util > ~25 lines or a method
+  doing more than one orchestration step gets decomposed into pure functions.
+- **Self-documenting code:** comments explain _why_ (non-obvious constraints),
+  never _what_. Use descriptive names (`isUserEligibleForDiscount`, not
+  `checkDisc`).
+- **DRY — Rule of Three:** a block/calculation copied to 3+ places must be
+  extracted (helper/hook/base service). Concretely: do not ship N near-identical
+  methods (e.g. per-table upload-URL updaters) — parameterize one.
+- **But avoid the wrong abstraction:** duplication is cheaper than coupling two
+  domains that merely look alike today. Merge only when intent is truly shared.
+
+## 8. Testing & the coverage ratchet
+
+- **Co-located specs**, named after the source file (`sync.service.ts` →
+  `sync.service.spec.ts`). Top-level `describe` matches the unit name; nest per
+  method/interaction.
+- **Isolate:** mock Drizzle/Postgres, HTTP, Ollama, and storage with Jest. No
+  real network or DB writes. Use factory helpers (`createMockShop()`), not
+  inline mock sprawl.
+- **UI:** wrap in the Restyle `ThemeProvider`; query via
+  `@testing-library/react-native` roles/testIDs; assert interaction states.
+- **NestJS:** build deps with `Test.createTestingModule()` and provider
+  overrides.
+- **Coverage ratchet (do not fight it):** `npm run test` enforces per-project
+  thresholds that auto-bump upward (`scripts/bump-thresholds.js`); **never lower
+  them.** Note the v8 provider only measures files a test imports — so new code
+  pulled into a tested import chain needs its own tests, and a new module added
+  beside untested screens is coverage-neutral until a test imports it.
+
+## 9. Keep documentation in sync (automatically)
+
+**Documentation is part of the change, not a follow-up.** Whenever a change you
+make causes a doc to go stale, you must update that doc in the **same change,
+proactively — without being asked**. "Done" is defined to include accurate docs;
+a PR that leaves a doc describing code that no longer exists is incomplete. This
+is non-negotiable — drifted docs are exactly how this repo ended up documenting
+Prisma/WatermelonDB/Express it never used.
+
+Before finishing any task, scan for docs your change invalidated and fix them.
+Trigger → action:
+
+- Folder/file moved or renamed, stack or pattern changed → update
+  [`ARCHITECTURE.md`](../../ARCHITECTURE.md) and the affected package
+  `README.md` (their structure trees and prose).
+- New/changed/removed npm script or CLI flag → update the root `README.md`
+  command table and [`scripts/README.md`](../../scripts/README.md).
+- New engineering rule, anti-pattern, or convention → update **these** rule
+  files (`.agents/rules/`).
+- New/changed env var → update `.env.example`.
+- Behavior/flow change a user feature doc describes → update
+  `documentation/` (e.g. `USER_GUIDE.md`, `GUIDING_PRINCIPLES.md`).
+- Code comments that no longer match the code → fix or delete them.
+- **Schema parity:** the Postgres (`schema.ts`) and SQLite (`schema-sqlite.ts`)
+  Drizzle schemas must stay aligned for shared tables; the
+  `db/schema-parity.spec.ts` guard enforces the allowed divergences — update it
+  deliberately, never silence it.
+
+If you are unsure whether a doc is now stale, grep it for the symbol/path/stack
+you changed and verify, rather than assuming it is fine.
+
+## 10. Configuration
+
+- **No raw `process.env` / `window.ENV`** outside the central config layer
+  (server `AppConfig`, client `config/appConfig.ts`, validated env modules).
+- **Behavioral parameters** (limits, thresholds, retry intervals, due-dates)
+  come from config, never hardcoded in services.
+- **Secrets** come from env via the config service; update `.env.example` when
+  adding a variable; never hardcode credentials.
+- **Babel/Expo gotcha:** the client uses `babel-preset-expo`, which already
+  applies `loose: true` to the class-feature plugins. Do **not** add a top-level
+  `assumptions` block or re-declare those plugins — it conflicts with the preset
+  and spams a warning on every compiled file.

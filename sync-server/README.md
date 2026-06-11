@@ -1,63 +1,54 @@
 # Backend Sync Server (`sync-server`)
 
-The sync server acts as the central datastore and synchronization coordinator. It exposes REST API endpoints for synchronization pull/push workflows, runs nightly supervisor auditing cron jobs, and manages local Gemma AI text processing services.
+**NestJS** backend (Express/Fastify adapters) exposing a **tRPC** router plus
+REST controllers. It orchestrates offline sync push/pull, AI processing, and
+background jobs against **PostgreSQL via Drizzle ORM**.
 
----
+> System design: [`ARCHITECTURE.md`](../ARCHITECTURE.md). Rules:
+> [`.agents/rules/`](../.agents/rules).
 
-## 📂 Project Architecture
+## Structure (Controller/Router → Service → Repository → Drizzle)
 
 ```
-sync-server/
-├── prisma/
-│   ├── schema.prisma   # PostgreSQL relational data definitions
-│   └── seed.ts         # Base master SKUs and shops seed generator
-└── src/
-    ├── app/
-    │   ├── sync.service.ts # Core sync pull/push orchestration handler
-    │   ├── sync.controller.ts # API routing endpoints
-    │   ├── gemma.service.ts # Gemma AI parser, sentiment classification, and compiler
-    │   └── eod.cron.ts    # Nightly manager summaries email schedule
-    ├── main.ts         # Express server init
-    └── prisma.service.ts # Global Prisma client injection
+sync-server/src/app/
+├── core/                       # Infrastructure
+│   ├── drizzle/                # Connection service (read/write split)
+│   ├── seed/                   # Fixtures + DatabaseSeeder (boot seed)
+│   ├── config/app-config.ts    # AppConfig — all thresholds/magic values
+│   ├── auth/                   # ActorInterceptor / ActorService
+│   ├── trpc/                   # tRPC router + controller (mounts AppRouter)
+│   ├── queue/                  # BullMQ queue + worker (DLQ)
+│   └── pipes/                  # zod validation pipe
+└── features/
+    ├── sync/                   # SyncService (orchestrator) + collaborators:
+    │                           #   ConflictResolutionService, AnomalyDetectionService,
+    │                           #   audit/audit-hash, sync-registry (snake↔camel)
+    ├── ai/                     # AiService facade →
+    │                           #   ModelDispatcher / Sentiment / EodCompiler /
+    │                           #   PaymentOcr / ScreenshotVerifier
+    └── health/
 ```
 
----
+## Transports & key endpoints (`/api`)
 
-## 📡 API Routing Endpoints
+- **tRPC** (`/api/trpc/*`) is the typed primary transport: `sync.pull`,
+  `sync.push`, `eodDigest`, `analyzeSentiment`, `getSyncLogs`,
+  `quotaOptimizations`, mismatch/DLQ procedures.
+- **REST** controllers handle multipart **uploads** (`POST /api/sync/upload`),
+  tiles, the Viber webhook, and health — delegating sync to the same
+  `SyncService`.
 
-All core API operations are mapped under `/api`:
+## Conventions (enforced — see `.agents/rules/coding.md`)
 
-### 1. Synchronization Mechanics
+- Controllers/resolvers do IO only; services hold logic; query construction
+  stays in the Drizzle/repository layer. No god services.
+- Thresholds (anomaly multiplier/window, batch-dump window, auto-invoice
+  due/grace days, LLM retry/backoff) live in `AppConfig`, never inline.
+- Heavy AI/OCR/analytics offload to BullMQ — never block the sync path.
+- Mutations to financial/inventory data also append an `audit_events` row
+  (hash-chained) in the same transaction.
 
-- **`GET /api/sync`**:
-  - Pulls database updates since `last_pulled_at`.
-  - Filters results according to the requesting representative's `regionId`.
-- **`POST /api/sync`**:
-  - Receives lists of created, updated, or soft-deleted records from the client.
-  - Updates PostgreSQL in a single transactional pipeline (`$transaction`).
-  - Resolves conflicts using a **Last-Write-Wins** strategy based on `updatedAt` timestamps.
+## Run
 
-### 2. EOD Summaries
-
-- **`GET /api/eod/compile`**: compiles an EOD summary of sales velocity and compliance metrics.
-- **`POST /api/eod/adjust-quotas`**: pushes adjustments to quotas based on performance data.
-
----
-
-## 🤖 Gemma AI Integration Services
-
-The server exposes integration services for the local/hosted Google **Gemma AI** model:
-
-1. **OCR / Voice Transcription Parsing**: Resolves freeform raw notes logged by reps into structured transaction values and SKU lists.
-2. **Sentiment Analysis**: Evaluates customer feedback text, scoring interactions to determine shop sentiment indicators (`IMPROVING`, `STABLE`, `DECLINING`).
-3. **EOD Summarization**: Triggered at 8:00 PM to compile rep activities, sales numbers, and alerts into an EOD summary report.
-
----
-
-## ⏰ Nightly Scheduler (Cron Auditing)
-
-A background job scheduler executes compliance and velocity audits:
-
-- **Daily Quotas**: Compares logged interactions against daily representative quotas (visits, phone calls, Viber contacts).
-- **Batch Updates Detection**: Scans user logs to identify "Batch Updates". If a representative logs more than 5 shop entries within a compressed 15-minute window, the system flags the day as potentially containing dumped records rather than real-time field entries.
-- **Auto-Emailer**: Dispatches the Gemma-compiled EOD report to management.
+`npm run dev` (root) builds and serves this with hot-reload (nodemon over the
+webpack watch). Server: `http://localhost:3000/api`.

@@ -24,7 +24,29 @@ This application is built in a TypeScript monorepo managed with **Nx**:
 - **[ui-components/](./ui-components)**: Shared UI components built with `@shopify/restyle`.
 - **[shared-types/](./shared-types)**: Common data types and interfaces.
 
-Refer to the [**ARCHITECTURE.md**](./ARCHITECTURE.md) and [**GUIDING_PRINCIPLES.md**](./GUIDING_PRINCIPLES.md) files for more information.
+Each package has its own `README.md` with a structure map and conventions.
+
+---
+
+## 📚 Documentation Map
+
+Each document has one job — keep them that way (and update them in the same
+change that makes them stale; see the rules below):
+
+| Doc                                                                            | Purpose                                                            |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| [`README.md`](./README.md) (this file)                                         | Entry point: setup, commands, where things are                     |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md)                                         | System design: stack, layering, schema, sync protocol              |
+| [`TEMPLATE.md`](./TEMPLATE.md)                                                 | Reusing this as a boilerplate + how to add a feature module        |
+| [`.agents/rules/`](./.agents/rules)                                            | **Enforceable** engineering + domain rules for contributors/agents |
+| [`documentation/GUIDING_PRINCIPLES.md`](./documentation/GUIDING_PRINCIPLES.md) | Product vision, domain context, architectural philosophy           |
+| [`documentation/USER_GUIDE.md`](./documentation/USER_GUIDE.md)                 | End-user guide for reps & managers                                 |
+| `<package>/README.md`                                                          | Per-package structure & conventions                                |
+
+> Rules of record live in [`.agents/rules/coding.md`](./.agents/rules/coding.md)
+> (engineering) and [`.agents/rules/ai-instructions.md`](./.agents/rules/ai-instructions.md)
+> (domain/architecture). When a doc and the rules disagree, the rules win — then
+> fix the doc.
 
 ---
 
@@ -103,11 +125,9 @@ npm run check
 
 ---
 
-## 📘 Future Roadmaps & Plans
+## 📘 Development History & Plans
 
-Refer to the [**documentation/revamp/**](./documentation/revamp) directory for full development history and future implementation specs:
-
-- `00_Master_Plan.md`: Revamp phases and goals.
-- `05_Phase5_Route_Optimization.md`: Intelligent routing coordinates.
-- `06_Phase6_Automated_Viber_Chatbot.md`: Auto-replies and data entry via chat.
-- `07_Phase7_Predictive_Analytics_Forecasting.md`: AI demand planning.
+Sprint specifications and development history live in
+[**documentation/sprint/**](./documentation/sprint). For product vision and the
+broader roadmap, see
+[**documentation/GUIDING_PRINCIPLES.md**](./documentation/GUIDING_PRINCIPLES.md).

@@ -1,61 +1,54 @@
 # Utility Scripts (`scripts`)
 
-This directory contains shell scripts to manage the local development lifecycle, database operations, pre-commit checks, and development server startup.
+Shell scripts and helpers for the local development lifecycle: environment
+setup, container/database management, the dev server, and pre-commit checks.
+Most are exposed as `npm run` scripts (see the root `README.md` command table).
 
----
+## Lifecycle
 
-## 📂 Available Scripts
+### [`setup.sh`](./setup.sh) — `npm run setup` / `npm run clean-setup`
 
-### 1. [`setup.sh`](./setup.sh)
+Unified setup/reset. Auto-detects **Docker or Podman**. Default mode is
+non-destructive (deps → containers → wait for DB → push schema → initial build).
+`--reset` (`npm run clean-setup`) wipes volumes, `node_modules`, and lockfiles
+for a clean rebuild.
 
-- **Purpose**: Unified script that initializes a new developer environment or performs a complete reset. Automatically detects and works with both **Docker** and **Podman** engines cleanly.
-- **Modes**:
-  - **Standard Setup (Default)**: Non-destructive, idempotent system initialization. Ensures node dependencies, starts containerized databases (PostgreSQL & Redis), waits for availability, applies schema, seeds master data, and performs initial build.
-    ```bash
-    ./scripts/setup.sh
-    # or
-    npm run setup
-    ```
-  - **Destructive Reset (`--reset` / `-r`)**: Wipes local databases, persistent container volumes, clears NPM cache, deletes `node_modules` and lock files, and performs a complete fresh installation and seed.
-    ```bash
-    ./scripts/setup.sh --reset
-    # or
-    npm run clean-setup
-    ```
+### [`start-dev.sh`](./start-dev.sh) — `npm run dev`
 
-### 2. [`db.sh`](./db.sh)
+Ensures containers + schema are up, frees ports 3000/8081, pre-builds the
+server, then serves `sync-server` (nodemon over webpack watch) and `mobile-web`
+(Expo/Metro) together with clean, prefix-free streamed output.
 
-- **Purpose**: Command-line wrapper managing local database operations (Postgres + Drizzle). Leverages container auto-detection (Docker or Podman) dynamically.
-- **Commands**:
-  - `ensure` - Start database containers if not running.
-  - `wipe`   - Drop and recreate the `public` database schema.
-  - `push`   - Push Drizzle schema migrations and seed master dataset.
-  - `reset`  - Complete wipe + push + seed sequence.
-  - `fresh`  - Ensure containers are active and execute a full reset.
-- **Execution**:
-  - ```bash
-    ./scripts/db.sh [ensure|wipe|push|reset|fresh]
-    ```
+### [`precommit.sh`](./precommit.sh) — `npm run precommit`
 
-### 3. [`precommit.sh`](./precommit.sh)
+Format → translation check → typecheck → lint → test → build, as a pre-commit
+gate.
 
-- **Purpose**: Local code quality check that runs automatically prior to Git commits.
-- **Checks Executed**:
-  1. **Formatting**: Checks and stages clean code formatting using `nx format:write`.
-  2. **Type Checking**: Verification of TypeScript structures across all monorepo packages.
-  3. **Linting**: Runs ESLint compliance checks across the workspace.
-  4. **Tests**: Verifies code via Jest unit and regression tests.
-- **Execution**:
-  ```bash
-  ./scripts/precommit.sh
-  ```
+## Database & containers
 
-### 4. [`start-dev.sh`](./start-dev.sh)
+### [`containers.sh`](./containers.sh) — `npm run db:up|down|restart|fix|status|logs|clean`
 
-- **Purpose**: Checks ports, ensures database services are running, runs Nodemon/NestJS for backend watch compilation, and boots the Expo Metro bundler for frontend hot reloading.
-- **Execution**:
-  ```bash
-  ./scripts/start-dev.sh
-  # or
-  npm run dev
-  ```
+Container lifecycle over the shared engine helper. `up` self-heals the
+"container name already in use" error (tears down and recreates, **preserving
+the data volume**); `fix` force-clears stale containers; `clean` is destructive
+(removes the data volume).
+
+### [`db.sh`](./db.sh) — `npm run db:push|generate|studio|wipe|reset|fresh`
+
+Schema operations (Postgres + Drizzle): `ensure`/`ensure-schema` (start +
+push-if-missing), `push` (apply + seed), `generate` (create a migration),
+`studio` (Drizzle Studio), `wipe`, `reset`, `fresh`.
+
+### [`lib/container-engine.sh`](./lib/container-engine.sh)
+
+Sourced helper shared by `setup.sh`, `db.sh`, and `containers.sh`: engine/compose
+auto-detection, the self-healing `compose_up`, `wait_for_db`, and stale-container
+recovery. Not executed directly.
+
+## Quality & maintenance helpers
+
+- [`check-translations.js`](./check-translations.js) — `npm run check-translations`;
+  fails on hardcoded user-facing strings (enforces i18n).
+- [`bump-thresholds.js`](./bump-thresholds.js) — runs after `npm run test`;
+  ratchets Jest coverage thresholds upward (never down).
+- [`rename-project.js`](./rename-project.js) — rename the workspace/app.

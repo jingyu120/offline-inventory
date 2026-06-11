@@ -2,96 +2,143 @@
 trigger: always_on
 ---
 
-# `ai-instructions.md` (System Prompt & Autonomous Execution Contract)
+# AI Instructions — Product Domain & Architecture Contract
 
-## 🎯 Absolute Directives: Business Domain & Flow
+Domain, product, and offline-first architecture rules. Pair with
+[`coding.md`](./coding.md) (enforceable engineering standards). For the full
+system design see [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
-- **Domain Lockdown (CRITICAL):** This platform is strictly an **Internal Inventory & Sales Accountability engine** for regional Myanmar distribution. Focus entirely on internal stock levels, client B2B sales, and personnel accountability. OMIT all cross-border transit, customs, import tracking, and currency exchange logistics.
-- **Intake Quarantine Paradigm:** Warehouse intake must be frictionless but safeguarded. Inventory added to the system defaults to a `PENDING_APPROVAL` status. It is mathematically quarantined and **cannot be deducted or added to a sales cart** until a manager advances the state to `AVAILABLE`.
-- **Transaction Accountability:** Every single transaction (Sales, Edits, Discards) must cleanly separate human context: `client_id` (Who bought it), `executed_by_id` (Who keyed the order into the app), `salesperson_id` (Who owns the commission), and `approved_by_id` (Which manager authorized it).
+## 🗺️ 0. Repository map (where things live)
 
----
+Nx monorepo, Node 22. Use workspace aliases (`@burma-inventory/*`), never deep
+relative paths.
 
-## 📌 1. Core Operating Constraints & Deployment Topology
+- **`shared-types/`** — single source of truth: Drizzle schemas
+  (`src/lib/db/schema.ts` = Postgres, `src/lib/db/schema-sqlite.ts` = SQLite,
+  `src/lib/db/schema-relations.ts`), domain/record types (`src/lib/types/*`:
+  `records.ts`, `domain.ts`, `sync.ts`), zod validation + constants
+  (`src/lib/types/shared-types.ts`), the tRPC `AppRouter` type
+  (`src/lib/api/trpc.ts`), and `guardAsync` (`src/lib/utils/guard.ts`).
+- **`sync-server/`** — NestJS backend. `app/core/*` = infrastructure (drizzle,
+  config `AppConfig`, auth, trpc, queue, seed); `app/features/*` = domain
+  (`sync/` with its conflict/anomaly/audit collaborators, `ai/` with its
+  model-dispatcher/sentiment/eod/payment/screenshot services, `health/`).
+- **`mobile-web/`** — Expo RN + web. `src/core/*` = infrastructure (database,
+  data repositories `core/data/*`, i18n `core/i18n/translations.ts`, store,
+  trpc, utils); `src/features/<domain>/{screens,components,hooks}` = UI.
+- **`ui-components/`** — Restyle design system (theme, primitives, Button, Card,
+  Table, TextField, DropdownSelector, Skeleton, shadows).
 
-- **Sales-First Rollout Isolation:** The platform executes an offline field-sales intake deployment strategy. **MOCK, STUB, or OMIT** all active real-time warehouse inventory subtraction routines against `AVAILABLE` stock until explicit admin approval flows are met. Checkout baskets must be captured as requests with an operational state enum of `PENDING_FULFILLMENT`.
-- **Multilingual Localization Matrix:** The field-sales force operates in **Burmese (ဗမာစာ)**; back-office admin and engineering layout layers use **English**. Default all frontend user-facing display strings to Burmese (`my`), matching the dictionary mappings in `mobile-web/src/utils/translations.ts`. Provide English (`en`) visibility toggles strictly within administrative views.
-- **Nx Monorepo Pathing:** Strictly prohibit relative path spaghetti (e.g., `../../../`). You must use the configured workspace alias paths (e.g., `@burma-inventory/shared-types`, `@burma-inventory/ui-components`).
+## 🎯 1. Absolute Directives: Business Domain & Flow
 
----
+- **Domain Lockdown (CRITICAL):** This is strictly an **Internal Inventory &
+  Sales Accountability engine** for regional Myanmar distribution. Focus on
+  internal stock, B2B client sales, and personnel accountability. OMIT
+  cross-border transit, customs, import tracking, and FX logistics.
+- **Intake Quarantine Paradigm:** Warehouse intake is frictionless but
+  safeguarded. New inventory defaults to `PENDING_APPROVAL` and is mathematically
+  quarantined — it **cannot be deducted or added to a sales cart** until a
+  manager advances it to `AVAILABLE`.
+- **Transaction Accountability:** Every transaction cleanly separates human
+  context: `shop_id`/`client_id` (who bought), `executed_by_id` (who keyed it),
+  `salesperson_id` (who owns commission), `approved_by_id` (which manager
+  authorized).
 
-## 🗃️ 2. Spreadsheet Data Integration & Schema Consistency
+## 📌 2. Core Operating Constraints & Deployment Topology
 
-Autonomous structural modifications to schemas (`shared-types/src/lib/schema.ts`) or data ingest logic must strictly reflect master balance sheet realities:
+- **Sales-First Rollout Isolation:** MOCK/STUB/OMIT real-time warehouse stock
+  subtraction against `AVAILABLE` stock until approval flows are met. Checkout
+  baskets are captured as requests with state `PENDING_FULFILLMENT`.
+- **Multilingual Localization:** Field reps operate in **Burmese (ဗမာစာ)**;
+  back-office/admin use **English**. Default user-facing strings to Burmese
+  (`my`) using the dictionary in `mobile-web/src/core/i18n/translations.ts`;
+  expose English (`en`) toggles only in admin views.
+- **No hardcoded user strings:** all user-facing copy goes through the i18n
+  layer (the translation guard, `npm run check-translations`, enforces this).
 
-- **Parentheses Allocation Logic:** Data entities enclosed in parentheses (e.g., `(1,756)`) denote **Pending Committed Orders**. Parsing transformations must strip parentheses, convert strings to positive integers, and commit values to `pending_allocation_count`.
-- **Signed Integer Configurations:** Configure product quantity attributes as explicit signed integers (`integer()`) to handle legacy deficit structures safely without throwing sync abort errors.
-- **Data Suffix Isolation:** Variant dimensions, finishing codes (`CP`, `BL`), and structural classes (`RE`, `MR`) must be parsed out of main item name text lines. Store these attributes as clear sub-type arrays to populate layout pill selectors.
-- **Stock Quality Segregation:** Maintain a `stock_condition` enum supporting `GOOD`, `BAD`, and `WET` to allow field representatives to book clearance transactions dynamically.
-- **B2B Bulk Project Tracking:** Maintain a `Project` database model linked to orders. Representatives must be allowed to route volume items straight to enterprise contract profiles (e.g., _Galaxy Tower-3_).
+## 🗃️ 3. Data Integration & Schema Consistency
 
----
+Structural schema changes (`shared-types/src/lib/db/schema.ts` and its SQLite
+counterpart) must reflect master balance-sheet realities **and stay in parity**
+(see the `schema-parity.spec.ts` guard; `coding.md` §9):
 
-## 🏗️ 3. Frontend Architecture Standards (Shopify Restyle & React Native)
+- **Parentheses Allocation Logic:** Values like `(1,756)` denote **Pending
+  Committed Orders** — strip parentheses, convert to positive integer, commit to
+  `pending_allocation_count`.
+- **Signed Integer Configurations:** Product quantities are signed `integer()`
+  to absorb legacy deficit structures without sync-abort errors.
+- **Data Suffix Isolation:** Variant dimensions, finish codes (`CP`, `BL`), and
+  structural classes (`RE`, `MR`) are parsed out of item-name text into sub-type
+  fields for pill selectors.
+- **Stock Quality Segregation:** `stock_condition` enum supports `GOOD`, `BAD`,
+  `WET` for dynamic clearance bookings.
+- **B2B Bulk Project Tracking:** a `Project` model links orders so reps can route
+  volume to enterprise contracts (e.g. _Galaxy Tower-3_).
 
-**CRITICAL BAN:** This repository strictly prohibits Tailwind CSS, `className` strings, CSS Grid (`col-span`), raw `StyleSheet.create`, and native `react-native` UI imports like `<View>` or `<TouchableOpacity>`.
+## 🏗️ 4. Frontend Architecture (Shopify Restyle & React Native)
 
-- **Component Sourcing:** You must import ALL layout and typography primitives exclusively from `@burma-inventory/ui-components`. Do not invent one-off synthetic UI components inside screen files.
-- **Spatial Token Scaling (8pt System):** All element sizing, margins, padding, and layout bounding blocks must reference predefined Restyle theme tokens (`s`: 8px, `m`: 16px, `l`: 24px, `xl`: 32px).
-- **React Native Flexbox Asymmetry:** Do not use CSS Grid. Split screens (e.g., `ShopLedgerScreen`) must structure data weights via Flexbox ratios: assign the primary data tracking list `<Box flex={2}>`, and secondary filtering drawers `<Box flex={1}>`.
-- **Mono-Font Numeric Alignment:** All layout elements presenting quantities, Kyats, or SKUs must explicitly enforce your monospace typography token (e.g., `variant="mono"`) to freeze visual widths during live calculations.
-- **Interaction States:** Clickable items (`Pressable` from your UI library) must apply Background transitions (`cardBackground` to `cardBackgroundHover`), scale transforms (`scale: 0.98`), and disabled states (`opacity: 0.4`).
+**CRITICAL BAN:** No Tailwind, `className` strings, CSS Grid (`col-span`), raw
+`StyleSheet.create`, or raw `react-native` UI imports (`<View>`,
+`<TouchableOpacity>`). (For component/data-layer boundaries see `coding.md` §4.)
 
----
+- **Component Sourcing:** import ALL layout/typography primitives from
+  `@burma-inventory/ui-components`. No one-off synthetic UI inside screen files.
+- **8pt Spatial Tokens:** size/margin/padding reference theme tokens only —
+  `none: 0`, `xs: 4`, `s: 8`, `m: 16`, `l: 24`, `xl: 40` (px).
+- **Flexbox, not Grid:** split screens via Flexbox ratios — primary list
+  `<Box flex={2}>`, secondary drawer `<Box flex={1}>`.
+- **Mono-Font Numeric Alignment:** quantities, Kyat metrics, and SKUs use the
+  monospace font token (`fontFamily: 'monospace'`) to freeze widths during live
+  calculation.
+- **Interaction States:** clickable items apply background transitions, scale
+  transforms (`scale: 0.98`), and disabled states (`opacity: 0.4`).
 
-## ⚡ 4. Local AI & Offline-First Core Operations
+## ⚡ 5. Local AI & Offline-First Core
 
-- **Local Inference Integration:** All automated text extraction and vision evaluation routines must run entirely locally. Dispatch calls must hit the local Ollama server endpoint (`http://localhost:11434`) targeting `gemma4` or `gemma2`.
-- **Asynchronous Vision Auditing:** File receiver logic must intercept proof-of-work Viber screenshot uploads asynchronously. Convert images to Base64, process via local vision models, and commit outputs to the `ai_verification_status` column (`VERIFIED` vs. `MISMATCH`).
-- **Offline-First Network Guardrails:** NEVER write standard `fetch` or `axios` calls that can throw fatal unhandled promise rejections on network failure. All outbound API requests must be wrapped in try/catch blocks that gracefully degrade to local SQLite queue inserts.
+- **Local Inference Only:** text extraction and vision routines hit the local
+  Ollama endpoint (`http://localhost:11434`, `gemma4`/`gemma2`) via the server's
+  `ModelDispatcherService` — never an external cloud LLM.
+- **Async Vision Auditing:** Viber proof screenshots are intercepted
+  asynchronously, converted to Base64, processed by local vision models, and
+  committed to `ai_verification_status` (`VERIFIED` vs `MISMATCH`).
+- **Offline-First Network Guardrails:** never write bare `fetch`/`axios` that can
+  throw a fatal rejection. Wrap outbound requests in **`guardAsync`** and degrade
+  gracefully to the local SQLite queue (`coding.md` §6).
 
----
+## ⚠️ 6. Automation Enforcement & Fail-Safes
 
-## ⚠️ 5. Automation Enforcement & Fail-Safes
+- **Dynamic Margin Safeguard:** if a negotiated rate drops >15% below the shop's
+  wholesale price-book floor, flip the field border to the `danger` token and
+  lock submission behind a mandatory "Confirm Overridden Margin" checkbox. (The
+  15% factor lives in config, not inline — `coding.md` §10.)
+- **Thread-Guard Utilities:** background parsing, AI connections, and large
+  SQLite transactions are wrapped in `guardAsync` to prevent main-thread lockups
+  and silent crashes.
 
-- **Dynamic Margin Safeguard:** If an editable pricing box receives a negotiated rate dropping >15% below the shop's wholesale category price book, transition the `<Box>` border to the semantic `danger` color token and lock submission behind a mandatory "Confirm Overridden Margin" safety checkbox.
-- **Thread Guard Utilities:** All background data parsing streams, AI model connections, and massive SQLite transactional query executions must be wrapped tightly within the `guardAsync` utility to prevent main-thread UI lockups and silent crashes.
+## 🔒 7. Async Queueing, Idempotency & Sync Guardrails
 
----
+- **Idempotent writes:** outbound sync writes embed a non-volatile
+  `x-idempotency-key` (UUIDv4) committed to the local draft record _before_
+  dispatch.
+- **Column-Level Last-Write-Wins:** row-level overwrites during sync are banned;
+  the engine merges per-field via LWW using per-column modification timestamps
+  (`ConflictResolutionService`).
+- **Async offloading:** the NestJS gateway never runs heavy parsing or Ollama
+  vision in the synchronous path — return immediately and offload to BullMQ.
+- **No volatile timers in views:** `setInterval`/`setTimeout` for remote fetches
+  or queue sync inside components are forbidden; use structural OS/app hooks.
 
-## 🔒 6. Asynchronous Queueing, Idempotency & Mobile Sync Guardrails
+## 🛡️ 8. Auditing, Cryptography & Identity
 
-- **Idempotent Transaction Isolation:** All outward data synchronization writes must embed a unique, non-volatile `x-idempotency-key` (UUIDv4) committed to the local SQLite draft record _prior_ to network dispatch.
-- **Deterministic Column-Level Merging (LWW):** Row-level data overwrites are strictly banned during network synchronization. The sync engine must dynamically evaluate updates via Column-Level "Last-Write-Wins" (LWW) using isolated metadata modification timestamps.
-- **Async Task Offloading Constraint:** The NestJS API gateway must never compute heavy analytical parsing or execute local Ollama vision routines within the synchronous pipeline. Endpoints must immediately return an HTTP `202 Accepted` status and offload execution to BullMQ.
-- **Volatile Thread Prevention:** Standard native background interval polling timers (`setInterval`, `setTimeout`) are completely forbidden for executing remote data fetches or synchronizing queues inside view components. Rely on structural, native OS hooks.
-
----
-
-## 🛡️ 7. Auditing, Cryptography & Identity Constraints
-
-- **Immutable Event Sourcing:** Direct SQL `UPDATE` or `DELETE` overwrites that destroy historical context are banned. Any modification to financial or inventory data must simultaneously commit a row to the `AuditEvents` Drizzle schema, capturing `previous_state` and `new_state` as JSONB.
-- **Cryptographic Hash Chaining:** To prevent offline tampering by field operators, the mobile application must natively hash every local `AuditEvent` payload, chaining it mathematically to the hash of the preceding event.
-- **Abstracted Actor Context:** Until a formal JWT gateway is implemented, the AI must never hardcode user identities. All queries, carts, and transactions must dynamically request the `actor_id` from the abstracted `ActorService` (mobile) or `ActorInterceptor` (backend) to ensure zero-friction authentication upgrades later.
-- **Trace Context Propagation:** A unique `x-trace-id` must be generated at the onset of a workflow and attached to every linked SQLite draft cart, Viber screenshot upload, AI worker job, and `AuditEvent` to ensure 100% downstream observability.
-
----
-
-## 🛠️ 8. TypeScript Coding Standards & Linting Guards
-
-- **Forbid `any` Type Usage:** The use of the `any` type is strictly forbidden across all application code, packages, interfaces, and services. Cast values to `unknown`, `Record<string, unknown>`, or concrete interfaces/types instead. The only exception is inside test specification files (`*.spec.ts`, `*.spec.tsx`, `*.test.ts`, `*.test.tsx`).
-- **Prohibit ESLint Disable Comments:** You must never write inline comments to disable, ignore, or bypass ESLint rules (e.g., `/* eslint-disable */`, `// eslint-disable-next-line`). Code must be refactored cleanly to naturally resolve warnings (such as using a leading underscore `_` prefix for declared but unused method arguments).
-
----
-
-## 🧪 9. Unit & Integration Testing Guidelines
-
-All new codebase features, services, and UI components must be accompanied by comprehensive tests conforming to these guidelines:
-
-- **Test File Naming & Location:** Place specification files immediately adjacent to the source code file they are testing. Use the exact source filename with the `.spec.ts` (for business logic) or `.spec.tsx` (for components) extension.
-- **Readable & Structured Organization:** Group tests using hierarchical `describe` blocks. The top-level `describe` must match the class, helper, or component name (e.g., `describe('SyncService', ...)`). Nest sub-blocks for specific methods or user interaction pathways (e.g., `describe('pullChanges', ...)`).
-- **Test DRYness & Object Factories:** Avoid inline mock data clutter. Create reusable factory helpers (e.g., `createMockShop()`, `createMockItem()`) in test setup files or local test blocks to generate mock entities, ensuring schemas remain unified and easy to maintain.
-- **Isolation & Mocking Bounds:** Tests must never make actual network requests or write to live databases. Mock Drizzle/Postgres calls, HTTP APIs, and local services (such as Ollama or secure storage) using Jest mocks.
-- **UI Component Testing (React Native):** Wrap components under test with the Restyle `ThemeProvider` to ensure theme-based styles compile during assertion. Use `@testing-library/react-native` to query components by test IDs or accessible roles, and assert on interaction states (like press events).
-- **NestJS Testing Modules:** Server-side unit tests must construct dependencies using the `@nestjs/testing` `Test.createTestingModule()` compiler. Mock database and queue dependencies explicitly using provider overrides.
-- **Coverage Preservation Policy:** Do not decrease Jest/coverage thresholds in configuration files (e.g., `jest.config.js`) unless it is absolutely necessary and documented due to V8 coverage provider quirks with TypeScript compilation (such as empty lines, syntax compilation output differences, or unreachable decorator statements). Every new feature, logic path, and UI component must maintain or exceed the existing coverage percentages.
+- **Immutable Event Sourcing:** destructive `UPDATE`/`DELETE` of historical
+  context is banned. Any financial/inventory mutation also commits an
+  `audit_events` row (`previous_state`/`new_state` as JSONB) in the same
+  transaction.
+- **Cryptographic Hash Chaining:** each local `AuditEvent` is hashed and chained
+  to the prior event's hash to detect offline tampering.
+- **Abstracted Actor Context:** never hardcode user identities. Resolve
+  `actor_id` from the abstracted `ActorService` (mobile) / `ActorInterceptor`
+  (backend) so a real JWT gateway drops in later without churn.
+- **Trace Propagation:** a unique `x-trace-id` generated at workflow onset is
+  attached to every linked draft cart, screenshot upload, AI job, and
+  `AuditEvent` for end-to-end observability.

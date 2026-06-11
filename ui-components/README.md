@@ -1,71 +1,38 @@
 # Shared UI Components (`ui-components`)
 
-This library hosts the design system and presentation primitives of the Burma Inventory application. Built on top of Shopify's `@shopify/restyle`, it provides type-safe, theme-driven layout utilities that adapt beautifully to web and native targets.
+The design system and presentation primitives, built on **`@shopify/restyle`** —
+type-safe, theme-driven, and shared across web and native. Import via
+`@burma-inventory/ui-components`.
 
----
+> Rules: [`.agents/rules/`](../.agents/rules). All screens must source layout
+> and typography from this package — no ad-hoc `StyleSheet`/`<View>`.
 
-## 🎨 Theme Tokens (`src/theme.ts`)
+## Exports (`src/lib/`)
 
-The design system defines central spacing, color palettes, and typography variant maps:
+- **`theme.ts`** — `theme` (light), `darkTheme`, `getThemeForLanguage`, and the
+  token scales below. `layout.minTableWidth` lives here too.
+- **`Primitives.tsx`** — `Box`, `Text`, `ThemedTextInput` (`<Theme>`-typed
+  `createBox`/`createText`).
+- **`shadows.ts`** — `getShadowStyle(level)` + the `shadows` scale (centralized,
+  platform-correct elevation; used by `Card`/`Table`).
+- **Components** — `Button`, `Card`, `Table`, `TextField`, `DropdownSelector`,
+  `Skeleton`.
 
-### 1. Light & Dark Themes
+## Tokens
 
-Colors are structured semantically, mapping design states (such as active or critical feedback alerts) directly to variables:
+- **Spacing (8pt):** `none 0` · `xs 4` · `s 8` · `m 16` · `l 24` · `xl 40` (px).
+- **Colors:** semantic — `mainBackground`, `cardBackground`, `primaryButton`
+  (`#5A31F4`), `success*`, `danger*`, `warning*`, `info*`, `brand*`.
+- **Text variants:** `header`, `title`, `subtitle`, `body`, `bodySecondary`,
+  `button`, `badge`, `kpi`, `caption`.
 
-- **`mainBackground`**: Primary canvas color.
-- **`cardBackground`**: Elevated card backgrounds.
-- **`primaryButton`**: Main action color (deep brand purple: `#5A31F4`).
-- **`success` / `successBg` / `successText`**: Emerald colors for positive sentiment/met quotas.
-- **`danger` / `dangerBg` / `dangerText`**: Crimson/Red colors for negative sentiment/warnings/neglected accounts.
-- **`warning` / `warningBg` / `warningText`**: Yellow colors for warning zones/partial quotas.
-- **`infoBg` / `info`**: Sky blue highlights for general status items.
+## Styling rules
 
-### 2. Spacing Scales
-
-Consistent margin and padding rules:
-
-- `none`: `0`
-- `xs`: `4px`
-- `s`: `8px`
-- `m`: `16px`
-- `l`: `24px`
-- `xl`: `40px`
-
-### 3. Text Variants
-
-Predefined styles targeting clear visual hierarchy:
-
-- `header`: Large bold headings (`fontSize: 28+`).
-- `title`: Section subtitles (`fontSize: 18`, bold).
-- `body`: Primary application text (`fontSize: 14`).
-- `bodySecondary`: Slate muted subtitles (`fontSize: 12`).
-- `badge`: Compact pill typography (`fontSize: 10`, bold uppercase).
-
----
-
-## 🧩 Visual Primitives
-
-Avoid introducing ad-hoc style sheets. Always build views using these core components:
-
-- **`Box`**: Flexbox layout wrapper (`restyle`'s default `createBox`). Supports direct spacing, color, and border props:
-  ```tsx
-  <Box flexDirection="row" p="m" bg="cardBackground" borderRadius="m" />
-  ```
-- **`Text`**: Type-safe responsive typography:
-  ```tsx
-  <Text variant="title" color="primaryText">
-    Account Profile
-  </Text>
-  ```
-- **`Card`**: An elevated layout container matching the app's structural aesthetic (Sortly/Katana).
-- **`Button`**: Form and dashboard action button supporting variations (`primary`, `secondary`, `danger`).
-- **`TextField`**: Controlled input field with styled borders, hover/focus borders, and error labels.
-- **`DropdownSelector`**: Scrollable dropdown menu supporting structured option lists.
-
----
-
-## 💅 Styling Rules
-
-1. **Use Theme-Driven Props**: Never write absolute string colors like `color="#EF4444"` or magic pixel values like `padding={13}`. Instead, reference theme tokens (`color="danger"` or `padding="m"`).
-2. **Handle Viewport Breaks**: Always check screen size using `useWindowDimensions()` to decide dynamic sizing parameters in components.
-3. **Typography Constraint**: All UI text must wrap inside a `<Text>` primitive rather than a React Native `<Text>` or HTML `<span>` tag to guarantee correct theme overrides.
+1. **Theme props only** — never absolute colors (`color="#EF4444"`) or magic
+   pixels (`padding={13}`); use tokens (`color="danger"`, `padding="m"`).
+2. **Centralize repeated style** — shadows via `getShadowStyle`, not inline
+   per-component platform branches.
+3. **Text in `<Text>`** — never a raw RN `<Text>` or HTML tag, so theme
+   variants/overrides apply.
+4. **100% test coverage** is enforced here — every component has a co-located
+   `*.spec.tsx`; keep them green.

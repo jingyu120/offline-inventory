@@ -20,8 +20,8 @@ The codebase is organized as a monorepo managed with **Nx** and uses a modular, 
           │    (React Native/Expo)   │   │     (NestJS Backend)     │
           │                          │   │                          │
           │    ┌────────────────┐    │   │    ┌────────────────┐    │
-          │    │  WatermelonDB  │    │   │    │   Drizzle/PG   │    │
-          │    │    (SQLite)    │    │   │    │  (PostgreSQL)  │    │
+          │    │   SQLite via   │    │   │    │   Drizzle/PG   │    │
+          │    │    Drizzle     │    │   │    │  (PostgreSQL)  │    │
           │    └────────────────┘    │   │    └────────────────┘    │
           └────────────┬─────────────┘   └────────────┬─────────────┘
                        │                              │
@@ -93,26 +93,26 @@ npm run dev
 
 ## 3. How Offline-First Synchronization Works
 
-This template provides a production-grade **two-way delta synchronization engine** aligning the client-side local database (WatermelonDB/SQLite) and the server-side cloud database (PostgreSQL).
+This template provides a production-grade **two-way delta synchronization engine** aligning the client-side local database (SQLite via Drizzle) and the server-side cloud database (PostgreSQL).
 
 ```
-Client (SQLite/WatermelonDB)                      Server (Postgres/Drizzle)
+Client (SQLite + Drizzle)                         Server (Postgres/Drizzle)
             │                                                 │
-            │ ─── 1. Pull Delta (GET /sync?lastPulledAt) ───► │
+            │ ─── 1. Pull Delta (sync.pull, tRPC) ─────────► │
             │                                                 │ [Compute Server Changes]
             │ ◄── 2. Apply Changes + New Timestamp ────────── │
   [Resolve Conflicts]                                         │
             │                                                 │
-            │ ─── 3. Push Delta (POST /sync [local mutations])►│
-            │                                                 │ [Process Transaction]
-            │                                                 │ [Last-Write-Wins Resolution]
+            │ ─── 3. Push Delta (sync.push, tRPC) ─────────► │
+            │                                                 │ [Single Transaction]
+            │                                                 │ [Column-Level Last-Write-Wins]
             │ ◄── 4. Acknowledge Push Success ──────────────── │
 ```
 
 1. **Pull Changes**: The client requests all updates created or updated since `last_pulled_at`. The NestJS server evaluates and returns the delta.
-2. **Apply Local Modifications**: The WatermelonDB transaction safely integrates remote changes, resolving conflicts locally.
-3. **Push Changes**: Local modifications (accumulated offline) are bundled as created/updated/deleted records and posted to the server.
-4. **Transaction Integrity**: The NestJS server applies updates inside a single database transaction. If conflicts arise, they are resolved using a **Last-Write-Wins** strategy based on `updatedAt` timestamps.
+2. **Apply Local Modifications**: The client integrates remote changes in a local SQLite transaction, resolving conflicts locally.
+3. **Push Changes**: Local modifications (accumulated offline) are bundled as created/updated/deleted records and pushed to the server.
+4. **Transaction Integrity**: The NestJS server applies updates inside a single Drizzle transaction. Conflicts are resolved per field via **Column-Level Last-Write-Wins** against the client's last-pull timestamp.
 
 ---
 
@@ -135,17 +135,16 @@ export const tasks = pgTable('tasks', {
 });
 ```
 
-For SQLite (WatermelonDB mapping):
+For the client SQLite schema (mirror the shared columns — the parity guard
+enforces this):
 
 ```typescript
 // shared-types/src/lib/db/schema-sqlite.ts
-export const sqliteTasksSchema = tableSchema({
-  name: 'tasks',
-  columns: [
-    { name: 'title', type: 'string' },
-    { name: 'completed', type: 'boolean' },
-    { name: 'updated_at', type: 'number' },
-  ],
+export const tasks = sqliteTable('tasks', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
+  updated_at: integer('updated_at').notNull(),
 });
 ```
 
