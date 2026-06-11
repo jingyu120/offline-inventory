@@ -16,7 +16,9 @@ export class TrpcController {
     createContext: ({ req, res }) => ({ req, res }),
   });
 
-  @All('*')
+  // Named wildcard ('*path') per path-to-regexp v8 (NestJS 11 / Express 5);
+  // the param itself is unused — the sub-path is derived from req.url below.
+  @All('*path')
   handleTRPC(@Req() req: Request, @Res() res: Response) {
     // Because NestJS routing matches /trpc/*, we adjust req.url
     // so that the tRPC handler receives the sub-path correctly.

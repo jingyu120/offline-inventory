@@ -1,47 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
-  Platform,
   useWindowDimensions,
-  TouchableOpacity,
 } from 'react-native';
-import {
-  Box,
-  Text,
-  Card,
-  Button,
-  DropdownSelector,
-  Theme,
-  ThemedTextInput,
-} from '@burma-inventory/ui-components';
+import { Box, Text, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { useTeamPulseData } from '../hooks/useTeamPulseData';
-import { ComplianceScorecard } from '../components/ComplianceScorecard';
-import { VelocityTimeline } from '../components/VelocityTimeline';
-import { SVGAnalyticsDashboard } from '../components/SVGAnalyticsDashboard';
 import { useTranslation } from '../../../core/i18n/i18n';
-import axios from 'axios';
-import { API_BASE_URL, SKU_METRICS } from '../../../config/appConfig';
-import { SyncLogsTable } from '../components/SyncLogsTable';
-import { trpcClient } from '../../../core/trpc/trpcClient';
+import { OversightTabBar } from '../components/OversightTabBar';
+import { OversightOverviewTab } from '../components/OversightOverviewTab';
 import { HitlVerificationPanel } from '../components/HitlVerificationPanel';
 import { DlqDashboard } from '../components/DlqDashboard';
 import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
 import { PendingSalesApproval } from '../components/PendingSalesApproval';
 import { PendingReconciliationPanel } from '../components/PendingReconciliationPanel';
-
-const TAB_OVERSIGHT = 'oversight';
-const TAB_HITL = 'hitl';
-const TAB_DLQ = 'dlq';
-const TAB_APPROVALS = 'approvals';
-const TAB_RECONCILIATION = 'reconciliation';
-
-const DATE_FORMAT_PLACEHOLDER = 'YYYY-MM-DD';
-const PLATFORM_WEB = 'web';
-const PLATFORM_IOS = 'ios';
-const CSV_PLACEHOLDER =
-  'Name,Address,Region,Division,ContactName,PhoneNumber,Email,PriceTier,LifetimeValue\nCity Mart Hledan,Yangon,Yangon Division,U Hla,0912345678,hledan@citymart.com.mm,Retailer,5000';
+import { OVERSIGHT_TAB, OversightTab } from '../types';
 
 export const TeamPulseScreen: React.FC = () => {
   const { t, language } = useTranslation();
@@ -69,73 +43,9 @@ export const TeamPulseScreen: React.FC = () => {
     loadDatabaseData,
   } = useTeamPulseData();
 
-  const [csvText, setCsvText] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{
-    success: boolean;
-    importedCount?: number;
-    warnings?: string[];
-    error?: string;
-  } | null>(null);
-
-  const [syncLogs, setSyncLogs] = useState<$Any[]>([]);
-  const [syncLogsLoading, setSyncLogsLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    'oversight' | 'hitl' | 'dlq' | 'approvals' | 'reconciliation'
-  >(TAB_OVERSIGHT);
-
-  // Focus states for emerald focus rings on inputs
-  const [dateFocused, setDateFocused] = useState(false);
-  const [csvFocused, setCsvFocused] = useState(false);
-
-  /** Shared web-only CSS transition mixin */
-  const webTransition =
-    Platform.OS === 'web'
-      ? ({
-          transitionProperty: 'border-color, border-width',
-          transitionDuration: '150ms',
-          transitionTimingFunction: 'ease-in-out',
-        } as $Any)
-      : {};
-
-  const fetchSyncLogs = async (isLoadMore = false) => {
-    if (isLoadMore) {
-      setLoadingMore(true);
-    } else {
-      setSyncLogsLoading(true);
-    }
-    try {
-      const lastLog = syncLogs[syncLogs.length - 1];
-      const lastSeenId = isLoadMore && lastLog ? lastLog.id : undefined;
-      const limit = 20;
-
-      const response = await trpcClient.getSyncLogs.query({
-        lastSeenId,
-        limit,
-      });
-
-      if (response && response.success) {
-        const newLogs = response.logs || [];
-        if (isLoadMore) {
-          setSyncLogs((prev) => [...prev, ...newLogs]);
-        } else {
-          setSyncLogs(newLogs);
-        }
-        setHasMore(newLogs.length === limit);
-      }
-    } catch (e) {
-      console.error('Failed to fetch sync logs via tRPC:', e);
-    } finally {
-      setSyncLogsLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSyncLogs(false);
-  }, []);
+  const [activeTab, setActiveTab] = useState<OversightTab>(
+    OVERSIGHT_TAB.OVERSIGHT,
+  );
 
   if (loading) {
     return (
@@ -182,113 +92,15 @@ export const TeamPulseScreen: React.FC = () => {
         )}
       </Box>
 
-      {/* Tabs */}
-      <Box
-        flexDirection="row"
-        borderBottomWidth={1}
-        borderBottomColor="borderColor"
-        mb="l"
-        gap="m"
-      >
-        <TouchableOpacity onPress={() => setActiveTab(TAB_OVERSIGHT)}>
-          <Box
-            py="s"
-            px="m"
-            borderBottomWidth={2}
-            borderBottomColor={
-              activeTab === TAB_OVERSIGHT ? 'brand' : 'transparent'
-            }
-          >
-            <Text
-              variant="body"
-              fontWeight="bold"
-              color={activeTab === TAB_OVERSIGHT ? 'brand' : 'secondaryText'}
-            >
-              {t('oversightOverview')}
-            </Text>
-          </Box>
-        </TouchableOpacity>
+      <OversightTabBar activeTab={activeTab} onSelectTab={setActiveTab} />
 
-        <TouchableOpacity onPress={() => setActiveTab(TAB_HITL)}>
-          <Box
-            py="s"
-            px="m"
-            borderBottomWidth={2}
-            borderBottomColor={activeTab === TAB_HITL ? 'brand' : 'transparent'}
-          >
-            <Text
-              variant="body"
-              fontWeight="bold"
-              color={activeTab === TAB_HITL ? 'brand' : 'secondaryText'}
-            >
-              {t('hitlResolutions')}
-            </Text>
-          </Box>
-        </TouchableOpacity>
+      {activeTab === OVERSIGHT_TAB.HITL && (
+        <HitlVerificationPanel shops={shops} />
+      )}
 
-        <TouchableOpacity onPress={() => setActiveTab(TAB_DLQ)}>
-          <Box
-            py="s"
-            px="m"
-            borderBottomWidth={2}
-            borderBottomColor={activeTab === TAB_DLQ ? 'brand' : 'transparent'}
-          >
-            <Text
-              variant="body"
-              fontWeight="bold"
-              color={activeTab === TAB_DLQ ? 'brand' : 'secondaryText'}
-            >
-              {t('dlqMonitor')}
-            </Text>
-          </Box>
-        </TouchableOpacity>
+      {activeTab === OVERSIGHT_TAB.DLQ && <DlqDashboard />}
 
-        <TouchableOpacity onPress={() => setActiveTab(TAB_APPROVALS)}>
-          <Box
-            py="s"
-            px="m"
-            borderBottomWidth={2}
-            borderBottomColor={
-              activeTab === TAB_APPROVALS ? 'brand' : 'transparent'
-            }
-          >
-            <Text
-              variant="body"
-              fontWeight="bold"
-              color={activeTab === TAB_APPROVALS ? 'brand' : 'secondaryText'}
-            >
-              {t('approvals')}
-            </Text>
-          </Box>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setActiveTab(TAB_RECONCILIATION)}>
-          <Box
-            py="s"
-            px="m"
-            borderBottomWidth={2}
-            borderBottomColor={
-              activeTab === TAB_RECONCILIATION ? 'brand' : 'transparent'
-            }
-          >
-            <Text
-              variant="body"
-              fontWeight="bold"
-              color={
-                activeTab === TAB_RECONCILIATION ? 'brand' : 'secondaryText'
-              }
-            >
-              {t('arReconciliation')}
-            </Text>
-          </Box>
-        </TouchableOpacity>
-      </Box>
-
-      {activeTab === TAB_HITL && <HitlVerificationPanel shops={shops} />}
-
-      {activeTab === TAB_DLQ && <DlqDashboard />}
-
-      {activeTab === TAB_APPROVALS && (
+      {activeTab === OVERSIGHT_TAB.APPROVALS && (
         <Box flexDirection={isDesktop ? 'row' : 'column'} gap="m" mb="m">
           <Box flex={1}>
             <PendingIntakeApproval />
@@ -299,538 +111,33 @@ export const TeamPulseScreen: React.FC = () => {
         </Box>
       )}
 
-      {activeTab === TAB_RECONCILIATION && <PendingReconciliationPanel />}
+      {activeTab === OVERSIGHT_TAB.RECONCILIATION && (
+        <PendingReconciliationPanel />
+      )}
 
-      {activeTab === TAB_OVERSIGHT && (
-        <>
-          {/* Row 1: Compliance Grid & Velocity Auditing */}
-          <Box
-            flexDirection={isDesktop ? 'row' : 'column'}
-            flexWrap={isDesktop ? 'wrap' : 'nowrap'}
-            mb="m"
-          >
-            {/* Compliance Grid Card */}
-            <Box
-              flex={isDesktop ? 3 : undefined}
-              minWidth={isDesktop ? 350 : undefined}
-              mr={isDesktop && Platform.OS === 'web' ? 'm' : 'none'}
-              mb="m"
-            >
-              <ComplianceScorecard
-                selectedRep={selectedRep}
-                setSelectedRep={setSelectedRep}
-                selectedDayIndex={selectedDayIndex}
-                setSelectedDayIndex={setSelectedDayIndex}
-                getRepDayStats={getRepDayStats}
-              />
-            </Box>
-
-            {/* Log Velocity Timeline Panel */}
-            <Box
-              flex={isDesktop ? 2 : undefined}
-              minWidth={isDesktop ? 300 : undefined}
-              mb="m"
-            >
-              <VelocityTimeline
-                selectedRep={selectedRep}
-                selectedDayIndex={selectedDayIndex}
-                stats={activeStats}
-                shops={shops}
-              />
-            </Box>
-          </Box>
-
-          {/* Row 2: AI EOD Digest briefing */}
-          <Card p="m" mb="m" bg="cardBackground">
-            <Box
-              flexDirection={isDesktop ? 'row' : 'column'}
-              alignItems={isDesktop ? 'center' : 'stretch'}
-              mb="m"
-            >
-              <Box
-                flex={isDesktop ? 1 : undefined}
-                mr={isDesktop ? 'm' : 'none'}
-                mb={isDesktop ? 'none' : 's'}
-              >
-                <Text variant="title">{t('eodDigestTitle')}</Text>
-                <Text variant="bodySecondary">{t('eodDigestSubtitle')}</Text>
-              </Box>
-
-              <Box
-                flexDirection="row"
-                alignItems="center"
-                mt={isDesktop ? 'none' : 's'}
-              >
-                <Box mr="s">
-                  <Text variant="caption" color="secondaryText" mb="xs">
-                    {t('dateFilter')}
-                  </Text>
-                  <ThemedTextInput
-                    value={digestDate}
-                    onChangeText={setDigestDate}
-                    placeholder={DATE_FORMAT_PLACEHOLDER}
-                    onFocus={() => setDateFocused(true)}
-                    onBlur={() => setDateFocused(false)}
-                    p="s"
-                    borderRadius="s"
-                    borderWidth={dateFocused ? 2 : 1}
-                    borderColor={dateFocused ? 'success' : 'borderColor'}
-                    bg="cardBackground"
-                    minWidth={120}
-                    style={{
-                      fontSize: 14,
-                      fontFamily: 'monospace',
-                      color: theme.colors.primaryText,
-                      ...(Platform.OS === PLATFORM_WEB
-                        ? ({
-                            outlineStyle: 'none',
-                            ...webTransition,
-                          } as $Any)
-                        : {}),
-                    }}
-                  />
-                </Box>
-                <Box style={{ alignSelf: 'flex-end' }}>
-                  <Button
-                    title={t('compileDigest')}
-                    onPress={triggerEodCompilation}
-                    variant="primary"
-                  />
-                </Box>
-              </Box>
-            </Box>
-
-            {loadingDigest ? (
-              <Box py="l" justifyContent="center" alignItems="center">
-                <ActivityIndicator
-                  size="large"
-                  color={theme.colors.primaryButton}
-                />
-                <Text variant="bodySecondary" mt="s">
-                  {t('gemmaCompiling')}
-                </Text>
-              </Box>
-            ) : digestResult ? (
-              <Box
-                p="m"
-                borderRadius="m"
-                bg="brandBg"
-                borderColor="brandBorder"
-                borderWidth={1}
-              >
-                {/* Top performing rep */}
-                <Box
-                  flexDirection="row"
-                  justifyContent="space-between"
-                  mb="m"
-                  borderBottomWidth={1}
-                  borderColor="borderColor"
-                  pb="s"
-                >
-                  <Text variant="body" fontWeight="bold">
-                    {t('topPerformingRepLabel')}
-                  </Text>
-                  <Text variant="body" fontWeight="bold" color="success">
-                    {digestResult.topPerformingRep}
-                  </Text>
-                </Box>
-
-                {/* AI Curated Market Synthesis */}
-                <Box mb="m">
-                  <Text variant="body" fontWeight="bold" color="brand" mb="s">
-                    {t('aiMarketBriefingSummary')}
-                  </Text>
-                  <Text variant="bodySecondary" style={{ lineHeight: 22 }}>
-                    {digestResult.marketSynthesis}
-                  </Text>
-                </Box>
-
-                {/* Warnings list */}
-                {digestResult.warnings.length > 0 && (
-                  <Box borderTopWidth={1} borderColor="borderColor" pt="m">
-                    <Text
-                      variant="body"
-                      fontWeight="bold"
-                      color="danger"
-                      mb="s"
-                    >
-                      {t('complianceViolationsLogged')}
-                    </Text>
-                    {digestResult.warnings.map((w: string, idx: number) => (
-                      <Text
-                        key={idx}
-                        variant="bodySecondary"
-                        color="dangerText"
-                        mb="xs"
-                      >
-                        ⚠️ {w}
-                      </Text>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            ) : (
-              <Box
-                p="m"
-                borderStyle="dashed"
-                borderWidth={1.5}
-                borderColor="borderColor"
-                borderRadius="m"
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Text variant="bodySecondary">
-                  {t('compileDigestInstruction')}
-                </Text>
-              </Box>
-            )}
-          </Card>
-
-          {/* SVG Analytical Dashboard Row */}
-          <SVGAnalyticsDashboard stats={activeStats} />
-
-          {/* Row 3: Buying Forecast & Quota Optimizations */}
-          <Box flexDirection="row" flexWrap="wrap">
-            {/* SKU Buying Forecasts */}
-            <Box flex={1} minWidth={320} mr={isDesktop ? 'm' : 'none'} mb="m">
-              <Card p="m" bg="cardBackground" height="100%">
-                <Text variant="title" mb="s">
-                  {t('gemmaDemandForecast')}
-                </Text>
-                <Text variant="bodySecondary" mb="m">
-                  {t('selectAccountForecast')}
-                </Text>
-
-                {/* Shop Selector using cross-platform DropdownSelector */}
-                <Box mb="m">
-                  <DropdownSelector
-                    label={t('accountSelector')}
-                    selectedValue={selectedShopId}
-                    onValueChange={(val) => setSelectedShopId(val)}
-                    options={shopOptions}
-                    placeholder={t('chooseShopAccountPlaceholder')}
-                  />
-                </Box>
-
-                {/* Forecast Lists */}
-                {selectedShopId ? (
-                  <Box>
-                    {SKU_METRICS.map((sku, index) => (
-                      <Box
-                        key={index}
-                        py="s"
-                        borderBottomWidth={
-                          index < SKU_METRICS.length - 1 ? 1 : 0
-                        }
-                        borderColor="borderColor"
-                        flexDirection="row"
-                        justifyContent="space-between"
-                      >
-                        <Box>
-                          <Text variant="body" fontWeight="bold">
-                            {index + 1}. {sku.label}
-                          </Text>
-                          <Text variant="bodySecondary">
-                            {t(sku.trendKey as $Any) || sku.trendKey}
-                          </Text>
-                        </Box>
-                        <Text
-                          variant="body"
-                          fontWeight="bold"
-                          color={sku.themeColorKey}
-                        >
-                          {t('probValue').replace(
-                            '{prob}',
-                            sku.probability.toString(),
-                          )}
-                        </Text>
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Text variant="bodySecondary">{t('noShopSelected')}</Text>
-                )}
-              </Card>
-            </Box>
-
-            {/* Dynamic Quota Optimizations Card */}
-            <Box flex={1} minWidth={320} mb="m">
-              <Card p="m" bg="cardBackground" height="100%">
-                <Text variant="title" mb="s">
-                  {t('quotaOptimizations')}
-                </Text>
-                <Text variant="bodySecondary" mb="m">
-                  {t('quotaSubtitle')}
-                </Text>
-
-                {optimizationsLoading ? (
-                  <Box py="m" justifyContent="center" alignItems="center">
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.primaryButton}
-                    />
-                  </Box>
-                ) : (
-                  <Box>
-                    {quotaOptimizations.map((opt, idx) => (
-                      <Box
-                        key={idx}
-                        mb="m"
-                        borderLeftWidth={3}
-                        borderLeftColor="brand"
-                        pl="s"
-                      >
-                        <Box
-                          flexDirection="row"
-                          justifyContent="space-between"
-                          mb="xs"
-                        >
-                          <Text variant="body" fontWeight="bold">
-                            {opt.region}
-                          </Text>
-                          <Text variant="body" fontWeight="bold" color="brand">
-                            {t('quotaDailySuggested')
-                              .replace('{current}', opt.currentQuota.toString())
-                              .replace(
-                                '{suggested}',
-                                opt.suggestedQuota.toString(),
-                              )}
-                          </Text>
-                        </Box>
-                        <Text
-                          variant="bodySecondary"
-                          style={{ lineHeight: 18 }}
-                        >
-                          {opt.reason}
-                        </Text>
-                      </Box>
-                    ))}
-
-                    <Box mt="m">
-                      <Button
-                        title={t('applyGemmaAdjustments')}
-                        onPress={applyQuotaAdjustments}
-                        variant="primary"
-                      />
-                    </Box>
-                  </Box>
-                )}
-              </Card>
-            </Box>
-          </Box>
-
-          {/* Odoo CSV Importer */}
-          <Card p="m" mb="m" bg="cardBackground">
-            <Text variant="title" mb="xs">
-              {t('odooImporterTitle')}
-            </Text>
-            <Text variant="bodySecondary" mb="m">
-              {t('odooImporterDesc')}
-            </Text>
-
-            <ThemedTextInput
-              multiline
-              numberOfLines={6}
-              value={csvText}
-              onChangeText={setCsvText}
-              placeholder={CSV_PLACEHOLDER}
-              placeholderTextColor={theme.colors.secondaryText}
-              onFocus={() => setCsvFocused(true)}
-              onBlur={() => setCsvFocused(false)}
-              minHeight={120}
-              p="m"
-              borderColor={csvFocused ? 'success' : 'slate300'}
-              borderWidth={csvFocused ? 2 : 1}
-              borderRadius="m"
-              bg="mainBackground"
-              mb="s"
-              style={{
-                fontFamily:
-                  Platform.OS === PLATFORM_IOS ? 'Courier' : 'monospace',
-                fontSize: 13,
-                color: theme.colors.primaryText,
-                textAlignVertical: 'top',
-                ...(Platform.OS === PLATFORM_WEB
-                  ? ({
-                      outlineStyle: 'none',
-                      ...webTransition,
-                    } as $Any)
-                  : {}),
-              }}
-            />
-
-            <Box flexDirection="row" gap="s" mb={importResult ? 'm' : 'none'}>
-              <Button
-                title={importing ? t('importing') : t('importCsvData')}
-                onPress={async () => {
-                  if (!csvText.trim()) return;
-                  setImporting(true);
-                  setImportResult(null);
-                  try {
-                    const response = await axios.post(
-                      `${API_BASE_URL}/sync/import-odoo`,
-                      {
-                        csvData: csvText,
-                      },
-                    );
-                    setImportResult(response.data);
-                    if (response.data.success) {
-                      setCsvText('');
-                      loadDatabaseData();
-                      fetchSyncLogs(false);
-                    }
-                  } catch (e: $Any) {
-                    setImportResult({
-                      success: false,
-                      error:
-                        e.response?.data?.error ||
-                        e.message ||
-                        t('importFailed'),
-                    });
-                  } finally {
-                    setImporting(false);
-                  }
-                }}
-                variant="primary"
-                disabled={importing || !csvText.trim()}
-              />
-              <Button
-                title={t('clear')}
-                onPress={() => {
-                  setCsvText('');
-                  setImportResult(null);
-                }}
-                variant="secondary"
-              />
-            </Box>
-
-            {importResult && (
-              <Box
-                p="m"
-                borderRadius="m"
-                bg={importResult.success ? 'successBg' : 'dangerBg'}
-                borderWidth={1}
-                borderColor={importResult.success ? 'success' : 'danger'}
-              >
-                {importResult.success ? (
-                  <Box>
-                    <Text
-                      variant="body"
-                      fontWeight="bold"
-                      color="successText"
-                      mb="xs"
-                    >
-                      {t('importSucceeded')}
-                    </Text>
-                    <Text variant="bodySecondary" color="successText">
-                      {t('importSucceededMsg', {
-                        count: importResult.importedCount ?? 0,
-                      })}
-                    </Text>
-                    {importResult.warnings &&
-                      importResult.warnings.length > 0 && (
-                        <Box
-                          mt="s"
-                          pt="s"
-                          borderTopWidth={1}
-                          borderColor="borderColor"
-                        >
-                          <Text
-                            variant="bodySecondary"
-                            fontWeight="bold"
-                            color="successText"
-                            mb="xs"
-                          >
-                            {t('warningsLabel')}
-                          </Text>
-                          <ScrollView
-                            style={{ maxHeight: 100 }}
-                            showsVerticalScrollIndicator={false}
-                            showsHorizontalScrollIndicator={false}
-                          >
-                            {importResult.warnings.map((w, idx) => (
-                              <Text
-                                key={idx}
-                                variant="bodySecondary"
-                                color="successText"
-                              >
-                                ⚠️ {w}
-                              </Text>
-                            ))}
-                          </ScrollView>
-                        </Box>
-                      )}
-                  </Box>
-                ) : (
-                  <Box>
-                    <Text
-                      variant="body"
-                      fontWeight="bold"
-                      color="errorText"
-                      mb="xs"
-                    >
-                      {t('importFailed')}
-                    </Text>
-                    <Text variant="bodySecondary" color="errorText">
-                      {importResult.error}
-                    </Text>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </Card>
-
-          {/* Sync Audit Log Dashboard */}
-          <Card p="m" mb="m" bg="cardBackground">
-            <Box
-              flexDirection="row"
-              justifyContent="space-between"
-              alignItems="center"
-              mb="m"
-            >
-              <Box flex={1} mr="s">
-                <Text variant="title">{t('syncAuditLogs')}</Text>
-                <Text variant="bodySecondary">{t('syncAuditLogsDesc')}</Text>
-              </Box>
-              <Button
-                title={syncLogsLoading ? t('refreshing') : t('refresh')}
-                onPress={() => fetchSyncLogs(false)}
-                variant="outline"
-                size="small"
-                disabled={syncLogsLoading}
-              />
-            </Box>
-
-            {syncLogsLoading && syncLogs.length === 0 ? (
-              <Box py="l" justifyContent="center" alignItems="center">
-                <ActivityIndicator
-                  size="small"
-                  color={theme.colors.primaryButton}
-                />
-              </Box>
-            ) : syncLogs.length === 0 ? (
-              <Box
-                p="m"
-                borderStyle="dashed"
-                borderWidth={1.5}
-                borderColor="borderColor"
-                borderRadius="m"
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Text variant="bodySecondary">{t('noSyncLogsRecorded')}</Text>
-              </Box>
-            ) : (
-              <SyncLogsTable
-                syncLogs={syncLogs}
-                isDesktop={isDesktop}
-                onLoadMore={() => fetchSyncLogs(true)}
-                hasMore={hasMore}
-                loadingMore={loadingMore}
-              />
-            )}
-          </Card>
-        </>
+      {activeTab === OVERSIGHT_TAB.OVERSIGHT && (
+        <OversightOverviewTab
+          isDesktop={isDesktop}
+          shops={shops}
+          selectedRep={selectedRep}
+          setSelectedRep={setSelectedRep}
+          selectedDayIndex={selectedDayIndex}
+          setSelectedDayIndex={setSelectedDayIndex}
+          getRepDayStats={getRepDayStats}
+          activeStats={activeStats}
+          digestDate={digestDate}
+          setDigestDate={setDigestDate}
+          loadingDigest={loadingDigest}
+          digestResult={digestResult}
+          onCompileDigest={triggerEodCompilation}
+          selectedShopId={selectedShopId}
+          setSelectedShopId={setSelectedShopId}
+          shopOptions={shopOptions}
+          quotaOptimizations={quotaOptimizations}
+          optimizationsLoading={optimizationsLoading}
+          onApplyQuotaAdjustments={applyQuotaAdjustments}
+          reloadDatabaseData={loadDatabaseData}
+        />
       )}
     </ScrollView>
   );

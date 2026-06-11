@@ -22,6 +22,16 @@ export type ExchangeRateResolver = (
   currency: 'USD' | 'THB',
 ) => Promise<number | undefined>;
 
+/**
+ * Offline fallback rates (MMK per 1 unit) used only when no live exchange-rate
+ * resolver is registered or it cannot supply a rate. Live rates come from the
+ * app's price-book layer via {@link registerExchangeRateResolver}.
+ */
+const FALLBACK_RATES_MMK: Record<'USD' | 'THB', number> = {
+  USD: 4200,
+  THB: 115,
+};
+
 let rateResolver: ExchangeRateResolver | null = null;
 
 export function registerExchangeRateResolver(r: ExchangeRateResolver) {
@@ -59,7 +69,7 @@ export function TextField({
         }
 
         if (rateVal === undefined) {
-          rateVal = baseValuation.currency === 'USD' ? 4200 : 115;
+          rateVal = FALLBACK_RATES_MMK[baseValuation.currency];
         }
 
         if (isMounted) {
@@ -72,7 +82,7 @@ export function TextField({
           err,
         );
         if (isMounted) {
-          const rateVal = baseValuation.currency === 'USD' ? 4200 : 115;
+          const rateVal = FALLBACK_RATES_MMK[baseValuation.currency];
           const kyatAmt = Math.round(baseValuation.amount * rateVal);
           setConvertedValue(`${kyatAmt.toLocaleString()} MMK`);
         }

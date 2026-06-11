@@ -15,7 +15,9 @@ import {
   Region,
   DailyQuota,
   InteractionLog,
+  guardAsync,
 } from '@burma-inventory/shared-types';
+import { EodDigest, QuotaOptimization } from '../types';
 
 export interface RepDayStats {
   logCount: number;
@@ -46,13 +48,15 @@ export const useTeamPulseData = () => {
   const [selectedShopId, setSelectedShopId] = useState<string>('');
 
   // AI states
-  const [quotaOptimizations, setQuotaOptimizations] = useState<$Any[]>([]);
+  const [quotaOptimizations, setQuotaOptimizations] = useState<
+    QuotaOptimization[]
+  >([]);
   const [optimizationsLoading, setOptimizationsLoading] = useState(false);
   const [digestDate, setDigestDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
   const [loadingDigest, setLoadingDigest] = useState(false);
-  const [digestResult, setDigestResult] = useState<$Any | null>(null);
+  const [digestResult, setDigestResult] = useState<EodDigest | null>(null);
 
   // Load database entities
   const loadDatabaseData = async () => {
@@ -197,18 +201,22 @@ export const useTeamPulseData = () => {
   const triggerEodCompilation = async () => {
     setLoadingDigest(true);
     setDigestResult(null);
-    try {
-      const response = await trpcClient.eodDigest.mutate({
+    const [response, error] = await guardAsync(
+      trpcClient.eodDigest.mutate({
         date: digestDate,
-      });
+      }),
+    );
+    if (!error) {
       setDigestResult(response);
-    } catch (e) {
-      console.error('Failed to compile digest, using fallback mocks:', e);
+    } else {
+      console.error('Failed to compile digest, using fallback mocks:', error);
       setDigestResult({
         date: digestDate,
+        compiledAt: new Date().toISOString(),
         topPerformingRep: 'Ko Min (14 logs)',
         complianceScorecard: [
           {
+            repId: 'rep-1',
             username: 'rep-1',
             totalLogs: 14,
             quotaTarget: 8,
@@ -216,6 +224,7 @@ export const useTeamPulseData = () => {
             batchDumpingFlagged: false,
           },
           {
+            repId: 'rep-2',
             username: 'rep-2',
             totalLogs: 6,
             quotaTarget: 8,
@@ -229,29 +238,35 @@ export const useTeamPulseData = () => {
         marketSynthesis:
           'Gemma 4 Curated Synthesis:\n• Competitor Activity: Detected 1 report of competitor discount schemes in Insein.\n• Logistics Barriers: Reps reported supply delays in Shan State due to monsoonal logistics blocks.\n• Pricing Resistance: 1 account complained about product wholesale price increases.',
       });
-    } finally {
-      setLoadingDigest(false);
     }
+    setLoadingDigest(false);
   };
 
   // Apply Quota Suggestions
   const applyQuotaAdjustments = async () => {
-    try {
+    const [, shanError] = await guardAsync(
       // Shan State (rep-2) quota suggested increase: visits target to 8
-      let updatedQuotas = await applyQuotaAdjRepo('rep-2', 8, 1, 2);
-      // Yangon Division (rep-1) quota suggested decrease: visits target to 2
-      updatedQuotas = await applyQuotaAdjRepo('rep-1', 2, 2, 2);
+      applyQuotaAdjRepo('rep-2', 8, 1, 2),
+    );
+    // Yangon Division (rep-1) quota suggested decrease: visits target to 2
+    const [updatedQuotas, yangonError] = await guardAsync(
+      applyQuotaAdjRepo('rep-1', 2, 2, 2),
+    );
 
-      setQuotas(updatedQuotas);
-
-      Alert.alert(
-        t('quotaOptimizationsApplied'),
-        t('quotaOptimizationsAppliedMsg'),
+    if (shanError || yangonError || !updatedQuotas) {
+      console.error(
+        'Failed to apply quota optimizations:',
+        shanError ?? yangonError,
       );
-    } catch (e) {
-      console.error('Failed to apply quota optimizations:', e);
       Alert.alert(t('error'), t('quotaSaveFailed'));
+      return;
     }
+
+    setQuotas(updatedQuotas);
+    Alert.alert(
+      t('quotaOptimizationsApplied'),
+      t('quotaOptimizationsAppliedMsg'),
+    );
   };
 
   return {

@@ -9,18 +9,9 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
-
-log()  { echo -e "${GREEN}✓${NC} $1"; }
-warn() { echo -e "${YELLOW}⚠${NC} $1"; }
-err()  { echo -e "${RED}✗${NC} $1" >&2; }
-step() { echo -e "\n${CYAN}${BOLD}▸ $1${NC}"; }
+# Colors, logging, engine detection, and resilient compose helpers.
+# shellcheck source=scripts/lib/container-engine.sh
+source "$(dirname "$0")/lib/container-engine.sh"
 
 show_help() {
   echo -e "${BOLD}🇲🇲  Burma Inventory — Unified System Setup${NC}"
@@ -87,71 +78,15 @@ EOF
   log ".env file created with correct development defaults"
 fi
 
-# ── 3. Container Engine Auto-Detection ────────────
-CONTAINER_ENGINE=""
-COMPOSE_CMD=""
-
-if command -v podman &>/dev/null; then
-  CONTAINER_ENGINE="podman"
-elif command -v docker &>/dev/null; then
-  CONTAINER_ENGINE="docker"
-else
-  err "Neither 'podman' nor 'docker' CLI found. Please install a container engine and re-run."
-  exit 1
-fi
-
-# Detect compose provider
-if command -v podman-compose &>/dev/null && [ "$CONTAINER_ENGINE" = "podman" ]; then
-  COMPOSE_CMD="podman-compose"
-elif "$CONTAINER_ENGINE" compose version &>/dev/null; then
-  COMPOSE_CMD="$CONTAINER_ENGINE compose"
-elif command -v docker-compose &>/dev/null; then
-  COMPOSE_CMD="docker-compose"
-else
-  COMPOSE_CMD="$CONTAINER_ENGINE compose"
-fi
-
+# ── 3. Container Engine Detection ─────────────────
+detect_container_engine || exit 1
 log "Container engine detected: $CONTAINER_ENGINE ($(command -v "$CONTAINER_ENGINE"))"
 log "Compose tool detected: $COMPOSE_CMD"
 
 # ── 4. Podman Machine Check (macOS specific) ──────
-if [ "$CONTAINER_ENGINE" = "podman" ]; then
-  # On macOS, check if Podman machine needs to be started
-  if uname -s | grep -q "Darwin"; then
-    if podman machine list 2>/dev/null | grep -q -E "podman-machine|applehv|qemu"; then
-      if ! podman machine list 2>/dev/null | grep -q "Currently running"; then
-        step "Podman machine is stopped. Starting Podman virtual machine..."
-        podman machine start || warn "Could not start Podman machine automatically. Make sure it is active."
-      else
-        log "Podman machine is already running"
-      fi
-    fi
-  fi
-fi
+start_podman_machine_if_needed
 
-# ── 5. Helper function to wait for Database ──────
-wait_for_db() {
-  local container_name="burma_inventory_db"
-  echo -n "⏳ Waiting for PostgreSQL to be ready"
-  local wait_limit=45
-  local count=0
-  until "$CONTAINER_ENGINE" exec "$container_name" pg_isready -U postgres -d inventory_db >/dev/null 2>&1; do
-    echo -n "."
-    sleep 1
-    count=$((count + 1))
-    if [ "$count" -ge "$wait_limit" ]; then
-      echo ""
-      err "PostgreSQL did not become ready within ${wait_limit}s."
-      echo "----------------------------------------"
-      echo "Latest container logs:"
-      "$CONTAINER_ENGINE" logs "$container_name" --tail 30 || true
-      echo "----------------------------------------"
-      exit 1
-    fi
-  done
-  echo " (Connected!)"
-  log "PostgreSQL is ready"
-}
+# ── 5. Database readiness is provided by wait_for_db() from the shared lib ──
 
 # ── 6. Handle Destructive Reset Mode ──────────────
 if [ "$RESET_MODE" = true ]; then
@@ -173,7 +108,7 @@ if [ "$RESET_MODE" = true ]; then
   fi
 
   step "1/5  Wiping containers and persistent database volumes..."
-  $COMPOSE_CMD down -v --remove-orphans || true
+  compose_clean || true
   log "Containers and database volumes wiped"
 
   step "2/5  Cleaning built directories, caches, and node_modules..."
@@ -185,7 +120,7 @@ if [ "$RESET_MODE" = true ]; then
   log "Clean npm install completed"
 
   step "4/5  Starting database containers cleanly..."
-  $COMPOSE_CMD up -d
+  compose_up
   log "Database containers started"
 
   # Wait for database container to be ready
@@ -229,24 +164,11 @@ npm install --no-audit
 log "Workspace dependencies verified and synced"
 
 step "3/5  Ensuring database containers are running..."
-CONTAINER="burma_inventory_db"
-IS_RUNNING=false
-
-if [ "$CONTAINER_ENGINE" = "podman" ]; then
-  if podman ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    IS_RUNNING=true
-  fi
-else
-  if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    IS_RUNNING=true
-  fi
-fi
-
-if [ "$IS_RUNNING" = true ]; then
-  log "Container ${CONTAINER} is already running"
+if container_running "$DB_CONTAINER"; then
+  log "Container ${DB_CONTAINER} is already running"
 else
   echo "🐳 Starting database containers..."
-  $COMPOSE_CMD up -d
+  compose_up
   log "Database containers started"
 fi
 
@@ -254,7 +176,7 @@ fi
 wait_for_db
 
 step "4/5  Applying database schema (Drizzle push)..."
-TABLE_EXISTS=$("$CONTAINER_ENGINE" exec "$CONTAINER" psql -U postgres -d inventory_db -tAc \
+TABLE_EXISTS=$("$CONTAINER_ENGINE" exec "$DB_CONTAINER" psql -U postgres -d inventory_db -tAc \
   "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema='public' AND table_name='items');" 2>/dev/null || echo "f")
 
 if [ "$TABLE_EXISTS" = "t" ]; then

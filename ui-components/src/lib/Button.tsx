@@ -8,14 +8,75 @@ import { Box, Text } from './Primitives';
 import { useTheme } from '@shopify/restyle';
 import { Theme } from './theme';
 
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'danger'
+  | 'ghost';
+export type ButtonSize = 'small' | 'medium' | 'large';
+
 export interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
-  size?: 'small' | 'medium' | 'large';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   isLoading?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
 }
+
+interface VariantStyle {
+  bg: keyof Theme['colors'];
+  textColor: keyof Theme['colors'];
+  borderWidth: number;
+  borderColor: keyof Theme['colors'];
+}
+
+const VARIANT_STYLES: Record<ButtonVariant, VariantStyle> = {
+  primary: {
+    bg: 'primaryButton',
+    textColor: 'primaryButtonText',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  secondary: {
+    bg: 'secondaryButton',
+    textColor: 'secondaryButtonText',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  outline: {
+    bg: 'transparent',
+    textColor: 'primaryText',
+    borderWidth: 1,
+    borderColor: 'borderColor',
+  },
+  danger: {
+    bg: 'danger',
+    textColor: 'pureWhite',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  ghost: {
+    bg: 'transparent',
+    textColor: 'primaryButton',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+};
+
+const SIZE_PADDING_Y: Record<ButtonSize, keyof Theme['spacing']> = {
+  small: 'xs',
+  medium: 's',
+  large: 'm',
+};
+const SIZE_PADDING_X: Record<ButtonSize, keyof Theme['spacing']> = {
+  small: 's',
+  medium: 'm',
+  large: 'l',
+};
+
+const ACTIVE_OPACITY = 0.8;
 
 export function Button({
   title,
@@ -29,42 +90,13 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme<Theme>();
 
-  let bg: keyof Theme['colors'] = 'primaryButton';
-  let textColor: keyof Theme['colors'] = 'primaryButtonText';
-  let borderWidth = 0;
-  let borderColor: keyof Theme['colors'] = 'transparent';
-
-  switch (variant) {
-    case 'primary':
-      bg = 'primaryButton';
-      textColor = 'primaryButtonText';
-      break;
-    case 'secondary':
-      bg = 'secondaryButton';
-      textColor = 'secondaryButtonText';
-      break;
-    case 'outline':
-      bg = 'transparent';
-      textColor = 'primaryText';
-      borderWidth = 1;
-      borderColor = 'borderColor';
-      break;
-    case 'danger':
-      bg = 'danger';
-      textColor = 'pureWhite';
-      break;
-    case 'ghost':
-      bg = 'transparent';
-      textColor = 'primaryButton';
-      break;
-  }
-
-  const py = size === 'small' ? 'xs' : size === 'medium' ? 's' : 'm';
-  const px = size === 'small' ? 's' : size === 'medium' ? 'm' : 'l';
+  const { bg, textColor, borderWidth, borderColor } = VARIANT_STYLES[variant];
+  const py = SIZE_PADDING_Y[size];
+  const px = SIZE_PADDING_X[size];
 
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={ACTIVE_OPACITY}
       disabled={disabled || isLoading}
       {...rest}
     >

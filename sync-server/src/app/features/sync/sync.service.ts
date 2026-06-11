@@ -1,13 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DrizzleService } from '../../core/drizzle';
+import { AppConfig } from '../../core/config/app-config';
 import { AiService } from '../ai/ai.service';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import * as schema from '@burma-inventory/shared-types';
-import { eq, and, gt, lte, isNull, inArray, ne, gte, desc } from 'drizzle-orm';
+import { eq, and, gt, lte, isNull, inArray, desc } from 'drizzle-orm';
 import { TABLE_REGISTRY, TableSyncConfig } from './sync-registry';
 import { OdooImporterService } from './odoo-importer.service';
+import { calculateEventHash, generateSequentialId } from './audit/audit-hash';
+import { ConflictResolutionService } from './conflict/conflict-resolution.service';
+import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const AUDITED_SHOP_TABLES = ['shops', 'contacts'];
+const AUDITED_ORDER_TABLES = ['interaction_logs'];
+
+interface UploadUrlTarget {
+  table: $Any;
+  idColumn: $Any;
+  urlColumn: string;
+  entityLabel: string;
+}
 
 @Injectable()
 export class SyncService {
@@ -17,6 +31,9 @@ export class SyncService {
     private readonly drizzle: DrizzleService,
     private readonly aiService: AiService,
     private readonly odooImporter: OdooImporterService,
+    private readonly conflictResolution: ConflictResolutionService,
+    private readonly anomalyDetection: AnomalyDetectionService,
+    private readonly config: AppConfig,
   ) {}
 
   async getLastAuditEvent() {
@@ -29,29 +46,7 @@ export class SyncService {
   }
 
   calculateEventHash(event: $Any, actorId: string, prevHash: string): string {
-    const dataToHash =
-      JSON.stringify({
-        event_id: event.event_id,
-        trace_id: event.trace_id,
-        entity_type: event.entity_type,
-        action: event.action,
-        previous_state:
-          typeof event.previous_state === 'string'
-            ? event.previous_state
-            : JSON.stringify(event.previous_state),
-        new_state:
-          typeof event.new_state === 'string'
-            ? event.new_state
-            : JSON.stringify(event.new_state),
-        gps_coordinates: event.gps_coordinates,
-        created_at: Number(event.created_at),
-      }) +
-      '|' +
-      actorId +
-      '|' +
-      prevHash;
-
-    return crypto.createHash('sha256').update(dataToHash).digest('hex');
+    return calculateEventHash(event, actorId, prevHash);
   }
 
   async commitAuditEvent(
@@ -73,7 +68,7 @@ export class SyncService {
     const prevHash =
       lastEvents.length > 0 && lastEvents[0].hash
         ? lastEvents[0].hash
-        : 'genesis';
+        : this.config.auditGenesisHash;
     const eventId = `evt-srv-${this.generateSequentialId()}`;
     const now = Date.now();
 
@@ -102,70 +97,8 @@ export class SyncService {
     });
   }
 
-  private async getFieldsChangedOnServer(
-    tx: $Any,
-    entityType: 'SHOP' | 'ORDER' | 'INVENTORY',
-    recordId: string,
-    sinceTime: number,
-  ): Promise<Set<string>> {
-    const changedFields = new Set<string>();
-
-    const events = await tx
-      .select()
-      .from(schema.pgSchema.audit_events)
-      .where(
-        and(
-          eq(schema.pgSchema.audit_events.entity_type, entityType),
-          gt(schema.pgSchema.audit_events.created_at, sinceTime),
-        ),
-      );
-
-    for (const event of events) {
-      let ps: Record<string, $Any> | null = null;
-      let ns: Record<string, $Any> | null = null;
-
-      try {
-        ps =
-          typeof event.previous_state === 'string'
-            ? JSON.parse(event.previous_state)
-            : event.previous_state;
-      } catch {
-        // ignore parse errors
-      }
-
-      try {
-        ns =
-          typeof event.new_state === 'string'
-            ? JSON.parse(event.new_state)
-            : event.new_state;
-      } catch {
-        // ignore parse errors
-      }
-
-      if (ps?.id === recordId || ns?.id === recordId) {
-        if (!ps) {
-          if (ns) {
-            for (const key of Object.keys(ns)) {
-              changedFields.add(key);
-            }
-          }
-        } else if (ns) {
-          for (const key of Object.keys(ns)) {
-            if (ns[key] !== ps[key]) {
-              changedFields.add(key);
-            }
-          }
-        }
-      }
-    }
-
-    return changedFields;
-  }
-
   private generateSequentialId(): string {
-    const timestamp = Date.now().toString().padStart(15, '0');
-    const randomSuffix = crypto.randomBytes(8).toString('hex');
-    return `${timestamp}-${randomSuffix}`;
+    return generateSequentialId();
   }
 
   // ── Pull ──────────────────────────────────────────────────────────
@@ -319,13 +252,13 @@ export class SyncService {
         );
         for (let i = 0; i < sorted.length; i++) {
           const event = sorted[i];
-          let prevHash = 'genesis';
+          let prevHash = this.config.auditGenesisHash;
           if (i > 0) {
-            prevHash = sorted[i - 1].hash || 'genesis';
+            prevHash = sorted[i - 1].hash || this.config.auditGenesisHash;
           } else {
             const lastDbEvent = await this.getLastAuditEvent();
             if (lastDbEvent) {
-              prevHash = lastDbEvent.hash || 'genesis';
+              prevHash = lastDbEvent.hash || this.config.auditGenesisHash;
             }
           }
           const computedHash = this.calculateEventHash(
@@ -379,15 +312,8 @@ export class SyncService {
               .values(changeset.created.map(cfg.toDrizzle))
               .onConflictDoNothing();
 
-            if (
-              tableName === 'shops' ||
-              tableName === 'interaction_logs' ||
-              tableName === 'contacts'
-            ) {
-              const entityType =
-                tableName === 'shops' || tableName === 'contacts'
-                  ? 'SHOP'
-                  : 'ORDER';
+            if (this.isAuditedTable(tableName)) {
+              const entityType = this.resolveAuditEntityType(tableName);
               for (const record of changeset.created) {
                 await this.commitAuditEvent(
                   tx,
@@ -429,7 +355,8 @@ export class SyncService {
                 // Due in 30 days from the local creation timestamp
                 const logRec = log as unknown as schema.InteractionLogRecord;
                 const dueDate =
-                  (logRec.created_at_local || now) + 30 * 24 * 60 * 60 * 1000;
+                  (logRec.created_at_local || now) +
+                  this.config.autoInvoiceDueDays * MILLISECONDS_PER_DAY;
                 const invoiceId = `inv-${this.generateSequentialId()}`;
                 await tx
                   .insert(schema.pgSchema.invoices)
@@ -439,7 +366,7 @@ export class SyncService {
                     interaction_log_id: log.id,
                     amount,
                     due_date: dueDate,
-                    grace_period_days: 7,
+                    grace_period_days: this.config.autoInvoiceGracePeriodDays,
                     state: 'PENDING',
                     created_at: now,
                     updated_at: now,
@@ -471,15 +398,8 @@ export class SyncService {
                   );
                 });
 
-              if (
-                tableName === 'shops' ||
-                tableName === 'interaction_logs' ||
-                tableName === 'contacts'
-              ) {
-                const entityType =
-                  tableName === 'shops' || tableName === 'contacts'
-                    ? 'SHOP'
-                    : 'ORDER';
+              if (this.isAuditedTable(tableName)) {
+                const entityType = this.resolveAuditEntityType(tableName);
                 await this.commitAuditEvent(
                   tx,
                   entityType,
@@ -494,70 +414,20 @@ export class SyncService {
               continue;
             }
 
-            const incomingTime = incomingDrizzle.updated_at || 0;
-            const existingTime = existing.updated_at || 0;
-
-            const recordWasUpdatedOnServer = existingTime > clientLastPullTime;
-
-            let mergedRecord: Record<string, $Any> = { ...incomingDrizzle };
             const prev = { ...existing };
 
-            if (recordWasUpdatedOnServer) {
-              let entityType: 'SHOP' | 'ORDER' | 'INVENTORY' | null = null;
-              if (tableName === 'shops') entityType = 'SHOP';
-              else if (tableName === 'contacts') entityType = 'SHOP';
-              else if (tableName === 'interaction_logs') entityType = 'ORDER';
-
-              const serverChangedFields = entityType
-                ? await this.getFieldsChangedOnServer(
-                    tx,
-                    entityType,
-                    record.id,
-                    clientLastPullTime,
-                  )
-                : new Set<string>();
-
-              mergedRecord = { ...existing };
-
-              for (const [key, incomingVal] of Object.entries(
+            const { mergedRecord, conflictWarnings } =
+              await this.conflictResolution.mergeUpdatedRecord(
+                tx,
+                tableName,
+                record.id,
                 incomingDrizzle,
-              )) {
-                if (
-                  ['id', 'created_at', 'updated_at', 'deleted_at'].includes(key)
-                ) {
-                  continue;
-                }
-
-                const existingVal = (existing as $Any)[key];
-
-                if (incomingVal === undefined) {
-                  continue;
-                }
-
-                if (incomingVal === existingVal) {
-                  mergedRecord[key] = existingVal;
-                } else {
-                  const fieldChangedOnServer = serverChangedFields.has(key);
-
-                  if (fieldChangedOnServer) {
-                    mergedRecord[key] = existingVal;
-
-                    if (key === 'commercial_status') {
-                      this.logger.warn(
-                        `[Conflict Resolution] True conflict on critical operational field "${key}" for record ${record.id}. Maintaining server value "${existingVal}" as source of truth. Client incoming value was "${incomingVal}".`,
-                      );
-                    }
-                  } else {
-                    mergedRecord[key] = incomingVal;
-                  }
-                }
-              }
-
-              mergedRecord.updated_at = Math.max(
-                incomingTime,
-                existingTime,
-                Date.now(),
+                existing,
+                clientLastPullTime,
               );
+
+            for (const warning of conflictWarnings) {
+              this.logger.warn(warning);
             }
 
             await tx
@@ -565,15 +435,8 @@ export class SyncService {
               .set(mergedRecord)
               .where(eq(table.id, record.id));
 
-            if (
-              tableName === 'shops' ||
-              tableName === 'interaction_logs' ||
-              tableName === 'contacts'
-            ) {
-              const entityType =
-                tableName === 'shops' || tableName === 'contacts'
-                  ? 'SHOP'
-                  : 'ORDER';
+            if (this.isAuditedTable(tableName)) {
+              const entityType = this.resolveAuditEntityType(tableName);
               await this.commitAuditEvent(
                 tx,
                 entityType,
@@ -589,15 +452,8 @@ export class SyncService {
 
           // Deletes
           if (changeset.deleted.length > 0) {
-            if (
-              tableName === 'shops' ||
-              tableName === 'interaction_logs' ||
-              tableName === 'contacts'
-            ) {
-              const entityType =
-                tableName === 'shops' || tableName === 'contacts'
-                  ? 'SHOP'
-                  : 'ORDER';
+            if (this.isAuditedTable(tableName)) {
+              const entityType = this.resolveAuditEntityType(tableName);
               for (const id of changeset.deleted) {
                 const existingRows = await tx
                   .select()
@@ -678,77 +534,24 @@ export class SyncService {
     });
   }
 
+  private isAuditedTable(tableName: string): boolean {
+    return (
+      AUDITED_SHOP_TABLES.includes(tableName) ||
+      AUDITED_ORDER_TABLES.includes(tableName)
+    );
+  }
+
+  private resolveAuditEntityType(tableName: string): 'SHOP' | 'ORDER' {
+    return AUDITED_SHOP_TABLES.includes(tableName) ? 'SHOP' : 'ORDER';
+  }
+
   private async runAnomalyDetection(
     itemChangeset: schema.WatermelonChangeSet<$Any> | undefined,
-  ) {
-    if (!itemChangeset) return;
-    const records = [
-      ...(itemChangeset.created || []),
-      ...(itemChangeset.updated || []),
-    ];
-
-    for (const record of records) {
-      if (record.fulfillment_status !== 'PENDING_FULFILLMENT') {
-        continue;
-      }
-
-      // Fetch the parent interaction log to get the shop_id
-      const logs = await this.drizzle.db
-        .select()
-        .from(schema.pgSchema.interaction_logs)
-        .where(
-          eq(schema.pgSchema.interaction_logs.id, record.interaction_log_id),
-        )
-        .limit(1);
-      const log = logs[0] || null;
-      if (!log || !log.shop_id) {
-        continue;
-      }
-
-      const shopId = log.shop_id;
-      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-
-      // Fetch historical interaction items in the last 30 days for this shop
-      // excluding current interaction log
-      const historicalItems = await this.drizzle.db
-        .select({
-          quantity: schema.pgSchema.interaction_items.quantity,
-          logId: schema.pgSchema.interaction_logs.id,
-        })
-        .from(schema.pgSchema.interaction_items)
-        .innerJoin(
-          schema.pgSchema.interaction_logs,
-          eq(
-            schema.pgSchema.interaction_items.interaction_log_id,
-            schema.pgSchema.interaction_logs.id,
-          ),
-        )
-        .where(
-          and(
-            eq(schema.pgSchema.interaction_logs.shop_id, shopId),
-            gte(schema.pgSchema.interaction_items.created_at, thirtyDaysAgo),
-            ne(schema.pgSchema.interaction_logs.id, log.id),
-          ),
-        );
-
-      const logIds = new Set(historicalItems.map((item) => item.logId));
-      const totalQuantity = historicalItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      );
-      const orderCount = logIds.size;
-      const average = orderCount > 0 ? totalQuantity / orderCount : 0;
-
-      if (orderCount > 0 && record.quantity > 5 * average) {
-        this.logger.log(
-          `Anomaly detected: Item ${record.id} quantity ${record.quantity} exceeds 30-day moving average of ${average} by > 500% for shop ${shopId}. Flagging as MANUAL_REVIEW_REQUIRED.`,
-        );
-        await this.drizzle.db
-          .update(schema.pgSchema.interaction_items)
-          .set({ compliance_status: 'MANUAL_REVIEW_REQUIRED' })
-          .where(eq(schema.pgSchema.interaction_items.id, record.id));
-      }
-    }
+  ): Promise<void> {
+    return this.anomalyDetection.runAnomalyDetection(
+      itemChangeset,
+      this.logger,
+    );
   }
 
   private async triggerAuditForPushedLogs(
@@ -793,92 +596,65 @@ export class SyncService {
     competitorInsightId: string,
     filename: string,
   ): Promise<string> {
-    const url = `/api/sync/uploads/${filename}`;
-    const existingRows = await this.drizzle.db
-      .select()
-      .from(schema.pgSchema.competitor_insights)
-      .where(eq(schema.pgSchema.competitor_insights.id, competitorInsightId))
-      .limit(1);
-    const existing = existingRows[0] || null;
-
-    if (existing) {
-      await this.drizzle.db
-        .update(schema.pgSchema.competitor_insights)
-        .set({
-          photo_url: url,
-          updated_at: Date.now(),
-        })
-        .where(eq(schema.pgSchema.competitor_insights.id, competitorInsightId));
-      this.logger.log(
-        `[SyncService] Updated competitor insight ${competitorInsightId} photo URL to ${url}`,
-      );
-    } else {
-      this.logger.log(
-        `[SyncService] Photo uploaded for competitor insight ${competitorInsightId}, but record does not exist on server yet. URL ${url} will sync via client push.`,
-      );
-    }
-
-    return url;
+    return this.updateUploadUrl(competitorInsightId, filename, {
+      table: schema.pgSchema.competitor_insights,
+      idColumn: schema.pgSchema.competitor_insights.id,
+      urlColumn: 'photo_url',
+      entityLabel: 'competitor insight',
+    });
   }
 
   async updateInteractionLogScreenshot(
     interactionLogId: string,
     filename: string,
   ): Promise<string> {
-    const url = `/api/sync/uploads/${filename}`;
-    const existingRows = await this.drizzle.db
-      .select()
-      .from(schema.pgSchema.interaction_logs)
-      .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId))
-      .limit(1);
-    const existing = existingRows[0] || null;
-
-    if (existing) {
-      await this.drizzle.db
-        .update(schema.pgSchema.interaction_logs)
-        .set({
-          viber_screenshot_url: url,
-          updated_at: Date.now(),
-        })
-        .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId));
-      this.logger.log(
-        `[SyncService] Updated interaction log ${interactionLogId} screenshot URL to ${url}`,
-      );
-    } else {
-      this.logger.log(
-        `[SyncService] Screenshot uploaded for ${interactionLogId}, but log does not exist on server yet. URL ${url} will sync via client push.`,
-      );
-    }
-
-    return url;
+    return this.updateUploadUrl(interactionLogId, filename, {
+      table: schema.pgSchema.interaction_logs,
+      idColumn: schema.pgSchema.interaction_logs.id,
+      urlColumn: 'viber_screenshot_url',
+      entityLabel: 'interaction log',
+    });
   }
 
   async updateInteractionLogPodImage(
     interactionLogId: string,
     filename: string,
   ): Promise<string> {
+    return this.updateUploadUrl(interactionLogId, filename, {
+      table: schema.pgSchema.interaction_logs,
+      idColumn: schema.pgSchema.interaction_logs.id,
+      urlColumn: 'pod_image_url',
+      entityLabel: 'interaction log',
+    });
+  }
+
+  private async updateUploadUrl(
+    recordId: string,
+    filename: string,
+    target: UploadUrlTarget,
+  ): Promise<string> {
     const url = `/api/sync/uploads/${filename}`;
     const existingRows = await this.drizzle.db
       .select()
-      .from(schema.pgSchema.interaction_logs)
-      .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId))
+      .from(target.table)
+      .where(eq(target.idColumn, recordId))
       .limit(1);
     const existing = existingRows[0] || null;
 
     if (existing) {
       await this.drizzle.db
-        .update(schema.pgSchema.interaction_logs)
+        .update(target.table)
         .set({
-          pod_image_url: url,
+          [target.urlColumn]: url,
           updated_at: Date.now(),
         })
-        .where(eq(schema.pgSchema.interaction_logs.id, interactionLogId));
+        .where(eq(target.idColumn, recordId));
       this.logger.log(
-        `[SyncService] Updated interaction log ${interactionLogId} POD image URL to ${url}`,
+        `[SyncService] Updated ${target.entityLabel} ${recordId} ${target.urlColumn} to ${url}`,
       );
     } else {
       this.logger.log(
-        `[SyncService] POD image uploaded for ${interactionLogId}, but log does not exist on server yet. URL ${url} will sync via client push.`,
+        `[SyncService] Upload for ${target.entityLabel} ${recordId} stored, but record does not exist on server yet. URL ${url} will sync via client push.`,
       );
     }
 

@@ -4,6 +4,9 @@ import { TABLE_REGISTRY } from './sync-registry';
 import { DrizzleService } from '../../core/drizzle';
 import { AiService } from '../ai/ai.service';
 import { OdooImporterService } from './odoo-importer.service';
+import { ConflictResolutionService } from './conflict/conflict-resolution.service';
+import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
+import { AppConfig } from '../../core/config/app-config';
 import * as schema from '@burma-inventory/shared-types';
 import * as fs from 'fs';
 
@@ -91,6 +94,9 @@ describe('SyncService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SyncService,
+        ConflictResolutionService,
+        AnomalyDetectionService,
+        AppConfig,
         { provide: DrizzleService, useValue: mockDrizzle },
         { provide: AiService, useValue: mockAiService },
         { provide: OdooImporterService, useValue: mockOdooImporter },

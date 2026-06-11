@@ -8,7 +8,6 @@ import {
   index,
   jsonb,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
 
 export const regions = pgTable(
   'regions',
@@ -479,20 +478,6 @@ export const rep_kpis = pgTable(
   },
   (table) => ({
     repIdIdx: index('rep_kpis_rep_id_idx').on(table.rep_id),
-  }),
-);
-
-export const projectsRelations = relations(projects, ({ many }) => ({
-  orders: many(interaction_logs),
-}));
-
-export const interactionLogsRelations = relations(
-  interaction_logs,
-  ({ one }) => ({
-    project: one(projects, {
-      fields: [interaction_logs.project_id],
-      references: [projects.id],
-    }),
   }),
 );
 

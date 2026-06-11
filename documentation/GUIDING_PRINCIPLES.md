@@ -44,7 +44,7 @@ The workspace is organized into a modular monorepo managed with **Nx** to separa
 1. **`shared-types`:** The single source of truth for the database schema, model definitions, shared validation interfaces, and domain constants.
 2. **`ui-components`:** The central design system built using Shopify Restyle. It packages typography, spacing tokens, and color schemes.
 3. **`mobile-web`:** The user application built with Expo (React Native). It targets both desktop viewports (via web builds) and mobile devices (via native runtimes).
-4. **`sync-server`:** A NestJS API backend built on Prisma ORM to communicate with the central cloud PostgreSQL database.
+4. **`sync-server`:** A NestJS API backend using **Drizzle ORM** and a **tRPC** router (plus REST controllers for multipart uploads) to communicate with the central cloud PostgreSQL database.
 
 ---
 
@@ -79,27 +79,27 @@ To ensure the current application build (`mobile-web`) remains clean and structu
 
 ## 🗃️ 5. Database Schema Parity & Synchronization
 
-### Client-Side Engine: WatermelonDB & SQLite
+### Client-Side Engine: Drizzle over embedded SQLite
 
-- **Local Engine:** WatermelonDB is selected for high-speed local querying.
-- **Model Compilation Constraint:** WatermelonDB models utilize Babel property decorators (`@field`, `@date`, `@readonly`). These decorators are restricted strictly to models declared within `shared-types/src/lib/models.ts`. Do not import or author decorators in components, views, or business services.
+- **Local Engine:** A local **SQLite** database accessed through **Drizzle ORM** — `@op-engineering/op-sqlite` (synchronous JSI) on native, `sql.js` (WASM) persisted to IndexedDB on web. Platform selection is via `database.native.ts` / `database.web.ts`.
+- **Table Definitions:** Client tables are defined in `shared-types/src/lib/db/schema-sqlite.ts` (used for type-safe queries) and created at runtime from the DDL in `mobile-web/src/core/database/database.{web,native}.ts`. Keep these two in sync when adding columns.
 
-### Server-Side Engine: NestJS & Prisma ORM
+### Server-Side Engine: NestJS & Drizzle ORM
 
-- **Server DB:** PostgreSQL database.
-- **ORM Layer:** Prisma ORM maps cloud tables to TypeScript types and manages migrations.
+- **Server DB:** PostgreSQL database (with a read/write connection split in `DrizzleService`).
+- **ORM Layer:** **Drizzle ORM** (`pg-core`) maps cloud tables to TypeScript types; migrations live under `migrations/` (drizzle-kit).
 
 ### Schema Parity & Mapping Rules
 
 To prevent schema drift and runtime sync failures:
 
-1. **Schema Definition:** The database schema is defined once in `shared-types/src/lib/schema.ts` using the WatermelonDB `appSchema` builder.
-2. **Type Mapping:** Every database field must map directly to TypeScript definitions in `shared-types/src/lib/shared-types.ts`.
-3. **Prisma Parity:** `sync-server/prisma/schema.prisma` must be kept in perfect parity with `schema.ts`.
+1. **Schema Definition:** The schema is defined per platform with Drizzle — `shared-types/src/lib/db/schema.ts` (Postgres) and `shared-types/src/lib/db/schema-sqlite.ts` (SQLite). Relational metadata lives in `db/schema-relations.ts`.
+2. **Type Mapping:** Snake_case record shapes live in `types/records.ts`; camelCase app-facing types in `types/domain.ts`; zod validation in `types/shared-types.ts`.
+3. **Enforced Parity:** `shared-types/src/lib/db/schema-parity.spec.ts` introspects both schemas and **fails the build** on any divergence outside the documented allowlist (server-only tables `users`/`sync_audit_logs`/`idempotency_keys`, client-only `image_upload_queue`/`draft_carts`, and server-only columns `deleted_at` + `interaction_logs.ai_verification_*`).
 4. **Naming Conventions:**
-   - WatermelonDB table names, column names, and association fields use **snake_case** (e.g., `pending_allocation_count`, `fulfillment_status`).
-   - Prisma models use **PascalCase** for tables and **camelCase** for column names (e.g., `pendingAllocationCount`, `fulfillmentStatus`).
-   - Mappers in `sync-server/src/app/sync/sync.service.ts` must explicitly translate between these naming patterns during push/pull sequences.
+   - Database table and column names use **snake_case** on both platforms (e.g., `pending_allocation_count`, `fulfillment_status`).
+   - App-facing domain types use **camelCase** (e.g., `pendingAllocationCount`, `fulfillmentStatus`).
+   - The `sync-server/src/app/features/sync/sync-registry.ts` centralizes the snake↔camel marshalling used during push/pull.
 
 ### Synchronization Operations
 
@@ -109,12 +109,12 @@ To prevent schema drift and runtime sync failures:
    - A last-write-wins resolution protocol is applied on the client database.
 2. **Push Changes:**
    - The client sends accumulated local changes (`created`, `updated`, `deleted` records).
-   - The sync server runs changes inside a database transaction (`$transaction`) to maintain referential integrity. If any part of the batch fails, the transaction is rolled back.
+   - The sync server runs changes inside a single Drizzle database transaction (`db.transaction`) to maintain referential integrity. If any part of the batch fails, the transaction is rolled back.
    - **Sync Sequencing:** Primary records (e.g., `interaction_logs`) are always pushed and written before join tables (e.g., `interaction_items`) to prevent foreign key errors.
 
 ### Failure Recovery & Retry Strategies
 
-- **Offline Writes Queue:** When network requests fail, WatermelonDB automatically retains modifications in a localized pending state. The sync service queues writes locally until the device reports network connectivity.
+- **Offline Writes Queue:** Writes always commit to the local SQLite database first. When network requests fail, the records remain in the local change queue; the sync engine retains them and retries until the device reports network connectivity.
 - **Transient Failures:** Network failures during sync do not block the user. The client catches connection errors, keeps local state active, and retries the sync operation automatically when the network state changes.
 - **Server Constraints:** If a record insertion fails on the server due to duplicate keys or validation exceptions, the server isolates the error, logs the mismatch, and continues processing the transaction or rejects the invalid batch gracefully without causing NestJS process crash-loops.
 
@@ -150,10 +150,10 @@ import { guardAsync } from '@burma-inventory/shared-types';
 
 export const handleAddRecord = async (payload: Payload) => {
   const [result, error] = await guardAsync(
-    database.write(async () => {
-      return await database.collections.get('items').create((item) => {
-        item.sku = payload.sku;
-      });
+    database.insert(sqliteSchema.items).values({
+      id: generateId(),
+      sku: payload.sku,
+      // ...remaining columns
     }),
   );
 
@@ -224,4 +224,4 @@ Warehouse barcode/QR scanners mimic USB keyboard inputs by streaming character e
 3. **Bypassing Focused UI:** When a hardware scanner read is detected, the event:
    - Prevents propagation to any currently focused input elements (avoiding polluting open text forms).
    - Automatically parses the barcode data.
-   - Triggers the corresponding lookup and writes the checkout/intake record directly to WatermelonDB SQLite.
+   - Triggers the corresponding lookup and writes the checkout/intake record directly to the local SQLite database.

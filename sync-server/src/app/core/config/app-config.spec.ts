@@ -24,9 +24,16 @@ describe('AppConfig', () => {
     expect(config.osmTileUrlTemplate).toBe('https://tile.openstreetmap.org');
     expect(config.ollamaModel).toBe('gemma4');
     expect(config.ollamaTimeoutMs).toBe(30000);
+    expect(config.ollamaMaxRetries).toBe(2);
+    expect(config.ollamaBackoffMs).toBe(250);
     expect(config.gemmaApiUrl).toBeDefined();
     expect(config.uploadsWatcherDelayMs).toBe(1000);
     expect(config.uploadsUrlPrefix).toBe('/api/sync/uploads/');
+    expect(config.auditGenesisHash).toBe('genesis');
+    expect(config.anomalyQuantityMultiplier).toBe(5);
+    expect(config.anomalyWindowDays).toBe(30);
+    expect(config.autoInvoiceDueDays).toBe(30);
+    expect(config.autoInvoiceGracePeriodDays).toBe(7);
   });
 
   it('should generate a unique suffix', () => {

@@ -20,7 +20,7 @@ A lightweight, offline-first Sales & Inventory Relationship Manager built for re
 This application is built in a TypeScript monorepo managed with **Nx**:
 
 - **[mobile-web/](./mobile-web)**: The frontend React Native/Expo app. Adapts between **Katana Cloud Inventory** (Desktop table/grid views) and **Sortly** (Mobile touch card views).
-- **[sync-server/](./sync-server)**: Express + Prisma API server processing synchronized changes, scheduled EOD cron tasks, and local Gemma AI parsing.
+- **[sync-server/](./sync-server)**: NestJS + Drizzle ORM API server (tRPC + REST) processing synchronized changes, BullMQ background jobs, and local Gemma AI parsing.
 - **[ui-components/](./ui-components)**: Shared UI components built with `@shopify/restyle`.
 - **[shared-types/](./shared-types)**: Common data types and interfaces.
 
@@ -61,13 +61,39 @@ npm run dev
 
 ### Other Useful Commands
 
-| Command               | Description                                                 |
-| --------------------- | ----------------------------------------------------------- |
-| `npm run dev`         | Start all services (DB check → build → NX watch + serve)    |
-| `npm run db:push`     | Push Drizzle schema to the running DB                       |
-| `npm run db:reset`    | Wipe + re-push schema (preserves Docker volume)             |
-| `npm run check`       | Typecheck + lint + test + format-check                      |
-| `npm run clean-setup` | **Destructive** full reset — wipes container volumes, databases, & node_modules |
+**Lifecycle**
+
+| Command               | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| `npm run dev`         | Start all services (DB check → build → NX watch + serve)             |
+| `npm run setup`       | Non-destructive one-shot setup (safe to re-run)                      |
+| `npm run clean-setup` | **Destructive** full reset — wipes volumes, databases & node_modules |
+| `npm run build`       | Build all buildable projects                                         |
+| `npm run check`       | Typecheck + lint + test + format-check                               |
+| `npm run clean`       | Clear Nx cache and build artifacts (`dist`, `tmp`, `coverage`)       |
+
+**Containers** (Docker/Podman, auto-detected)
+
+| Command              | Description                                                           |
+| -------------------- | --------------------------------------------------------------------- |
+| `npm run db:up`      | Start containers; self-heals "name already in use" errors (data kept) |
+| `npm run db:down`    | Stop & remove containers (keeps the data volume)                      |
+| `npm run db:restart` | `down` + `up`                                                         |
+| `npm run db:fix`     | Force-clear stale containers blocking startup, then start (data kept) |
+| `npm run db:status`  | Show engine + container states                                        |
+| `npm run db:logs`    | Tail container logs (default: postgres)                               |
+| `npm run db:clean`   | **Destructive** — remove containers AND the data volume               |
+
+**Schema**
+
+| Command               | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| `npm run db:push`     | Push the Drizzle schema and seed master data       |
+| `npm run db:generate` | Generate a Drizzle SQL migration from the schema   |
+| `npm run db:studio`   | Open Drizzle Studio against the local DB           |
+| `npm run db:wipe`     | Drop & recreate the public schema (empties the DB) |
+| `npm run db:reset`    | `wipe` + `push` (preserves the container volume)   |
+| `npm run db:fresh`    | Ensure containers are up, then `reset`             |
 
 ### Code Validation
 

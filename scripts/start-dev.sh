@@ -20,8 +20,8 @@ err()  { echo -e "${RED}✗${NC} $1" >&2; }
 
 echo "🚀 Starting Burma Inventory Development Environment..."
 
-# 1. Ensure Docker Postgres is running
-./scripts/db.sh ensure
+# 1. Ensure Docker Postgres is running AND the schema exists (pushes if missing)
+./scripts/db.sh ensure-schema
 
 # 2. Check and terminate conflicting processes on ports 8081 and 3000
 echo "🧹 Cleaning up port conflicts (ports 3000, 8081)..."
@@ -47,7 +47,9 @@ trap 'echo -e "\n🛑 Stopping all services..."; kill $(jobs -p) 2>/dev/null || 
 # Start backend bundler in the background
 npx nx run sync-server:build --configuration=watch &
 
-# Start backend runtime (nodemon) and frontend dev server streaming output cleanly
-npx nx run-many -t serve -p sync-server mobile-web --output-style=stream
+# Start backend runtime (nodemon) and frontend dev server.
+# `stream-without-prefixes` keeps live streaming but drops the per-line
+# "sync-server:" / "mobile-web:" prefixes that wrap awkwardly in the terminal.
+npx nx run-many -t serve -p sync-server mobile-web --output-style=stream-without-prefixes
 
 

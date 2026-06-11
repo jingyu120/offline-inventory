@@ -105,6 +105,10 @@ export const theme = createTheme({
     phone: 0,
     tablet: 768,
   },
+  layout: {
+    // Minimum horizontal width for a scrollable data table before it scrolls.
+    minTableWidth: 600,
+  },
   borderRadii: {
     s: 4,
     m: 8,

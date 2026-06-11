@@ -4,6 +4,7 @@ export * from './lib/Card';
 export * from './lib/TextField';
 export * from './lib/Table';
 export * from './lib/theme';
+export * from './lib/shadows';
 export * from './lib/Primitives';
 export * from './lib/DropdownSelector';
 export * from './lib/Skeleton';

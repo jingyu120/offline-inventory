@@ -1,6 +1,9 @@
 import React from 'react';
-import { FlatList, Platform, ScrollView } from 'react-native';
+import { FlatList, ScrollView } from 'react-native';
+import { useTheme } from '@shopify/restyle';
 import { Box, Text } from './Primitives';
+import { Theme } from './theme';
+import { getShadowStyle } from './shadows';
 
 export interface ColumnDef<T> {
   key: string;
@@ -22,8 +25,10 @@ export function Table<T>({
   data,
   columns,
   keyExtractor,
-  minWidth = 600,
+  minWidth,
 }: TableProps<T>) {
+  const theme = useTheme<Theme>();
+  const resolvedMinWidth = minWidth ?? theme.layout.minTableWidth;
   const renderHeader = () => (
     <Box
       flexDirection="row"
@@ -94,21 +99,12 @@ export function Table<T>({
     >
       <Box
         flex={1}
-        minWidth={minWidth}
+        minWidth={resolvedMinWidth}
         bg="cardBackground"
         borderRadius="m"
         p="m"
         elevation={1}
-        style={
-          Platform.OS === 'web'
-            ? { boxShadow: '0px 2px 6px rgba(0,0,0,0.03)' }
-            : {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.03,
-                shadowRadius: 6,
-              }
-        }
+        style={getShadowStyle('table')}
       >
         {renderHeader()}
         <FlatList

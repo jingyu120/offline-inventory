@@ -141,11 +141,20 @@ export const trpcResolvers = globalResolvers as {
   seedDatabase: null | (() => Promise<{ success: boolean }>);
 };
 
+/**
+ * Resolves a (possibly unregistered) resolver, throwing a uniform error when
+ * the server has not bound it yet. Centralizes the registration guard that was
+ * previously copy-pasted into every procedure.
+ */
+function requireResolver<T>(resolver: T | null | undefined): T {
+  if (!resolver) throw new Error('Resolver not registered');
+  return resolver;
+}
+
 export const appRouter = t.router({
-  seedDatabase: t.procedure.mutation(async () => {
-    if (!trpcResolvers.seedDatabase) throw new Error('Resolver not registered');
-    return trpcResolvers.seedDatabase();
-  }),
+  seedDatabase: t.procedure.mutation(async () =>
+    requireResolver(trpcResolvers.seedDatabase)(),
+  ),
   getSyncLogs: t.procedure
     .input(
       z.object({
@@ -153,42 +162,33 @@ export const appRouter = t.router({
         limit: z.number().default(20),
       }),
     )
-    .query(async ({ input }) => {
-      if (!trpcResolvers.getSyncLogs)
-        throw new Error('Resolver not registered');
-      return trpcResolvers.getSyncLogs(input);
-    }),
-  quotaOptimizations: t.procedure.query(async () => {
-    if (!trpcResolvers.quotaOptimizations)
-      throw new Error('Resolver not registered');
-    return trpcResolvers.quotaOptimizations();
-  }),
+    .query(async ({ input }) =>
+      requireResolver(trpcResolvers.getSyncLogs)(input),
+    ),
+  quotaOptimizations: t.procedure.query(async () =>
+    requireResolver(trpcResolvers.quotaOptimizations)(),
+  ),
   eodDigest: t.procedure
     .input(
       z.object({
         date: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.eodDigest) throw new Error('Resolver not registered');
-      return trpcResolvers.eodDigest(input);
-    }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.eodDigest)(input),
+    ),
   analyzeSentiment: t.procedure
     .input(
       z.object({
         notes: z.array(z.string()),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.analyzeSentiment)
-        throw new Error('Resolver not registered');
-      return trpcResolvers.analyzeSentiment(input);
-    }),
-  getMismatchLogs: t.procedure.query(async () => {
-    if (!trpcResolvers.getMismatchLogs)
-      throw new Error('Resolver not registered');
-    return trpcResolvers.getMismatchLogs();
-  }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.analyzeSentiment)(input),
+    ),
+  getMismatchLogs: t.procedure.query(async () =>
+    requireResolver(trpcResolvers.getMismatchLogs)(),
+  ),
   resolveMismatchLog: t.procedure
     .input(
       z.object({
@@ -206,16 +206,12 @@ export const appRouter = t.router({
         ),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.resolveMismatchLog)
-        throw new Error('Resolver not registered');
-      return trpcResolvers.resolveMismatchLog(input);
-    }),
-  getFailedJobs: t.procedure.query(async () => {
-    if (!trpcResolvers.getFailedJobs)
-      throw new Error('Resolver not registered');
-    return trpcResolvers.getFailedJobs();
-  }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.resolveMismatchLog)(input),
+    ),
+  getFailedJobs: t.procedure.query(async () =>
+    requireResolver(trpcResolvers.getFailedJobs)(),
+  ),
   updateJobData: t.procedure
     .input(
       z.object({
@@ -223,31 +219,27 @@ export const appRouter = t.router({
         data: z.unknown(),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.updateJobData)
-        throw new Error('Resolver not registered');
-      return trpcResolvers.updateJobData(input);
-    }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.updateJobData)(input),
+    ),
   retryJob: t.procedure
     .input(
       z.object({
         jobId: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.retryJob) throw new Error('Resolver not registered');
-      return trpcResolvers.retryJob(input);
-    }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.retryJob)(input),
+    ),
   removeJob: t.procedure
     .input(
       z.object({
         jobId: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
-      if (!trpcResolvers.removeJob) throw new Error('Resolver not registered');
-      return trpcResolvers.removeJob(input);
-    }),
+    .mutation(async ({ input }) =>
+      requireResolver(trpcResolvers.removeJob)(input),
+    ),
   sync: t.router({
     pull: t.procedure
       .input(
@@ -258,11 +250,9 @@ export const appRouter = t.router({
           targetTable: z.string().optional(),
         }),
       )
-      .query(async ({ input }) => {
-        if (!trpcResolvers.sync?.pull)
-          throw new Error('Resolver not registered');
-        return trpcResolvers.sync.pull(input);
-      }),
+      .query(async ({ input }) =>
+        requireResolver(trpcResolvers.sync?.pull)(input),
+      ),
     push: t.procedure
       .input(
         z.object({
@@ -278,11 +268,9 @@ export const appRouter = t.router({
           userId: z.string().optional(),
         }),
       )
-      .mutation(async ({ input }) => {
-        if (!trpcResolvers.sync?.push)
-          throw new Error('Resolver not registered');
-        return trpcResolvers.sync.push(input);
-      }),
+      .mutation(async ({ input }) =>
+        requireResolver(trpcResolvers.sync?.push)(input),
+      ),
   }),
 });
 
