@@ -3,7 +3,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
-  useWindowDimensions,
   TouchableOpacity,
 } from 'react-native';
 import {
@@ -13,6 +12,7 @@ import {
   Button,
   Theme,
   ThemedTextInput,
+  useResponsive,
 } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { trpcClient } from '../../../core/trpc/trpcClient';
@@ -30,8 +30,7 @@ const PLATFORM_IOS = 'ios';
 export const DlqDashboard: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
 
   const [jobs, setJobs] = useState<$Any[]>([]);
   const [loading, setLoading] = useState(false);

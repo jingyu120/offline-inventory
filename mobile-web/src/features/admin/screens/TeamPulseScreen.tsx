@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { ActivityIndicator, ScrollView } from 'react-native';
 import {
-  ActivityIndicator,
-  ScrollView,
-  useWindowDimensions,
-} from 'react-native';
-import { Box, Text, Theme } from '@burma-inventory/ui-components';
+  Box,
+  Text,
+  Theme,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { useTeamPulseData } from '../hooks/useTeamPulseData';
 import { useTranslation } from '../../../core/i18n/i18n';
@@ -12,6 +13,7 @@ import { OversightTabBar } from '../components/OversightTabBar';
 import { OversightOverviewTab } from '../components/OversightOverviewTab';
 import { HitlVerificationPanel } from '../components/HitlVerificationPanel';
 import { DlqDashboard } from '../components/DlqDashboard';
+import { CompromisedAuditPanel } from '../components/CompromisedAuditPanel';
 import { PendingIntakeApproval } from '../components/PendingIntakeApproval';
 import { PendingSalesApproval } from '../components/PendingSalesApproval';
 import { PendingReconciliationPanel } from '../components/PendingReconciliationPanel';
@@ -20,8 +22,7 @@ import { OVERSIGHT_TAB, OversightTab } from '../types';
 export const TeamPulseScreen: React.FC = () => {
   const { t, language } = useTranslation();
   const theme = useTheme<Theme>();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
   const {
     loading,
     shops,
@@ -98,7 +99,12 @@ export const TeamPulseScreen: React.FC = () => {
         <HitlVerificationPanel shops={shops} />
       )}
 
-      {activeTab === OVERSIGHT_TAB.DLQ && <DlqDashboard />}
+      {activeTab === OVERSIGHT_TAB.DLQ && (
+        <Box>
+          <DlqDashboard />
+          <CompromisedAuditPanel />
+        </Box>
+      )}
 
       {activeTab === OVERSIGHT_TAB.APPROVALS && (
         <Box flexDirection={isDesktop ? 'row' : 'column'} gap="m" mb="m">

@@ -69,6 +69,9 @@ export async function writeAuditEvent(
     ...event,
     hash: currentHash,
     status: 'VALID',
+    // Seed updated_at = created_at; the server re-stamps it if it ever flips the
+    // status (e.g. to COMPROMISED), which is how that change pulls back here.
+    updated_at: event.created_at,
   });
 
   return currentHash;

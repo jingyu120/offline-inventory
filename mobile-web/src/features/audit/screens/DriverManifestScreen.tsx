@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ScrollView, Alert, Platform } from 'react-native';
 import { Box, Text, Card, Button } from '@burma-inventory/ui-components';
-import { database } from '../../../core/database/database';
+import { database, runAtomic } from '../../../core/database/database';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { eq, and, ne } from 'drizzle-orm';
 import { useAuth } from '../../../core/auth/auth';
@@ -122,7 +122,7 @@ export function DriverManifestScreen() {
       const now = Date.now();
       const deviceId = await getDeviceId();
 
-      await database.transaction(async (tx) => {
+      await runAtomic(async (tx) => {
         await tx
           .update(sqliteSchema.interaction_logs)
           .set({
@@ -240,7 +240,7 @@ export function DriverManifestScreen() {
       const now = Date.now();
       const deviceId = await getDeviceId();
 
-      await database.transaction(async (tx) => {
+      await runAtomic(async (tx) => {
         await tx
           .update(sqliteSchema.interaction_logs)
           .set({

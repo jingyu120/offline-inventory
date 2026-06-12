@@ -134,7 +134,7 @@ export function PendingApprovalCard({
             alignItems="flex-start"
             mb="xs"
           >
-            <Box>
+            <Box flex={1} mr="s">
               <Text variant="body" fontWeight="bold">
                 {isNewSku
                   ? t('newSkuSubmitted').replace('{name}', update.name || '')
@@ -149,7 +149,7 @@ export function PendingApprovalCard({
                   .replace('{warehouse}', warehouseName)}
               </Text>
             </Box>
-            <Box bg="warningBg" px="s" py="xs" borderRadius="s">
+            <Box flexShrink={0} bg="warningBg" px="s" py="xs" borderRadius="s">
               <Text
                 variant="bodySecondary"
                 color="warningText"

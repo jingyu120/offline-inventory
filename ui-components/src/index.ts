@@ -6,5 +6,7 @@ export * from './lib/Table';
 export * from './lib/theme';
 export * from './lib/shadows';
 export * from './lib/Primitives';
+export * from './lib/useResponsive';
+export * from './lib/ModalSheet';
 export * from './lib/DropdownSelector';
 export * from './lib/Skeleton';

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pressable } from 'react-native';
 import { Box, Text } from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useNetworkQuality } from '../hooks/useNetworkQuality';
@@ -8,6 +9,7 @@ interface SyncStatusBarProps {
   syncError: string | null;
   pendingChanges: number;
   lastSync: Date | null;
+  onManualSync?: () => void;
 }
 
 export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
@@ -15,6 +17,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
   syncError,
   pendingChanges,
   lastSync,
+  onManualSync,
 }) => {
   const { t } = useTranslation();
   const quality = useNetworkQuality();
@@ -58,6 +61,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
       alignItems="center"
       borderBottomWidth={1}
       borderColor="borderColor"
+      style={{ gap: 12 }}
     >
       <Text
         variant="bodySecondary"
@@ -67,6 +71,34 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
       >
         {statusText}
       </Text>
+      {onManualSync ? (
+        <Pressable
+          onPress={onManualSync}
+          disabled={isSyncing}
+          accessibilityRole="button"
+          accessibilityLabel={t('syncNow') || 'Sync now'}
+          accessibilityState={{ disabled: isSyncing, busy: isSyncing }}
+          style={{ opacity: isSyncing ? 0.4 : 1 }}
+        >
+          <Box
+            bg="cardBackground"
+            borderRadius="s"
+            borderWidth={1}
+            borderColor="borderColor"
+            px="s"
+            py="xs"
+          >
+            <Text
+              variant="bodySecondary"
+              fontWeight="bold"
+              color={textColorKey}
+              style={{ fontSize: 12 }}
+            >
+              {isSyncing ? `⏳ ${t('syncing')}` : `🔄 ${t('syncNow')}`}
+            </Text>
+          </Box>
+        </Pressable>
+      ) : null}
     </Box>
   );
 };

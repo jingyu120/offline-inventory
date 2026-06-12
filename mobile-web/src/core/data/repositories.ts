@@ -1,4 +1,4 @@
-import { database } from '../database/database';
+import { database, runAtomic } from '../database/database';
 import { eq, like, inArray, desc, isNull, and } from 'drizzle-orm';
 import {
   sqliteSchema,
@@ -362,7 +362,7 @@ export const createInteractionLog = async (
 ): Promise<string> => {
   let newLogId = '';
   const [, error] = await guardAsync(
-    database.transaction(async (tx) => {
+    runAtomic(async (tx) => {
       const now = Date.now();
       newLogId = generateId();
       const deviceId = await getDeviceId();

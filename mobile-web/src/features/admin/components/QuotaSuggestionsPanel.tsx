@@ -1,6 +1,13 @@
 import React from 'react';
 import { ActivityIndicator } from 'react-native';
-import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  Card,
+  Button,
+  Theme,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { QuotaOptimization } from '../types';
@@ -18,9 +25,10 @@ export const QuotaSuggestionsPanel: React.FC<QuotaSuggestionsPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
+  const { isDesktop } = useResponsive();
 
   return (
-    <Box flex={1} minWidth={320} mb="m">
+    <Box flex={1} minWidth={isDesktop ? 320 : undefined} mb="m">
       <Card p="m" bg="cardBackground" height="100%">
         <Text variant="title" mb="s">
           {t('quotaOptimizations')}

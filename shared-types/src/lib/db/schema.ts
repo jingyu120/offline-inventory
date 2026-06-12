@@ -554,6 +554,10 @@ export const audit_events = pgTable('audit_events', {
   hash: text('hash'),
   status: text('status').notNull().default('VALID'),
   created_at: bigint('created_at', { mode: 'number' }).notNull(),
+  // Nullable: the server stamps this when it mutates an event's status (e.g.
+  // flips VALID → COMPROMISED on a broken hash chain) so the change propagates
+  // back to clients via the timestamp-based pull. Not part of the hash chain.
+  updated_at: bigint('updated_at', { mode: 'number' }),
   shop_id: text('shop_id'),
   executed_by_id: text('executed_by_id'),
   salesperson_id: text('salesperson_id'),

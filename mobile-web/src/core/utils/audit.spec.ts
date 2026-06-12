@@ -36,6 +36,7 @@ describe('audit logger', () => {
       ...mockEvent,
       hash,
       status: 'VALID',
+      updated_at: mockEvent.created_at,
     });
   });
 

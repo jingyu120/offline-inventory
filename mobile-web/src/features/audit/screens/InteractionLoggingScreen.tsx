@@ -1,12 +1,12 @@
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import {
-  Modal,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  useWindowDimensions,
-  ViewStyle,
-} from 'react-native';
-import { Box, Text, Button, Card } from '@burma-inventory/ui-components';
+  Box,
+  Text,
+  Button,
+  Card,
+  ModalSheet,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { Shop } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useInteractionLogging } from '../hooks/useInteractionLogging';
@@ -21,15 +21,8 @@ import { CommercialStatusSelector } from '../components/CommercialStatusSelector
 import { PriceObjectionSection } from '../components/PriceObjectionSection';
 import { CurrencySelector } from '../components/CurrencySelector';
 
-const DESKTOP_BREAKPOINT = 768;
-
-// `backdropFilter` is a web-only CSS property not present in RN's ViewStyle.
-const desktopBackdropStyle: ViewStyle = {
-  backgroundColor: 'rgba(15, 23, 42, 0.45)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  ...({ backdropFilter: 'blur(8px)' } as ViewStyle),
-};
+const MODAL_MAX_WIDTH = 600;
+const MODAL_MAX_HEIGHT_RATIO = 0.85;
 
 interface InteractionLoggingScreenProps {
   visible: boolean;
@@ -43,8 +36,7 @@ export function InteractionLoggingScreen({
   shop,
 }: InteractionLoggingScreenProps) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= DESKTOP_BREAKPOINT;
+  const { isDesktop } = useResponsive();
 
   const {
     type,
@@ -98,42 +90,19 @@ export function InteractionLoggingScreen({
   } = useInteractionLogging(visible, shop, onClose);
 
   return (
-    <Modal
-      visible={visible}
-      transparent={isDesktop}
-      animationType={isDesktop ? 'fade' : 'slide'}
-      onRequestClose={onClose}
-    >
-      <Box
-        flex={1}
-        bg={isDesktop ? 'transparent' : 'mainBackground'}
-        style={isDesktop ? desktopBackdropStyle : undefined}
+    <>
+      <ModalSheet
+        visible={visible}
+        onRequestClose={onClose}
+        maxWidth={MODAL_MAX_WIDTH}
+        maxHeightRatio={MODAL_MAX_HEIGHT_RATIO}
+        animationType={isDesktop ? 'fade' : 'slide'}
       >
         <KeyboardAvoidingView
-          style={
-            isDesktop
-              ? { width: 600, maxHeight: '85%' }
-              : { flex: 1, width: '100%' }
-          }
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Box
-            flex={1}
-            bg="mainBackground"
-            p="m"
-            borderRadius={isDesktop ? 'l' : 'none'}
-            elevation={10}
-            style={
-              Platform.OS === 'web'
-                ? { boxShadow: '0px 10px 24px rgba(0,0,0,0.15)' }
-                : {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 10 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 24,
-                  }
-            }
-          >
+          <Box flex={1} p="m">
             <Box
               flexDirection="row"
               justifyContent="space-between"
@@ -255,13 +224,13 @@ export function InteractionLoggingScreen({
             </Box>
           </Box>
         </KeyboardAvoidingView>
-      </Box>
+      </ModalSheet>
       <ImageAnnotationModal
         visible={annotationModalVisible}
         imageUri={pendingAnnotationUri}
         onClose={handleCloseAnnotation}
         onAnnotated={handleAnnotated}
       />
-    </Modal>
+    </>
   );
 }

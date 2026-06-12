@@ -11,6 +11,7 @@ import { useAuth } from '../../../core/auth/auth';
 import * as Location from 'expo-location';
 import { getCachedLocation } from '../../../core/utils/locationCache';
 import { UpdateTerritoryModal } from './UpdateTerritoryModal';
+import { RecordCashCollectionModal } from './RecordCashCollectionModal';
 import {
   MapPin,
   Star,
@@ -57,6 +58,8 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
   const { activeRep } = useAuth();
 
   const [isUpdateTerritoryOpen, setIsUpdateTerritoryOpen] =
+    React.useState(false);
+  const [isRecordCashCollectionOpen, setIsRecordCashCollectionOpen] =
     React.useState(false);
   const [territoryNames, setTerritoryNames] = React.useState({
     regionName: '',
@@ -502,38 +505,50 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
         </Box>
         <Box style={!isDesktop ? { alignSelf: 'stretch' } : undefined}>
           {invoiceArState.isFrozen ? (
-            // Account frozen – show lock banner, disable interaction button
-            <Box
-              bg="dangerBg"
-              borderRadius="s"
-              px="m"
-              py="s"
-              flexDirection="row"
-              alignItems="center"
-              style={{ gap: 8 }}
-            >
-              <AlertTriangle size={18} color={theme.colors.dangerText} />
-              <Box flex={1}>
-                <Text
-                  variant="bodySecondary"
-                  color="dangerText"
-                  fontWeight="bold"
-                  fontSize={13}
-                >
-                  {t('accountFrozenAr')}
-                </Text>
-                <Text variant="bodySecondary" color="dangerText" fontSize={11}>
-                  {t('arOverdueOutstanding')
-                    .replace(
-                      '{days}',
-                      invoiceArState.overdueAgingDays.toString(),
-                    )
-                    .replace(
-                      '{amount}',
-                      invoiceArState.totalOverdue.toLocaleString(),
-                    )}
-                </Text>
+            // Account frozen – show lock banner and offer cash collection so the
+            // rep can clear overdue AR and lift the credit lock.
+            <Box style={{ gap: 8 }}>
+              <Box
+                bg="dangerBg"
+                borderRadius="s"
+                px="m"
+                py="s"
+                flexDirection="row"
+                alignItems="center"
+                style={{ gap: 8 }}
+              >
+                <AlertTriangle size={18} color={theme.colors.dangerText} />
+                <Box flex={1}>
+                  <Text
+                    variant="bodySecondary"
+                    color="dangerText"
+                    fontWeight="bold"
+                    fontSize={13}
+                  >
+                    {t('accountFrozenAr')}
+                  </Text>
+                  <Text
+                    variant="bodySecondary"
+                    color="dangerText"
+                    fontSize={11}
+                  >
+                    {t('arOverdueOutstanding')
+                      .replace(
+                        '{days}',
+                        invoiceArState.overdueAgingDays.toString(),
+                      )
+                      .replace(
+                        '{amount}',
+                        invoiceArState.totalOverdue.toLocaleString(),
+                      )}
+                  </Text>
+                </Box>
               </Box>
+              <Button
+                title={t('recordCashCollection')}
+                onPress={() => setIsRecordCashCollectionOpen(true)}
+                variant="primary"
+              />
             </Box>
           ) : (
             <Button
@@ -701,6 +716,12 @@ export const ShopDetailPane: React.FC<ShopDetailPaneProps> = ({
           await loadTerritoryNames();
           await selectShop(shop);
         }}
+      />
+      <RecordCashCollectionModal
+        visible={isRecordCashCollectionOpen}
+        shop={shop}
+        onClose={() => setIsRecordCashCollectionOpen(false)}
+        onSuccess={loadDetails}
       />
     </Box>
   );

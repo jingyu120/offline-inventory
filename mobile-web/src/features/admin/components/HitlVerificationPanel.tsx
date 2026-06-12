@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
-  useWindowDimensions,
   Image,
   TouchableOpacity,
   Linking,
@@ -15,6 +14,7 @@ import {
   DropdownSelector,
   Theme,
   ThemedTextInput,
+  useResponsive,
 } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { trpcClient } from '../../../core/trpc/trpcClient';
@@ -38,8 +38,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
 
   const [logs, setLogs] = useState<$Any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -400,8 +399,13 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                           />
                         </Box>
 
-                        <Box flexDirection="row" gap="s" mb="xs">
-                          <Box flex={1}>
+                        <Box
+                          flexDirection="row"
+                          flexWrap="wrap"
+                          gap="s"
+                          mb="xs"
+                        >
+                          <Box flex={1} style={{ minWidth: 90 }}>
                             <Text
                               variant="bodySecondary"
                               mb="xs"
@@ -428,7 +432,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                             />
                           </Box>
 
-                          <Box flex={1.2}>
+                          <Box flex={1.2} style={{ minWidth: 110 }}>
                             <Text
                               variant="bodySecondary"
                               mb="xs"
@@ -455,7 +459,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                             />
                           </Box>
 
-                          <Box flex={1}>
+                          <Box flex={1} style={{ minWidth: 90 }}>
                             <DropdownSelector
                               label={t('unit')}
                               selectedValue={item.selectedUnit}
@@ -467,7 +471,7 @@ export const HitlVerificationPanel: React.FC<HitlVerificationPanelProps> = ({
                             />
                           </Box>
 
-                          <Box flex={1.2}>
+                          <Box flex={1.2} style={{ minWidth: 110 }}>
                             <DropdownSelector
                               label={t('condition')}
                               selectedValue={item.stockCondition}

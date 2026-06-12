@@ -34,6 +34,13 @@ const updateNetworkQuality = (state: NetInfoState) => {
   });
 };
 
+// On web, NetInfo defaults to polling `HEAD /` to probe internet reachability,
+// which floods the network tab with (repeatedly aborted) requests every poll
+// cycle. This app only consumes `isConnected`/`type` (never `isInternetReachable`),
+// and `isConnected` still tracks `navigator.onLine` without the probe — so disable
+// the active reachability check entirely.
+NetInfo.configure({ reachabilityShouldRun: () => false });
+
 // Initialize NetInfo listener at the module level
 NetInfo.fetch()
   .then(updateNetworkQuality)

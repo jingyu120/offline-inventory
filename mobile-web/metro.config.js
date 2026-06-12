@@ -38,50 +38,9 @@ const NATIVE_ONLY_PACKAGES = [
  * @type {import('metro-config').MetroConfig}
  */
 const customConfig = {
-  cacheVersion: 'mobile-web-v4',
+  cacheVersion: 'mobile-web-v5',
   transformer: {
     babelTransformerPath: require.resolve('react-native-svg-transformer'),
-  },
-  server: {
-    enhanceMiddleware: (middleware) => {
-      return (req, res, next) => {
-        const originalSetHeader = res.setHeader;
-        res.setHeader = function (name, value) {
-          if (name.toLowerCase() === 'cross-origin-embedder-policy') {
-            return originalSetHeader.call(this, name, 'require-corp');
-          }
-          if (name.toLowerCase() === 'cross-origin-opener-policy') {
-            return originalSetHeader.call(this, name, 'same-origin');
-          }
-          return originalSetHeader.call(this, name, value);
-        };
-
-        const originalWriteHead = res.writeHead;
-        res.writeHead = function (statusCode, statusMessage, headers) {
-          res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-          res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-          let actualHeaders = headers;
-          if (typeof statusMessage === 'object' && !headers) {
-            actualHeaders = statusMessage;
-            statusMessage = undefined;
-          }
-          if (actualHeaders) {
-            actualHeaders['Cross-Origin-Embedder-Policy'] = 'require-corp';
-            actualHeaders['Cross-Origin-Opener-Policy'] = 'same-origin';
-          }
-          return originalWriteHead.call(
-            this,
-            statusCode,
-            statusMessage,
-            actualHeaders,
-          );
-        };
-
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        return middleware(req, res, next);
-      };
-    },
   },
   resolver: {
     assetExts: [...assetExts.filter((ext) => ext !== 'svg'), 'wasm'],

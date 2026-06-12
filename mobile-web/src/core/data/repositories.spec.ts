@@ -8,13 +8,20 @@
 
 // ─── Module Mocks ────────────────────────────────────────────────────────────
 
-jest.mock('../database/database', () => ({
-  database: {
+jest.mock('../database/database', () => {
+  const database = {
     select: jest.fn(),
     insert: jest.fn(),
     transaction: jest.fn(),
-  },
-}));
+  };
+  return {
+    database,
+    // Mirror the real runAtomic by delegating to database.transaction, so the
+    // existing `mockDb.transaction.mockImplementation(...)` setups still drive it.
+    runAtomic: (work: (tx: unknown) => Promise<void>) =>
+      database.transaction(work),
+  };
+});
 
 jest.mock('../storage/platformStorage', () => ({
   getDeviceId: jest.fn().mockResolvedValue('device-test-123'),

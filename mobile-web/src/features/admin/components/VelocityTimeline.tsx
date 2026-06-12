@@ -141,6 +141,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
             <Box
               key={log.id}
               flexDirection="row"
+              flexWrap="wrap"
               mb="m"
               pb="s"
               borderBottomWidth={index < stats.logs.length - 1 ? 1 : 0}
@@ -160,7 +161,7 @@ export const VelocityTimeline: React.FC<VelocityTimelineProps> = ({
               </Box>
 
               {/* Log node details */}
-              <Box flex={1}>
+              <Box flex={1} style={{ minWidth: 160 }}>
                 <Box
                   flexDirection="row"
                   justifyContent="space-between"

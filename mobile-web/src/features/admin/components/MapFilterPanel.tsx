@@ -1,15 +1,11 @@
 import React from 'react';
-import {
-  Switch,
-  TouchableOpacity,
-  Platform,
-  useWindowDimensions,
-} from 'react-native';
+import { Switch, TouchableOpacity, Platform } from 'react-native';
 import {
   Box,
   Text,
   Card,
   DropdownSelector,
+  useResponsive,
 } from '@burma-inventory/ui-components';
 import { Region, Item } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
@@ -67,8 +63,7 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
   setMapStyle,
 }) => {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
 
   const regionOptions = [
     { label: t('allRegions'), value: '' },
@@ -114,11 +109,16 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
       <Box
         flexDirection="row"
         flexWrap="wrap"
-        justifyContent="space-between"
         alignItems="center"
+        style={{ gap: 12 }}
       >
         {/* Region selector */}
-        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
+        <Box
+          flexGrow={1}
+          flexBasis={isDesktop ? 140 : '100%'}
+          minWidth={isDesktop ? 120 : undefined}
+          mb="s"
+        >
           <DropdownSelector
             label={t('region')}
             selectedValue={selectedRegion}
@@ -129,7 +129,12 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Rep selector — options come from actual shop assignedRepId data */}
-        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
+        <Box
+          flexGrow={1}
+          flexBasis={isDesktop ? 140 : '100%'}
+          minWidth={isDesktop ? 120 : undefined}
+          mb="s"
+        >
           <DropdownSelector
             label={t('salesRep')}
             selectedValue={selectedRep}
@@ -140,7 +145,12 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* SKU Interest Selector */}
-        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
+        <Box
+          flexGrow={1}
+          flexBasis={isDesktop ? 140 : '100%'}
+          minWidth={isDesktop ? 120 : undefined}
+          mb="s"
+        >
           <DropdownSelector
             label={t('skuInterest')}
             selectedValue={selectedSku}
@@ -151,7 +161,12 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
         </Box>
 
         {/* Map Style Selector */}
-        <Box width={isDesktop ? '10%' : '100%'} minWidth={120} mb="s">
+        <Box
+          flexGrow={1}
+          flexBasis={isDesktop ? 140 : '100%'}
+          minWidth={isDesktop ? 120 : undefined}
+          mb="s"
+        >
           <DropdownSelector
             label={t('mapStyle')}
             selectedValue={mapStyle}
@@ -166,8 +181,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '13%' : '100%'}
-          minWidth={120}
+          flexGrow={1}
+          flexBasis={isDesktop ? 180 : '100%'}
+          minWidth={isDesktop ? 140 : undefined}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
           <Box mr="s">
@@ -189,8 +205,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '13%' : '100%'}
-          minWidth={120}
+          flexGrow={1}
+          flexBasis={isDesktop ? 180 : '100%'}
+          minWidth={isDesktop ? 140 : undefined}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
           style={{ opacity: routeLineDisabled ? 0.4 : 1 }}
         >
@@ -218,8 +235,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
           flexDirection="row"
           alignItems="center"
           mb="s"
-          width={isDesktop ? '13%' : '100%'}
-          minWidth={120}
+          flexGrow={1}
+          flexBasis={isDesktop ? 180 : '100%'}
+          minWidth={isDesktop ? 140 : undefined}
           justifyContent={isDesktop ? 'flex-end' : 'space-between'}
         >
           <Box mr="s">
@@ -242,8 +260,9 @@ export const MapFilterPanel: React.FC<MapFilterPanelProps> = ({
             flexDirection="row"
             alignItems="center"
             mb="s"
-            width={isDesktop ? '15%' : '100%'}
-            minWidth={140}
+            flexGrow={1}
+            flexBasis={isDesktop ? 180 : '100%'}
+            minWidth={isDesktop ? 140 : undefined}
             justifyContent={isDesktop ? 'flex-end' : 'flex-start'}
           >
             <TouchableOpacity

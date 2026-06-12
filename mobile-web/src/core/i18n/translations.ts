@@ -602,6 +602,19 @@ export const translations = {
     saleOrderApproved: 'Sale order approved successfully.',
     failedToApproveOrder: 'Failed to approve order.',
     saleOrderRejected: 'Sale order rejected and marked as cancelled.',
+    approveSelected: 'Approve Selected ({count})',
+    bulkIntakeAuthorized:
+      '{count} stock intake(s) authorized to AVAILABLE successfully.',
+    bulkSalesApproved: '{count} sales order(s) approved successfully.',
+    compromisedAuditTitle: 'Compromised Audit Events',
+    compromisedAuditDesc:
+      'Audit events whose hash chain failed server-side verification (tamper detected on sync).',
+    noCompromisedAuditEvents: 'No compromised audit events detected.',
+    compromisedAuditLoadError: 'Failed to load compromised audit events.',
+    auditEventId: 'Event ID',
+    auditEntityType: 'Entity',
+    auditAction: 'Action',
+    auditCreatedAt: 'Detected At',
     totalAmount: 'Total Amount',
     reject: 'Reject',
     oversightOverview: 'Oversight Overview',
@@ -819,6 +832,22 @@ export const translations = {
     reconciliationTimestampPlaceholder: 'e.g. 2026-06-08 10:15',
     reconciliationRemainingExcessLabel: 'Remaining Excess:',
     reconciliationAmountVal: 'K{amount}',
+    recordCashCollection: 'Record Cash Collection',
+    recordCashCollectionTitle: '💵 Record Cash Collection',
+    recordCashCollectionDesc:
+      'Capture an in-person cash payment for {name}. This applies to outstanding invoices via FIFO and can lift the credit lock.',
+    recordCashCollectionShopLabel: 'Shop',
+    recordCashCollectionAmountLabel: 'Cash Amount (MMK)',
+    recordCashCollectionAmountPlaceholder: 'e.g. 150000',
+    recordCashCollectionRefLabel: 'Transaction Ref (optional)',
+    recordCashCollectionRefPlaceholder: 'e.g. KBZ98765432',
+    recordCashCollectionScreenshotLabel: 'Viber / KPay Screenshot (optional)',
+    recordCashCollectionAttachScreenshot: '📎 Attach Screenshot',
+    recordCashCollectionScreenshotAttached: '✓ Screenshot attached',
+    recordCashCollectionSubmit: 'Record Collection',
+    recordCashCollectionSubmitting: 'Recording...',
+    recordCashCollectionSuccess: 'Cash collection recorded successfully!',
+    recordCashCollectionFailed: 'Failed to record cash collection.',
   },
   my: {
     title: 'မြန်မာ ကုန်ပစ္စည်း စာရင်း',
@@ -1460,6 +1489,22 @@ export const translations = {
     failedToApproveOrder: 'အော်ဒါ အတည်ပြုရန် ပျက်ကွက်ပါသည်',
     saleOrderRejected:
       'အရောင်းအော်ဒါကို ငြင်းပယ်ပြီး ပယ်ဖျက်ထားသည်ဟု မှတ်သားလိုက်ပါပြီ။',
+    approveSelected: 'ရွေးချယ်ထားသည်များ အတည်ပြုမည် ({count})',
+    bulkIntakeAuthorized:
+      'ကုန်ပစ္စည်းအဝင် {count} ခုကို AVAILABLE အဖြစ် အောင်မြင်စွာ အတည်ပြုပြီးပါပြီ။',
+    bulkSalesApproved:
+      'အရောင်းအော်ဒါ {count} ခုကို အောင်မြင်စွာ အတည်ပြုပြီးပါပြီ။',
+    compromisedAuditTitle: 'အာမခံချက်ပျက်ပြားသော စစ်ဆေးမှုမှတ်တမ်းများ',
+    compromisedAuditDesc:
+      'ဆာဗာဘက်တွင် hash chain စစ်ဆေးမှု မအောင်မြင်သော စစ်ဆေးမှုမှတ်တမ်းများ (sync လုပ်စဉ် ပြုပြင်ဖျက်ဆီးမှု တွေ့ရှိ)။',
+    noCompromisedAuditEvents:
+      'အာမခံချက်ပျက်ပြားသော စစ်ဆေးမှုမှတ်တမ်း မတွေ့ရှိပါ။',
+    compromisedAuditLoadError:
+      'အာမခံချက်ပျက်ပြားသော စစ်ဆေးမှုမှတ်တမ်းများ ဖွင့်ရန် ပျက်ကွက်ပါသည်။',
+    auditEventId: 'မှတ်တမ်း ID',
+    auditEntityType: 'အမျိုးအစား',
+    auditAction: 'လုပ်ဆောင်ချက်',
+    auditCreatedAt: 'တွေ့ရှိချိန်',
     totalAmount: 'စုစုပေါင်း ငွေပမာဏ',
     reject: 'ငြင်းပယ်မည်',
     oversightOverview: 'စောင့်ကြည့်ကြီးကြပ်မှု အကျဉ်းချုပ်',
@@ -1691,5 +1736,24 @@ export const translations = {
     reconciliationTimestampPlaceholder: 'ဥပမာ ၂၀၂၆-၀၆-၀၈ ၁၀:၁၅',
     reconciliationRemainingExcessLabel: 'ပိုလျှံငွေကျန်ရှိမှု -',
     reconciliationAmountVal: '{amount} ကျပ်',
+    recordCashCollection: 'ငွေသားကောက်ခံမှု မှတ်တမ်းတင်ရန်',
+    recordCashCollectionTitle: '💵 ငွေသားကောက်ခံမှု မှတ်တမ်းတင်ရန်',
+    recordCashCollectionDesc:
+      '{name} အတွက် လက်ဆင့်ကမ်း ငွေသားပေးချေမှုကို မှတ်တမ်းတင်ပါ။ FIFO အလိုက် ပေးချေရန်ကျန် ပြေစာများသို့ ပေါင်းစပ်ပြီး အကြွေးပိတ်ဆို့မှုကို ဖြေလျှော့နိုင်ပါသည်။',
+    recordCashCollectionShopLabel: 'ဝယ်သူ',
+    recordCashCollectionAmountLabel: 'ငွေသားပမာဏ (ကျပ်)',
+    recordCashCollectionAmountPlaceholder: 'ဥပမာ ၁၅၀၀၀၀',
+    recordCashCollectionRefLabel: 'ငွေလွှဲအညွှန်းနံပါတ် (ရွေးချယ်နိုင်)',
+    recordCashCollectionRefPlaceholder: 'ဥပမာ KBZ98765432',
+    recordCashCollectionScreenshotLabel:
+      'Viber / KPay မျက်နှာပြင်ဓာတ်ပုံ (ရွေးချယ်နိုင်)',
+    recordCashCollectionAttachScreenshot: '📎 မျက်နှာပြင်ဓာတ်ပုံ ပူးတွဲရန်',
+    recordCashCollectionScreenshotAttached: '✓ မျက်နှာပြင်ဓာတ်ပုံ ပူးတွဲပြီး',
+    recordCashCollectionSubmit: 'ကောက်ခံမှု မှတ်တမ်းတင်မည်',
+    recordCashCollectionSubmitting: 'မှတ်တမ်းတင်နေသည်...',
+    recordCashCollectionSuccess:
+      'ငွေသားကောက်ခံမှုကို အောင်မြင်စွာ မှတ်တမ်းတင်ပြီးပါပြီ',
+    recordCashCollectionFailed:
+      'ငွေသားကောက်ခံမှု မှတ်တမ်းတင်ခြင်း မအောင်မြင်ပါ',
   },
 };

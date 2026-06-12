@@ -104,6 +104,8 @@ export const theme = createTheme({
   breakpoints: {
     phone: 0,
     tablet: 768,
+    desktop: 1024,
+    wide: 1440,
   },
   layout: {
     // Minimum horizontal width for a scrollable data table before it scrolls.

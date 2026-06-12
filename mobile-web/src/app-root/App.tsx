@@ -10,6 +10,7 @@ import {
   getThemeForLanguage,
   Box,
   registerExchangeRateResolver,
+  useResponsive,
 } from '@burma-inventory/ui-components';
 import { sqliteSchema } from '@burma-inventory/shared-types';
 import { ShopLedgerScreen } from '../features/audit/screens/ShopLedgerScreen';
@@ -25,12 +26,7 @@ import { syncData } from '../features/sync/sync';
 import { useCartStore } from '../core/store/cartStore';
 import { StateRecovery } from '../core/utils/stateRecovery';
 import { powerSyncDb, database } from '../core/database/database';
-import {
-  useWindowDimensions,
-  Platform,
-  AppState,
-  AppStateStatus,
-} from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import { ThermalGuard, ThermalState } from '../core/utils/thermalGuard';
 import * as Device from 'expo-device';
 import * as Location from 'expo-location';
@@ -74,8 +70,7 @@ registerExchangeRateResolver(async (currency) => {
 });
 
 export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
   const { activeRep } = useAuth();
 
   const recoveryState = useCartStore((state) => state.recoveryState);
@@ -314,6 +309,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
         syncError={syncError}
         pendingChanges={pendingChanges}
         lastSync={lastSync}
+        onManualSync={handleSync}
       />
 
       {/* Render Active Screen View */}

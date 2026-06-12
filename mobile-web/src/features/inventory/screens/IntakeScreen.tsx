@@ -1,10 +1,5 @@
-import {
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  useWindowDimensions,
-} from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import { ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Box, Text, useResponsive } from '@burma-inventory/ui-components';
 import { RefreshCw } from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { InboundForecastList } from '../components/InboundForecastList';
@@ -16,13 +11,11 @@ import { RegisterSkuForm } from '../components/RegisterSkuForm';
 import { useIntakeInventory } from '../hooks/useIntakeInventory';
 import { useWarehouseGeofence } from '../hooks/useWarehouseGeofence';
 
-const DESKTOP_BREAKPOINT = 768;
 const LOADING_SPINNER_COLOR = '#5A31F4';
 
 export function IntakeScreen() {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= DESKTOP_BREAKPOINT;
+  const { isDesktop } = useResponsive();
 
   const {
     selectedWarehouseId,

@@ -1,10 +1,17 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { ScrollView, TouchableOpacity } from 'react-native';
 import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
 import { RepDayStats } from '../hooks/useTeamPulseData';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { REPRESENTATIVES } from '../../../config/appConfig';
+
+// Fixed column widths so the weekly grid scrolls horizontally on narrow
+// screens instead of squishing/clipping the rep label and day cells.
+const REP_COLUMN_WIDTH = 160;
+const DAY_COLUMN_WIDTH = 52;
+const DAYS_IN_WEEK = 7;
+const GRID_MIN_WIDTH = REP_COLUMN_WIDTH + DAY_COLUMN_WIDTH * DAYS_IN_WEEK;
 
 interface ComplianceScorecardProps {
   selectedRep: string;
@@ -49,84 +56,89 @@ export const ComplianceScorecard: React.FC<ComplianceScorecardProps> = ({
         {t('complianceSubtitle')}
       </Text>
 
-      {/* Grid Table Header */}
-      <Box
-        borderBottomWidth={1}
-        borderColor="borderColor"
-        pb="s"
-        mb="s"
-        flexDirection="row"
-      >
-        <Box width="30%">
-          <Text variant="bodySecondary" fontWeight="bold">
-            {t('representative')}
-          </Text>
-        </Box>
-        {daysOfWeekLabels.map((day) => (
-          <Box key={day} flex={1} alignItems="center">
-            <Text variant="bodySecondary" fontWeight="bold">
-              {day}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-
-      {/* Representative Rows */}
-      {REPRESENTATIVES.map((rep) => (
-        <Box key={rep.id} py="s" flexDirection="row" alignItems="center">
-          <Box width="30%">
-            <Text variant="body" fontWeight="bold">
-              {rep.name} ({rep.id})
-            </Text>
-            <Text variant="bodySecondary">{rep.territory}</Text>
-          </Box>
-          {daysOfWeekLabels.map((_, idx) => {
-            const stats = getRepDayStats(rep.id, idx);
-            const isSelected =
-              selectedRep === rep.id && selectedDayIndex === idx;
-            return (
-              <TouchableOpacity
-                key={`${rep.id}-${idx}`}
-                onPress={() => {
-                  setSelectedRep(rep.id);
-                  setSelectedDayIndex(idx);
-                }}
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: getStatusColor(stats.status),
-                  marginHorizontal: 4,
-                  paddingVertical: 10,
-                  borderRadius: 6,
-                  borderWidth: isSelected ? 2.5 : 0,
-                  borderColor: theme.colors.primaryButton,
-                }}
-              >
-                <Text
-                  variant="body"
-                  fontWeight="bold"
-                  style={{ color: theme.colors.pureWhite }}
-                >
-                  {stats.logCount}
+      {/* Grid scrolls horizontally on narrow screens to avoid clipping */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <Box style={{ minWidth: GRID_MIN_WIDTH }}>
+          {/* Grid Table Header */}
+          <Box
+            borderBottomWidth={1}
+            borderColor="borderColor"
+            pb="s"
+            mb="s"
+            flexDirection="row"
+          >
+            <Box width={REP_COLUMN_WIDTH}>
+              <Text variant="bodySecondary" fontWeight="bold">
+                {t('representative')}
+              </Text>
+            </Box>
+            {daysOfWeekLabels.map((day) => (
+              <Box key={day} width={DAY_COLUMN_WIDTH} alignItems="center">
+                <Text variant="bodySecondary" fontWeight="bold">
+                  {day}
                 </Text>
-                {stats.batchFlagged && (
-                  <Text
+              </Box>
+            ))}
+          </Box>
+
+          {/* Representative Rows */}
+          {REPRESENTATIVES.map((rep) => (
+            <Box key={rep.id} py="s" flexDirection="row" alignItems="center">
+              <Box width={REP_COLUMN_WIDTH}>
+                <Text variant="body" fontWeight="bold">
+                  {rep.name} ({rep.id})
+                </Text>
+                <Text variant="bodySecondary">{rep.territory}</Text>
+              </Box>
+              {daysOfWeekLabels.map((_, idx) => {
+                const stats = getRepDayStats(rep.id, idx);
+                const isSelected =
+                  selectedRep === rep.id && selectedDayIndex === idx;
+                return (
+                  <TouchableOpacity
+                    key={`${rep.id}-${idx}`}
+                    onPress={() => {
+                      setSelectedRep(rep.id);
+                      setSelectedDayIndex(idx);
+                    }}
                     style={{
-                      fontSize: 9,
-                      position: 'absolute',
-                      top: 2,
-                      right: 2,
+                      width: DAY_COLUMN_WIDTH - 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: getStatusColor(stats.status),
+                      marginHorizontal: 4,
+                      paddingVertical: 10,
+                      borderRadius: 6,
+                      borderWidth: isSelected ? 2.5 : 0,
+                      borderColor: theme.colors.primaryButton,
                     }}
                   >
-                    ⚠️
-                  </Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+                    <Text
+                      variant="body"
+                      fontWeight="bold"
+                      style={{ color: theme.colors.pureWhite }}
+                    >
+                      {stats.logCount}
+                    </Text>
+                    {stats.batchFlagged && (
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                        }}
+                      >
+                        ⚠️
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </Box>
+          ))}
         </Box>
-      ))}
+      </ScrollView>
 
       {/* Legend indicators */}
       <Box

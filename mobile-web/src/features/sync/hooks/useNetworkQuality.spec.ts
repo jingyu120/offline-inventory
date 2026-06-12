@@ -40,6 +40,7 @@ jest.mock('@react-native-community/netinfo', () => {
     default: {
       fetch: mockFetchFn,
       addEventListener: mockAddEventListenerFn,
+      configure: jest.fn(),
     },
   };
 });
@@ -82,6 +83,12 @@ describe('useNetworkQuality', () => {
   it('initializes and registers a NetInfo listener at the module level', () => {
     expect(addEventListenerCalled).toBe(true);
     expect(mockAddEventListenerCallback).toBeDefined();
+  });
+
+  it('disables the active internet-reachability probe (avoids HEAD "/" request spam)', () => {
+    expect(NetInfo.configure).toHaveBeenCalledTimes(1);
+    const config = (NetInfo.configure as jest.Mock).mock.calls[0][0];
+    expect(config.reachabilityShouldRun()).toBe(false);
   });
 
   it('updates network quality when a new NetInfo event is received', () => {

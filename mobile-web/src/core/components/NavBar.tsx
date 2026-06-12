@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Platform, Pressable } from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import { Box, Text, useResponsive } from '@burma-inventory/ui-components';
 import { useAuth, REPS } from '../auth/auth';
 import { useToast } from './ToastProvider';
 import { useTranslation } from '../i18n/i18n';
@@ -12,6 +12,12 @@ import {
 } from '../../config/appConfig';
 import { ThermalGuard, ThermalState } from '../utils/thermalGuard';
 export { ROLE_SCREENS };
+
+const REP_DROPDOWN_MIN_WIDTH = 200;
+const HEADER_HORIZONTAL_PADDING = 16;
+const REP_DROPDOWN_PHONE_NUDGE = 42;
+const NARROW_VIEWPORT_DROPDOWN_OFFSET = 0;
+const REP_NAME_PHONE_MAX_WIDTH = 100;
 
 interface NavBarProps {
   themeMode: 'light' | 'dark';
@@ -55,8 +61,22 @@ export const NavBar: React.FC<NavBarProps> = ({
   handleSync,
 }) => {
   const { activeRep, setActiveRep } = useAuth();
+  const { width, isLargeScreen } = useResponsive();
   const { showToast } = useToast();
   const { t, language, setLanguage } = useTranslation();
+
+  // On phones the rep selector hugs the right edge, so the dropdown is nudged
+  // right (-42) to stay centered under it. On very narrow viewports that nudge
+  // pushes a 200px-wide dropdown off-screen, so clamp the offset to 0 once the
+  // dropdown would no longer fit within the padded viewport.
+  const phoneDropdownFits =
+    width - 2 * HEADER_HORIZONTAL_PADDING >=
+    REP_DROPDOWN_MIN_WIDTH + REP_DROPDOWN_PHONE_NUDGE;
+  const repDropdownRight = isDesktop
+    ? 0
+    : phoneDropdownFits
+      ? -REP_DROPDOWN_PHONE_NUDGE
+      : NARROW_VIEWPORT_DROPDOWN_OFFSET;
   const [isRepDropdownOpen, setIsRepDropdownOpen] = useState(false);
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
   const [isThermalDropdownOpen, setIsThermalDropdownOpen] = useState(false);
@@ -91,7 +111,7 @@ export const NavBar: React.FC<NavBarProps> = ({
       flexDirection="row"
       justifyContent="space-between"
       alignItems="center"
-      px="m"
+      px={isDesktop ? 'm' : 's'}
       py="s"
       borderBottomWidth={1}
       borderColor="borderColor"
@@ -119,18 +139,25 @@ export const NavBar: React.FC<NavBarProps> = ({
           }}
         />
       )}
-      <Box flexDirection="row" alignItems="center" flex={1} overflow="visible">
+      <Box
+        flexDirection="row"
+        alignItems="center"
+        flex={1}
+        overflow="visible"
+        mr="s"
+        style={{ minWidth: 0 }}
+      >
         <Text
           variant="title"
           fontWeight="bold"
           color="brand"
-          style={{ fontSize: isDesktop ? 20 : 16 }}
+          style={{ fontSize: isDesktop ? 20 : 16, flexShrink: 1 }}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
           🇲🇲 {t('title')}
         </Text>
-        {isDesktop && (
+        {isLargeScreen && (
           <Text variant="bodySecondary" ml="s">
             | {t('representativePortal')}
           </Text>
@@ -142,6 +169,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         alignItems="center"
         overflow="visible"
         zIndex={10010}
+        flexShrink={0}
       >
         {/* Active Rep Selector Dropdown */}
         <Box
@@ -176,10 +204,13 @@ export const NavBar: React.FC<NavBarProps> = ({
             })}
           >
             <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={{
                 fontSize: 12,
                 color: '#fff',
                 fontWeight: 'bold',
+                maxWidth: isDesktop ? undefined : REP_NAME_PHONE_MAX_WIDTH,
               }}
             >
               👤{' '}
@@ -194,7 +225,7 @@ export const NavBar: React.FC<NavBarProps> = ({
             <Box
               position="absolute"
               top={35}
-              right={isDesktop ? 0 : -42}
+              right={repDropdownRight}
               bg="cardBackground"
               borderColor="borderColor"
               borderWidth={1}
@@ -202,7 +233,7 @@ export const NavBar: React.FC<NavBarProps> = ({
               p="xs"
               zIndex={99999}
               style={{
-                minWidth: 200,
+                minWidth: REP_DROPDOWN_MIN_WIDTH,
                 ...Platform.select({
                   web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.15)' },
                   default: { elevation: 5 },
@@ -257,7 +288,7 @@ export const NavBar: React.FC<NavBarProps> = ({
                   </Pressable>
                 );
               })}
-              {!isDesktop && (
+              {!isLargeScreen && (
                 <Box
                   borderTopWidth={1}
                   borderColor="borderColor"
@@ -383,7 +414,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         </Box>
 
         {/* Language Toggle Button */}
-        {isDesktop && (
+        {isLargeScreen && (
           <Pressable
             onPress={() => setLanguage(language === 'en' ? 'my' : 'en')}
             style={({ pressed, hovered }: $Any) => ({
@@ -420,7 +451,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         )}
 
         {/* Thermal Throttling Simulator Dropdown */}
-        {isDesktop && (
+        {isLargeScreen && (
           <Box
             position="relative"
             zIndex={10025}
@@ -530,7 +561,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         )}
 
         {/* Theme Toggle Button */}
-        {isDesktop && (
+        {isLargeScreen && (
           <Pressable
             onPress={() =>
               setThemeMode(themeMode === 'light' ? 'dark' : 'light')

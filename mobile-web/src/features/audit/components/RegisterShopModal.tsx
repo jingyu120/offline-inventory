@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert } from 'react-native';
 import {
   Box,
   Text,
   Button,
   TextField,
   DropdownSelector,
+  ModalSheet,
 } from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { database } from '../../../core/database/database';
@@ -23,6 +24,8 @@ interface RegisterShopModalProps {
   onClose: () => void;
   onRegister: (shopId: string) => void;
 }
+
+const MODAL_MAX_WIDTH = 520;
 
 export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
   visible,
@@ -252,298 +255,284 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <Box
-        flex={1}
-        style={{ backgroundColor: 'rgba(15, 23, 42, 0.7)' }}
-        justifyContent="center"
-        alignItems="center"
-        px="m"
-      >
+    <ModalSheet
+      visible={visible}
+      onRequestClose={onClose}
+      maxWidth={MODAL_MAX_WIDTH}
+      animationType="slide"
+    >
+      <Box p="m" flex={1}>
+        {/* Header */}
         <Box
-          p="m"
-          width="100%"
-          bg="cardBackground"
-          style={{
-            maxWidth: 500,
-            maxHeight: '90%',
-            borderRadius: 16,
-            boxShadow: '0px 10px 25px rgba(0,0,0,0.3)',
-            elevation: 10,
-          }}
+          mb="m"
+          borderBottomWidth={1}
+          borderColor="borderColor"
+          pb="s"
+          flexDirection="row"
+          justifyContent="space-between"
+          alignItems="center"
         >
-          {/* Header */}
-          <Box
-            mb="m"
-            borderBottomWidth={1}
-            borderColor="borderColor"
-            pb="s"
-            flexDirection="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Text variant="title" color="brand">
-                🏢 {t('registerClient')}
-              </Text>
-              <Text variant="caption" mt="xs">
-                {t('stepOf')
-                  .replace('{step}', step.toString())
-                  .replace('{total}', '3')}
-              </Text>
-            </Box>
-            <Box flexDirection="row" bg="borderColor" borderRadius="m" p="xs">
-              <Box
-                width={16}
-                height={8}
-                borderRadius="s"
-                bg={step >= 1 ? 'brand' : 'secondaryBackground'}
-                mr="xs"
-              />
-              <Box
-                width={16}
-                height={8}
-                borderRadius="s"
-                bg={step >= 2 ? 'brand' : 'secondaryBackground'}
-                mr="xs"
-              />
-              <Box
-                width={16}
-                height={8}
-                borderRadius="s"
-                bg={step >= 3 ? 'brand' : 'secondaryBackground'}
-              />
-            </Box>
+          <Box>
+            <Text variant="title" color="brand">
+              🏢 {t('registerClient')}
+            </Text>
+            <Text variant="caption" mt="xs">
+              {t('stepOf')
+                .replace('{step}', step.toString())
+                .replace('{total}', '3')}
+            </Text>
           </Box>
+          <Box flexDirection="row" bg="borderColor" borderRadius="m" p="xs">
+            <Box
+              width={16}
+              height={8}
+              borderRadius="s"
+              bg={step >= 1 ? 'brand' : 'secondaryBackground'}
+              mr="xs"
+            />
+            <Box
+              width={16}
+              height={8}
+              borderRadius="s"
+              bg={step >= 2 ? 'brand' : 'secondaryBackground'}
+              mr="xs"
+            />
+            <Box
+              width={16}
+              height={8}
+              borderRadius="s"
+              bg={step >= 3 ? 'brand' : 'secondaryBackground'}
+            />
+          </Box>
+        </Box>
 
-          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-            {step === 1 && (
-              <Box mb="m">
-                <Text variant="body" fontWeight="bold" mb="m">
-                  {t('enterClientProfileInfo')}
-                </Text>
-                <TextField
-                  label={t('clientShopName')}
-                  placeholder={t('clientNamePlaceholder')}
-                  value={name}
-                  onChangeText={setName}
-                />
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          {step === 1 && (
+            <Box mb="m">
+              <Text variant="body" fontWeight="bold" mb="m">
+                {t('enterClientProfileInfo')}
+              </Text>
+              <TextField
+                label={t('clientShopName')}
+                placeholder={t('clientNamePlaceholder')}
+                value={name}
+                onChangeText={setName}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <TextField
-                  label={t('contactPersonName')}
-                  placeholder={t('contactNamePlaceholder')}
-                  value={contactName}
-                  onChangeText={setContactName}
-                />
+              <TextField
+                label={t('contactPersonName')}
+                placeholder={t('contactNamePlaceholder')}
+                value={contactName}
+                onChangeText={setContactName}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <TextField
-                  label={t('contactPhoneNumber')}
-                  placeholder={t('phonePlaceholder')}
-                  value={contactPhone}
-                  onChangeText={setContactPhone}
-                />
+              <TextField
+                label={t('contactPhoneNumber')}
+                placeholder={t('phonePlaceholder')}
+                value={contactPhone}
+                onChangeText={setContactPhone}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <TextField
-                  label={t('emailOptional')}
-                  placeholder={t('emailPlaceholder')}
-                  value={contactEmail}
-                  onChangeText={setContactEmail}
-                />
-              </Box>
-            )}
+              <TextField
+                label={t('emailOptional')}
+                placeholder={t('emailPlaceholder')}
+                value={contactEmail}
+                onChangeText={setContactEmail}
+              />
+            </Box>
+          )}
 
-            {step === 2 && (
-              <Box mb="m">
-                <Text variant="body" fontWeight="bold" mb="m">
-                  {t('configureTerritoryDetails')}
-                </Text>
+          {step === 2 && (
+            <Box mb="m">
+              <Text variant="body" fontWeight="bold" mb="m">
+                {t('configureTerritoryDetails')}
+              </Text>
 
-                <DropdownSelector
-                  label={t('region')}
-                  selectedValue={selectedRegionId}
-                  onValueChange={handleRegionChange}
-                  options={regionOptions}
-                  placeholder={t('selectRegionPlaceholder')}
-                />
+              <DropdownSelector
+                label={t('region')}
+                selectedValue={selectedRegionId}
+                onValueChange={handleRegionChange}
+                options={regionOptions}
+                placeholder={t('selectRegionPlaceholder')}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <DropdownSelector
-                  label={t('township')}
-                  selectedValue={selectedTownshipId}
-                  onValueChange={handleTownshipChange}
-                  options={townshipOptions}
-                  placeholder={t('selectTownship')}
-                  disabled={!selectedRegionId}
-                />
+              <DropdownSelector
+                label={t('township')}
+                selectedValue={selectedTownshipId}
+                onValueChange={handleTownshipChange}
+                options={townshipOptions}
+                placeholder={t('selectTownship')}
+                disabled={!selectedRegionId}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <DropdownSelector
-                  label={t('ward')}
-                  selectedValue={selectedWardId}
-                  onValueChange={setSelectedWardId}
-                  options={wardOptions}
-                  placeholder={t('selectWard')}
-                  disabled={!selectedTownshipId}
-                />
+              <DropdownSelector
+                label={t('ward')}
+                selectedValue={selectedWardId}
+                onValueChange={setSelectedWardId}
+                options={wardOptions}
+                placeholder={t('selectWard')}
+                disabled={!selectedTownshipId}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <TextField
-                  label={t('streetAddressDetails')}
-                  placeholder={t('streetAddressPlaceholder')}
-                  value={streetAddress}
-                  onChangeText={setStreetAddress}
-                  editable={!!selectedWardId}
-                />
+              <TextField
+                label={t('streetAddressDetails')}
+                placeholder={t('streetAddressPlaceholder')}
+                value={streetAddress}
+                onChangeText={setStreetAddress}
+                editable={!!selectedWardId}
+              />
 
-                <Box height={16} />
+              <Box height={16} />
 
-                <Box
-                  p="s"
-                  bg="secondaryBackground"
-                  borderRadius="s"
-                  borderWidth={1}
-                  borderColor="borderColor"
-                >
-                  <Text variant="caption" color="secondaryText">
-                    {t('addressPreview')}
-                  </Text>
-                  <Text variant="body" fontWeight="bold" color="brand" mt="xs">
-                    📍 {autoGeneratedAddress || t('selectTerritoryAbove')}
-                  </Text>
-                </Box>
-              </Box>
-            )}
-
-            {step === 3 && (
               <Box
-                mb="m"
                 p="s"
                 bg="secondaryBackground"
-                borderRadius="m"
+                borderRadius="s"
                 borderWidth={1}
                 borderColor="borderColor"
               >
-                <Text variant="body" fontWeight="bold" mb="m">
-                  {t('reviewConfirmDetails')}
+                <Text variant="caption" color="secondaryText">
+                  {t('addressPreview')}
                 </Text>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('clientName')}
-                  </Text>
-                  <Text variant="body" fontWeight="bold" mt="xs">
-                    {name}
-                  </Text>
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('primaryContact')}
-                  </Text>
-                  <Text variant="body" mt="xs">
-                    {contactName} ({contactPhone})
-                  </Text>
-                  {contactEmail ? (
-                    <Text variant="caption" color="secondaryText">
-                      {contactEmail}
-                    </Text>
-                  ) : null}
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('assignedRegion')}
-                  </Text>
-                  <Text variant="body" mt="xs">
-                    {currentRegion?.name}
-                  </Text>
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('township')}
-                  </Text>
-                  <Text variant="body" mt="xs">
-                    {currentTownship?.name}
-                  </Text>
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('ward')}
-                  </Text>
-                  <Text variant="body" mt="xs">
-                    {currentWard?.name}
-                  </Text>
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('fullRegisteredAddress')}
-                  </Text>
-                  <Text variant="body" fontWeight="bold" color="brand" mt="xs">
-                    📍 {autoGeneratedAddress}
-                  </Text>
-                </Box>
-                <Box mb="s">
-                  <Text variant="caption" color="secondaryText">
-                    {t('gpsCoordinatesDerived')}
-                  </Text>
-                  <Text variant="body" mt="xs">
-                    {latitude || '16.7794'}, {longitude || '96.1518'}
-                  </Text>
-                </Box>
-                <Box>
-                  <Text variant="caption" color="secondaryText">
-                    {t('defaultPriceBookTier')}
-                  </Text>
-                  <Text
-                    variant="body"
-                    mt="xs"
-                    style={{ textTransform: 'capitalize' }}
-                  >
-                    {selectedRegionId === 'region-yangon'
-                      ? t('yangonRetailBook')
-                      : t('mandalayWholesaleBook')}
-                  </Text>
-                </Box>
+                <Text variant="body" fontWeight="bold" color="brand" mt="xs">
+                  📍 {autoGeneratedAddress || t('selectTerritoryAbove')}
+                </Text>
               </Box>
-            )}
-          </ScrollView>
+            </Box>
+          )}
 
-          {/* Footer Controls */}
-          <Box
-            borderTopWidth={1}
-            borderColor="borderColor"
-            pt="m"
-            flexDirection="row"
-            justifyContent="space-between"
-          >
+          {step === 3 && (
+            <Box
+              mb="m"
+              p="s"
+              bg="secondaryBackground"
+              borderRadius="m"
+              borderWidth={1}
+              borderColor="borderColor"
+            >
+              <Text variant="body" fontWeight="bold" mb="m">
+                {t('reviewConfirmDetails')}
+              </Text>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('clientName')}
+                </Text>
+                <Text variant="body" fontWeight="bold" mt="xs">
+                  {name}
+                </Text>
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('primaryContact')}
+                </Text>
+                <Text variant="body" mt="xs">
+                  {contactName} ({contactPhone})
+                </Text>
+                {contactEmail ? (
+                  <Text variant="caption" color="secondaryText">
+                    {contactEmail}
+                  </Text>
+                ) : null}
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('assignedRegion')}
+                </Text>
+                <Text variant="body" mt="xs">
+                  {currentRegion?.name}
+                </Text>
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('township')}
+                </Text>
+                <Text variant="body" mt="xs">
+                  {currentTownship?.name}
+                </Text>
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('ward')}
+                </Text>
+                <Text variant="body" mt="xs">
+                  {currentWard?.name}
+                </Text>
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('fullRegisteredAddress')}
+                </Text>
+                <Text variant="body" fontWeight="bold" color="brand" mt="xs">
+                  📍 {autoGeneratedAddress}
+                </Text>
+              </Box>
+              <Box mb="s">
+                <Text variant="caption" color="secondaryText">
+                  {t('gpsCoordinatesDerived')}
+                </Text>
+                <Text variant="body" mt="xs">
+                  {latitude || '16.7794'}, {longitude || '96.1518'}
+                </Text>
+              </Box>
+              <Box>
+                <Text variant="caption" color="secondaryText">
+                  {t('defaultPriceBookTier')}
+                </Text>
+                <Text
+                  variant="body"
+                  mt="xs"
+                  style={{ textTransform: 'capitalize' }}
+                >
+                  {selectedRegionId === 'region-yangon'
+                    ? t('yangonRetailBook')
+                    : t('mandalayWholesaleBook')}
+                </Text>
+              </Box>
+            </Box>
+          )}
+        </ScrollView>
+
+        {/* Footer Controls */}
+        <Box
+          borderTopWidth={1}
+          borderColor="borderColor"
+          pt="m"
+          flexDirection="row"
+          justifyContent="space-between"
+        >
+          <Button
+            title={step === 1 ? t('cancel') : t('back')}
+            variant="secondary"
+            onPress={step === 1 ? onClose : handleBack}
+          />
+          {step < 3 ? (
             <Button
-              title={step === 1 ? t('cancel') : t('back')}
-              variant="secondary"
-              onPress={step === 1 ? onClose : handleBack}
+              title={t('nextBtn')}
+              variant="primary"
+              onPress={handleNext}
             />
-            {step < 3 ? (
-              <Button
-                title={t('nextBtn')}
-                variant="primary"
-                onPress={handleNext}
-              />
-            ) : (
-              <Button
-                title={t('registerBtn')}
-                variant="primary"
-                onPress={handleRegister}
-                isLoading={loading}
-              />
-            )}
-          </Box>
+          ) : (
+            <Button
+              title={t('registerBtn')}
+              variant="primary"
+              onPress={handleRegister}
+              isLoading={loading}
+            />
+          )}
         </Box>
       </Box>
-    </Modal>
+    </ModalSheet>
   );
 };

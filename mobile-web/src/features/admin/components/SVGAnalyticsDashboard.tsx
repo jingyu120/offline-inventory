@@ -1,6 +1,12 @@
 import React from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
-import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
+import { Platform } from 'react-native';
+import {
+  Box,
+  Text,
+  Card,
+  Theme,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { InteractionLog } from '@burma-inventory/shared-types';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useTheme } from '@shopify/restyle';
@@ -20,8 +26,7 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
 
   // Compute compliance rates
   const complianceRate =
@@ -55,9 +60,14 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
         {t('marketDemandSubtitle')}
       </Text>
 
-      <Box flexDirection="row" flexWrap="wrap" justifyContent="space-between">
+      <Box flexDirection="row" flexWrap="wrap" style={{ gap: 16 }}>
         {/* Left Section: SKU Demand Share (Bar Chart) */}
-        <Box width={isDesktop ? '55%' : '100%'} minWidth={280} mb="m">
+        <Box
+          flexGrow={1}
+          flexShrink={1}
+          flexBasis={isDesktop ? 280 : '100%'}
+          mb="m"
+        >
           <Text variant="body" fontWeight="bold" mb="m">
             {t('skuInterestShare')}
           </Text>
@@ -95,8 +105,9 @@ export const SVGAnalyticsDashboard: React.FC<SVGAnalyticsDashboardProps> = ({
 
         {/* Right Section: Compliance Gauge (SVG Circle) */}
         <Box
-          width={isDesktop ? '40%' : '100%'}
-          minWidth={250}
+          flexGrow={1}
+          flexShrink={1}
+          flexBasis={isDesktop ? 200 : '100%'}
           alignItems="center"
           justifyContent="center"
         >

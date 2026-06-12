@@ -86,7 +86,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           <TouchableOpacity
             key={screen}
             onPress={() => setCurrentScreen(screen)}
-            style={{ alignItems: 'center', flex: 1 }}
+            style={{
+              alignItems: 'center',
+              flex: 1,
+              minWidth: 0,
+              paddingHorizontal: 2,
+            }}
           >
             <IconComponent
               size={20}
@@ -97,6 +102,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               }
             />
             <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={{
                 fontSize: 10,
                 fontWeight: 'bold',

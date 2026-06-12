@@ -1,10 +1,10 @@
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  useWindowDimensions,
-} from 'react-native';
-import { Box, Button, Text } from '@burma-inventory/ui-components';
+  Box,
+  Button,
+  Text,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { useOrderDrafter } from '../hooks/useOrderDrafter';
 import { ShopPicker } from './ShopPicker';
@@ -13,12 +13,9 @@ import { CurrencyPicker } from './CurrencyPicker';
 import { StagingReview } from './StagingReview';
 import { OrderBasket } from './OrderBasket';
 
-const DESKTOP_BREAKPOINT = 768;
-
 export function ViberSimulator(): React.JSX.Element {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= DESKTOP_BREAKPOINT;
+  const { isPhone } = useResponsive();
 
   const {
     shops,
@@ -122,7 +119,7 @@ export function ViberSimulator(): React.JSX.Element {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        {isDesktop ? (
+        {!isPhone ? (
           <Box flexDirection="row" flex={1} gap="m">
             <Box flex={1}>
               <ScrollView

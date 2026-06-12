@@ -1,11 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  useWindowDimensions,
-  TouchableOpacity,
-} from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import { ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
+import { Box, Text, useResponsive } from '@burma-inventory/ui-components';
 import { useGeographicHeatmapData } from '../hooks/useGeographicHeatmapData';
 import { MapFilterPanel } from '../components/MapFilterPanel';
 import { MapDetailPane } from '../components/MapDetailPane';
@@ -17,6 +12,13 @@ import { ThermalGuard } from '../../../core/utils/thermalGuard';
 // Import subcomponents
 import { MapLegend } from '../components/MapLegend';
 import { MapHeaderFloating } from '../components/MapHeaderFloating';
+
+// Approximate vertical space consumed by the page padding, title header and
+// filter panel above the map/sidebar split on desktop. Subtracted from the
+// viewport height so the split fills tall windows but never collapses below
+// MIN_SPLIT_HEIGHT on short ones.
+const DESKTOP_HEADER_OFFSET = 260;
+const MIN_SPLIT_HEIGHT = 420;
 
 // Helper to dynamically load Leaflet from CDN to avoid React 19 dependency conflicts
 const loadLeaflet = (callback: () => void) => {
@@ -112,8 +114,7 @@ const solveTSP = (shops: $Any[]) => {
 
 export const GeographicHeatmapScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { width, height } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { height, isDesktop, isLargeScreen } = useResponsive();
   const isWebMobile = Platform.OS === 'web' && !isDesktop;
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -158,6 +159,13 @@ export const GeographicHeatmapScreen: React.FC = () => {
   const [simplifiedMap, setSimplifiedMap] = useState(true);
 
   const sheetMaxHeight = isDesktop ? 500 : Math.min(height * 0.6, 440);
+  // Viewport-derived height for the desktop map/sidebar split so it fits short
+  // windows and fills tall ones instead of a hardcoded 520.
+  const splitHeight = Math.max(
+    MIN_SPLIT_HEIGHT,
+    height - DESKTOP_HEADER_OFFSET,
+  );
+  const mapFlex = isLargeScreen ? 8 : 7;
   const legendBottom = selectedShop
     ? isDesktop
       ? 280
@@ -529,9 +537,16 @@ export const GeographicHeatmapScreen: React.FC = () => {
         />
 
         {/* Map + Side Panel Split View */}
-        <Box flex={1} flexDirection="row" style={{ minHeight: 520, gap: 16 }}>
+        <Box
+          flex={1}
+          flexDirection="row"
+          style={{ minHeight: splitHeight, gap: 16 }}
+        >
           {/* Left Side: Map Block */}
-          <Box flex={7} style={{ position: 'relative', minHeight: 520 }}>
+          <Box
+            flex={mapFlex}
+            style={{ position: 'relative', minHeight: splitHeight }}
+          >
             {isThermalCritical ? (
               <Box
                 flex={1}
@@ -542,7 +557,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 borderRadius="m"
                 justifyContent="center"
                 alignItems="center"
-                style={{ minHeight: 520 }}
+                style={{ minHeight: splitHeight }}
               >
                 <Text
                   variant="body"
@@ -576,7 +591,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
                 style={{
                   width: '100%',
                   height: '100%',
-                  minHeight: 520,
+                  minHeight: splitHeight,
                   borderRadius: '8px',
                   border: '1px solid #EAEAEA',
                 }}
@@ -588,7 +603,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
           </Box>
 
           {/* Right Side: Context Ledger Sidebar */}
-          <Box flex={3} style={{ minHeight: 520, minWidth: 280 }}>
+          <Box flex={3} style={{ minHeight: splitHeight, minWidth: 280 }}>
             {selectedShop ? (
               <MapDetailPane
                 selectedShop={selectedShop}

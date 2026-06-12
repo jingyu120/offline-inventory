@@ -94,6 +94,7 @@ export class SyncService {
       new_state: newState, // PG jsonb
       hash,
       status: 'VALID',
+      updated_at: now,
     });
   }
 
@@ -271,6 +272,9 @@ export class SyncService {
               `[Audit Hash Chain Broken] Event ${event.event_id} has hash ${event.hash} but expected ${computedHash}`,
             );
             event.status = 'COMPROMISED';
+            // Stamp the mutation so the COMPROMISED flag propagates back to the
+            // originating client on its next timestamp-based pull.
+            event.updated_at = Date.now();
           }
         }
       }

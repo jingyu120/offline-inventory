@@ -5,20 +5,65 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { Box, Text, Card, Theme } from '@burma-inventory/ui-components';
+import { Box, Text, Card, Button, Theme } from '@burma-inventory/ui-components';
 import { useTheme } from '@shopify/restyle';
-import { database } from '../../../core/database/database';
-import { sqliteSchema } from '@burma-inventory/shared-types';
+import {
+  database,
+  runAtomic,
+  type DatabaseType,
+} from '../../../core/database/database';
+import { guardAsync, sqliteSchema } from '@burma-inventory/shared-types';
 import { eq, isNull } from 'drizzle-orm';
 import { ActorService } from '../../../core/auth/ActorService';
-import { Check, X, ShieldAlert, ShoppingBag, User } from 'lucide-react-native';
+import {
+  Check,
+  X,
+  ShieldAlert,
+  ShoppingBag,
+  User,
+  CheckSquare,
+  Square,
+} from 'lucide-react-native';
 import { useTranslation } from '../../../core/i18n/i18n';
+
+/** A single line item inside a pending sales order row. */
+interface PendingSaleItem {
+  id: string;
+  name: string;
+  sku: string;
+  quantity: number;
+  unitPriceAtSale: number;
+  baseWholesalePrice: number;
+  selectedUnit: string;
+  selectedCurrency: string;
+  isOverride: boolean;
+}
+
+/** A pending interaction-log order awaiting manager approval. */
+interface PendingSale {
+  id: string;
+  shopName: string;
+  shopAddress: string | null;
+  repId: string | null;
+  type: string;
+  commercialStatus: string;
+  notes: string | null;
+  createdAt: number;
+  executedById: string | null;
+  salespersonId: string | null;
+  items: PendingSaleItem[];
+  totalAmount: number;
+  hasMarginOverride: boolean;
+}
 
 export function PendingSalesApproval() {
   const { t } = useTranslation();
   const theme = useTheme<Theme>();
   const [loading, setLoading] = useState(true);
-  const [pendingSales, setPendingSales] = useState<$Any[]>([]);
+  const [pendingSales, setPendingSales] = useState<PendingSale[]>([]);
+  const [selectedSaleIds, setSelectedSaleIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
 
   const loadPendingSales = async () => {
     setLoading(true);
@@ -36,7 +81,7 @@ export function PendingSalesApproval() {
       const allItemsList = await database.select().from(sqliteSchema.items);
       const allShopsList = await database.select().from(sqliteSchema.shops);
 
-      const mapped = logs.map((log) => {
+      const mapped: PendingSale[] = logs.map((log) => {
         const shopObj = allShopsList.find((s) => s.id === log.shop_id) || {
           name: 'Unknown Shop',
           address: 'Unknown Address',
@@ -48,7 +93,7 @@ export function PendingSalesApproval() {
         );
 
         let hasMarginOverride = false;
-        const itemsDetailed = logItems.map((li) => {
+        const itemsDetailed: PendingSaleItem[] = logItems.map((li) => {
           const itemObj = allItemsList.find((i) => i.id === li.item_id) || {
             name: 'Unknown Item',
             sku: 'N/A',
@@ -101,6 +146,7 @@ export function PendingSalesApproval() {
       // Standard audit events and visits can also be displayed, but approvals are primarily for orders.
       const orderLogsOnly = mapped.filter((log) => log.items.length > 0);
       setPendingSales(orderLogsOnly);
+      setSelectedSaleIds(new Set());
     } catch (e) {
       console.error('Failed to load pending sales approvals:', e);
     } finally {
@@ -108,28 +154,92 @@ export function PendingSalesApproval() {
     }
   };
 
-  const handleApprove = async (sale: $Any) => {
-    try {
-      const now = Date.now();
-      const managerActorId = ActorService.getActorId();
-
-      await database
-        .update(sqliteSchema.interaction_logs)
-        .set({
-          approved_by_id: managerActorId,
-          updated_at: now,
-        })
-        .where(eq(sqliteSchema.interaction_logs.id, sale.id));
-
-      Alert.alert(t('approvedSuccess'), t('saleOrderApproved'));
-      await loadPendingSales();
-    } catch (e) {
-      console.error('Failed to approve sales order:', e);
-      Alert.alert(t('error'), t('failedToApproveOrder'));
-    }
+  const toggleSaleSelection = (saleId: string): void => {
+    setSelectedSaleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(saleId)) {
+        next.delete(saleId);
+      } else {
+        next.add(saleId);
+      }
+      return next;
+    });
   };
 
-  const handleReject = async (sale: $Any) => {
+  /**
+   * Stamps the approving manager onto a single interaction_logs row inside the
+   * caller's atomic unit. Shared by the single-row and batch approvals so both
+   * apply identical writes. `runAtomic` makes the batch one real transaction on
+   * native and a safe sequential pass on web (see runAtomic).
+   */
+  const approveSale = async (
+    tx: DatabaseType,
+    saleId: string,
+    managerActorId: string,
+    now: number,
+  ): Promise<void> => {
+    await tx
+      .update(sqliteSchema.interaction_logs)
+      .set({
+        approved_by_id: managerActorId,
+        updated_at: now,
+      })
+      .where(eq(sqliteSchema.interaction_logs.id, saleId));
+  };
+
+  const handleApprove = async (sale: PendingSale) => {
+    const now = Date.now();
+    const managerActorId = ActorService.getActorId();
+
+    // Single-row approve runs through the same write path as the batch.
+    const [, error] = await guardAsync(
+      runAtomic((tx) => approveSale(tx, sale.id, managerActorId, now)),
+    );
+
+    if (error) {
+      console.error('Failed to approve sales order:', error);
+      Alert.alert(t('error'), t('failedToApproveOrder'));
+      return;
+    }
+
+    Alert.alert(t('approvedSuccess'), t('saleOrderApproved'));
+    await loadPendingSales();
+  };
+
+  const handleApproveSelected = async () => {
+    const selectedIds = pendingSales
+      .filter((sale) => selectedSaleIds.has(sale.id))
+      .map((sale) => sale.id);
+    if (selectedIds.length === 0) return;
+
+    const now = Date.now();
+    const managerActorId = ActorService.getActorId();
+
+    // Stamp the approving manager onto every selected order; local writes sync
+    // to Postgres on the next push (offline-first).
+    const [, error] = await guardAsync(
+      runAtomic(async (tx) => {
+        for (const saleId of selectedIds) {
+          await approveSale(tx, saleId, managerActorId, now);
+        }
+      }),
+    );
+
+    if (error) {
+      console.error('Failed to approve selected sales orders:', error);
+      Alert.alert(t('error'), t('failedToApproveOrder'));
+      return;
+    }
+
+    Alert.alert(
+      t('approvedSuccess'),
+      t('bulkSalesApproved', { count: selectedIds.length }),
+    );
+    setSelectedSaleIds(new Set());
+    await loadPendingSales();
+  };
+
+  const handleReject = async (sale: PendingSale) => {
     try {
       const now = Date.now();
       const managerActorId = ActorService.getActorId();
@@ -162,17 +272,35 @@ export function PendingSalesApproval() {
     );
   }
 
+  const selectedCount = selectedSaleIds.size;
+
   return (
     <Box p="m" bg="mainBackground">
-      <Box flexDirection="row" alignItems="center" mb="m">
-        <ShoppingBag
-          size={20}
-          color={theme.colors.primaryButton}
-          style={{ marginRight: 8 }}
-        />
-        <Text variant="title" fontSize={18}>
-          {t('pendingSalesMarginAuth')}
-        </Text>
+      <Box
+        flexDirection="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mb="m"
+      >
+        <Box flexDirection="row" alignItems="center" flex={1} mr="s">
+          <ShoppingBag
+            size={20}
+            color={theme.colors.primaryButton}
+            style={{ marginRight: 8 }}
+          />
+          <Text variant="title" fontSize={18}>
+            {t('pendingSalesMarginAuth')}
+          </Text>
+        </Box>
+        {pendingSales.length > 0 && (
+          <Button
+            title={t('approveSelected', { count: selectedCount })}
+            onPress={handleApproveSelected}
+            variant="primary"
+            size="small"
+            disabled={selectedCount === 0}
+          />
+        )}
       </Box>
 
       {pendingSales.length === 0 ? (
@@ -190,217 +318,242 @@ export function PendingSalesApproval() {
       ) : (
         <ScrollView>
           <Box gap="m">
-            {pendingSales.map((sale) => (
-              <Card
-                key={sale.id}
-                p="m"
-                borderColor="borderColor"
-                borderWidth={1}
-                bg="secondaryBackground"
-              >
-                <Box
-                  flexDirection="row"
-                  justifyContent="space-between"
-                  alignItems="flex-start"
-                  mb="s"
+            {pendingSales.map((sale) => {
+              const isSelected = selectedSaleIds.has(sale.id);
+              return (
+                <Card
+                  key={sale.id}
+                  p="m"
+                  borderColor={isSelected ? 'primaryButton' : 'borderColor'}
+                  borderWidth={1}
+                  bg="secondaryBackground"
                 >
-                  <Box flex={1} mr="m">
-                    <Text variant="body" fontWeight="bold" fontSize={15}>
-                      {sale.shopName}
-                    </Text>
-                    <Text variant="bodySecondary" fontSize={12}>
-                      {sale.shopAddress}
-                    </Text>
-                  </Box>
-                  <Box bg="primaryButton" px="s" py="xs" borderRadius="s">
-                    <Text
-                      variant="body"
-                      fontSize={11}
-                      color="pureWhite"
-                      fontWeight="bold"
-                    >
-                      {sale.commercialStatus}
-                    </Text>
-                  </Box>
-                </Box>
-
-                {/* Warnings for Overrides */}
-                {sale.hasMarginOverride && (
-                  <Box
-                    bg="dangerBg"
-                    p="s"
-                    borderRadius="s"
-                    mb="s"
-                    borderColor="danger"
-                    borderWidth={1}
-                    flexDirection="row"
-                    alignItems="center"
-                  >
-                    <ShieldAlert
-                      size={16}
-                      color={theme.colors.dangerText}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      variant="bodySecondary"
-                      color="dangerText"
-                      fontWeight="bold"
-                      fontSize={12}
-                      style={{ flex: 1 }}
-                    >
-                      {t('marginWarningTitle')}
-                    </Text>
-                  </Box>
-                )}
-
-                {/* Items List */}
-                <Box mb="m" bg="mainBackground" p="s" borderRadius="s">
-                  {sale.items.map((item: $Any, itemIdx: number) => (
-                    <Box
-                      key={`${item.id}-${itemIdx}`}
-                      flexDirection="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      py="xs"
-                      style={
-                        itemIdx > 0
-                          ? {
-                              borderTopWidth: 1,
-                              borderTopColor: theme.colors.borderColor,
-                            }
-                          : {}
-                      }
-                    >
-                      <Box flex={1} mr="s">
-                        <Text variant="body" fontSize={13} fontWeight="bold">
-                          {item.name} ({item.sku})
-                        </Text>
-                        <Text variant="bodySecondary" fontSize={11}>
-                          {t('qty')}: {item.quantity} {item.selectedUnit} @{' '}
-                          {item.unitPriceAtSale.toLocaleString()}{' '}
-                          {item.selectedCurrency}
-                        </Text>
-                        {item.isOverride && (
-                          <Text
-                            variant="bodySecondary"
-                            fontSize={11}
-                            color="dangerText"
-                            fontWeight="bold"
-                          >
-                            {t('wholesalePriceIs', {
-                              price: item.baseWholesalePrice.toLocaleString(),
-                              currency: item.selectedCurrency,
-                            })}
-                          </Text>
-                        )}
-                      </Box>
-                      <Text variant="body" fontSize={13} fontWeight="bold">
-                        {Math.round(
-                          item.unitPriceAtSale * item.quantity,
-                        ).toLocaleString()}{' '}
-                        {item.selectedCurrency}
-                      </Text>
-                    </Box>
-                  ))}
-
-                  {/* Total */}
                   <Box
                     flexDirection="row"
                     justifyContent="space-between"
-                    mt="s"
-                    pt="s"
-                    style={{
-                      borderTopWidth: 1,
-                      borderTopColor: theme.colors.borderColor,
-                    }}
+                    alignItems="flex-start"
+                    mb="s"
                   >
-                    <Text variant="body" fontSize={14} fontWeight="bold">
-                      {t('totalAmount')}
-                    </Text>
-                    <Text
-                      variant="body"
-                      fontSize={14}
-                      fontWeight="bold"
-                      color="primaryText"
-                    >
-                      {t('priceFormatted', {
-                        price: Math.round(sale.totalAmount).toLocaleString(),
-                      })}
-                    </Text>
-                  </Box>
-                </Box>
-
-                <Box
-                  flexDirection="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box flexDirection="row" alignItems="center">
-                    <User
-                      size={14}
-                      color={theme.colors.secondaryText}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text variant="bodySecondary" fontSize={11}>
-                      {t('salesRep')}: {sale.salespersonId || sale.repId}
-                    </Text>
-                  </Box>
-
-                  <Box flexDirection="row" gap="s">
                     <TouchableOpacity
-                      onPress={() => handleReject(sale)}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        borderRadius: theme.borderRadii.s,
-                        backgroundColor: theme.colors.dangerBg,
-                      }}
+                      onPress={() => toggleSaleSelection(sale.id)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
+                      style={{ paddingRight: 8, paddingTop: 2 }}
                     >
-                      <X
-                        size={14}
-                        color={theme.colors.dangerText}
-                        style={{ marginRight: 4 }}
-                      />
+                      {isSelected ? (
+                        <CheckSquare
+                          size={20}
+                          color={theme.colors.primaryButton}
+                        />
+                      ) : (
+                        <Square size={20} color={theme.colors.secondaryText} />
+                      )}
+                    </TouchableOpacity>
+                    <Box flex={1} mr="m">
+                      <Text variant="body" fontWeight="bold" fontSize={15}>
+                        {sale.shopName}
+                      </Text>
+                      <Text variant="bodySecondary" fontSize={12}>
+                        {sale.shopAddress}
+                      </Text>
+                    </Box>
+                    <Box bg="primaryButton" px="s" py="xs" borderRadius="s">
                       <Text
                         variant="body"
-                        fontSize={12}
+                        fontSize={11}
+                        color="pureWhite"
+                        fontWeight="bold"
+                      >
+                        {sale.commercialStatus}
+                      </Text>
+                    </Box>
+                  </Box>
+
+                  {/* Warnings for Overrides */}
+                  {sale.hasMarginOverride && (
+                    <Box
+                      bg="dangerBg"
+                      p="s"
+                      borderRadius="s"
+                      mb="s"
+                      borderColor="danger"
+                      borderWidth={1}
+                      flexDirection="row"
+                      alignItems="center"
+                    >
+                      <ShieldAlert
+                        size={16}
+                        color={theme.colors.dangerText}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        variant="bodySecondary"
                         color="dangerText"
                         fontWeight="bold"
+                        fontSize={12}
+                        style={{ flex: 1 }}
                       >
-                        {t('reject')}
+                        {t('marginWarningTitle')}
                       </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleApprove(sale)}
+                    </Box>
+                  )}
+
+                  {/* Items List */}
+                  <Box mb="m" bg="mainBackground" p="s" borderRadius="s">
+                    {sale.items.map(
+                      (item: PendingSaleItem, itemIdx: number) => (
+                        <Box
+                          key={`${item.id}-${itemIdx}`}
+                          flexDirection="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          py="xs"
+                          style={
+                            itemIdx > 0
+                              ? {
+                                  borderTopWidth: 1,
+                                  borderTopColor: theme.colors.borderColor,
+                                }
+                              : {}
+                          }
+                        >
+                          <Box flex={1} mr="s">
+                            <Text
+                              variant="body"
+                              fontSize={13}
+                              fontWeight="bold"
+                            >
+                              {item.name} ({item.sku})
+                            </Text>
+                            <Text variant="bodySecondary" fontSize={11}>
+                              {t('qty')}: {item.quantity} {item.selectedUnit} @{' '}
+                              {item.unitPriceAtSale.toLocaleString()}{' '}
+                              {item.selectedCurrency}
+                            </Text>
+                            {item.isOverride && (
+                              <Text
+                                variant="bodySecondary"
+                                fontSize={11}
+                                color="dangerText"
+                                fontWeight="bold"
+                              >
+                                {t('wholesalePriceIs', {
+                                  price:
+                                    item.baseWholesalePrice.toLocaleString(),
+                                  currency: item.selectedCurrency,
+                                })}
+                              </Text>
+                            )}
+                          </Box>
+                          <Text variant="body" fontSize={13} fontWeight="bold">
+                            {Math.round(
+                              item.unitPriceAtSale * item.quantity,
+                            ).toLocaleString()}{' '}
+                            {item.selectedCurrency}
+                          </Text>
+                        </Box>
+                      ),
+                    )}
+
+                    {/* Total */}
+                    <Box
+                      flexDirection="row"
+                      justifyContent="space-between"
+                      mt="s"
+                      pt="s"
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        borderRadius: theme.borderRadii.s,
-                        backgroundColor: theme.colors.successBg,
+                        borderTopWidth: 1,
+                        borderTopColor: theme.colors.borderColor,
                       }}
                     >
-                      <Check
-                        size={14}
-                        color={theme.colors.successText}
-                        style={{ marginRight: 4 }}
-                      />
+                      <Text variant="body" fontSize={14} fontWeight="bold">
+                        {t('totalAmount')}
+                      </Text>
                       <Text
                         variant="body"
-                        fontSize={12}
-                        color="successText"
+                        fontSize={14}
                         fontWeight="bold"
+                        color="primaryText"
                       >
-                        {t('approve')}
+                        {t('priceFormatted', {
+                          price: Math.round(sale.totalAmount).toLocaleString(),
+                        })}
                       </Text>
-                    </TouchableOpacity>
+                    </Box>
                   </Box>
-                </Box>
-              </Card>
-            ))}
+
+                  <Box
+                    flexDirection="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Box flexDirection="row" alignItems="center">
+                      <User
+                        size={14}
+                        color={theme.colors.secondaryText}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text variant="bodySecondary" fontSize={11}>
+                        {t('salesRep')}: {sale.salespersonId || sale.repId}
+                      </Text>
+                    </Box>
+
+                    <Box flexDirection="row" gap="s">
+                      <TouchableOpacity
+                        onPress={() => handleReject(sale)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 6,
+                          paddingHorizontal: 12,
+                          borderRadius: theme.borderRadii.s,
+                          backgroundColor: theme.colors.dangerBg,
+                        }}
+                      >
+                        <X
+                          size={14}
+                          color={theme.colors.dangerText}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          variant="body"
+                          fontSize={12}
+                          color="dangerText"
+                          fontWeight="bold"
+                        >
+                          {t('reject')}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleApprove(sale)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 6,
+                          paddingHorizontal: 12,
+                          borderRadius: theme.borderRadii.s,
+                          backgroundColor: theme.colors.successBg,
+                        }}
+                      >
+                        <Check
+                          size={14}
+                          color={theme.colors.successText}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          variant="body"
+                          fontSize={12}
+                          color="successText"
+                          fontWeight="bold"
+                        >
+                          {t('approve')}
+                        </Text>
+                      </TouchableOpacity>
+                    </Box>
+                  </Box>
+                </Card>
+              );
+            })}
           </Box>
         </ScrollView>
       )}

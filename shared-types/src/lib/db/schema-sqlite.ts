@@ -540,6 +540,9 @@ export const audit_events = sqliteTable('audit_events', {
   hash: text('hash'),
   status: text('status').notNull().default('VALID'),
   created_at: integer('created_at').notNull(),
+  // Nullable: stamped by the server when it mutates an event's status (e.g.
+  // VALID → COMPROMISED) so the change pulls back to clients. Not hashed.
+  updated_at: integer('updated_at'),
   shop_id: text('shop_id'),
   executed_by_id: text('executed_by_id'),
   salesperson_id: text('salesperson_id'),

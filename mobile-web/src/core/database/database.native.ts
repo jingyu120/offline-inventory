@@ -13,6 +13,18 @@ export const database = drizzle(opsqliteDb, {
 export type DatabaseType = typeof database;
 
 /**
+ * Runs a group of local writes inside a real op-sqlite transaction for true
+ * atomicity. Mirrors the web build's `runAtomic` (database.web.ts), which falls
+ * back to sequential writes because the sql.js proxy can't hold a transaction
+ * across its single shared connection.
+ */
+export async function runAtomic(
+  work: Parameters<typeof database.transaction>[0],
+): Promise<void> {
+  await database.transaction(work);
+}
+
+/**
  * powerSyncDb stub — exposes just enough surface area so that callers in
  * App.tsx that call powerSyncDb.onChange / powerSyncDb.getUploadQueueStats
  * don't crash on mobile.

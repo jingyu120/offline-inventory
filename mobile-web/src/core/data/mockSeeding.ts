@@ -1,4 +1,5 @@
 import { sqliteSchema } from '@burma-inventory/shared-types';
+import { sha256 } from '../utils/crypto';
 
 /**
  * Sprint 38 — E2E Transactional State.
@@ -1684,6 +1685,112 @@ export const seedLocalDatabase = async (db: $Any): Promise<void> => {
       fulfillment_status: 'PENDING_FULFILLMENT',
       created_at: dispatchedAt,
       updated_at: now,
+    },
+  ]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Sprint 39 — "Poison pill" disaster fixture (audit hash-chain tamper).
+  //
+  // This deliberately ships a CORRUPT audit_events row alongside a normal-looking
+  // PENDING_FULFILLMENT order. It simulates a malicious/buggy offline client that
+  // wrote an audit event WITHOUT chaining the previous event's hash. On the next
+  // sync.push the server recomputes the chained hash, sees the mismatch, logs
+  // `[Audit Hash Chain Broken]`, flips the row to status='COMPROMISED', and keeps
+  // going (no crash). DO NOT "fix" this hash — the wrongness is the whole point.
+  //
+  // All ids are prefixed `*-e2e-poison-*` so re-seeding stays deterministic and
+  // never collides with the fixtures above.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // The order that the tampered audit event claims to describe. A real, valid
+  // PENDING_FULFILLMENT sale for shop-1 ("Soe Moe Khaing") so the row looks
+  // legitimate until the hash chain is verified server-side.
+  await db.insert(sqliteSchema.interaction_logs).values([
+    {
+      id: 'log-e2e-poison-order',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      commercial_status: 'ORDER_PLACED',
+      notes: 'E2E poison-pill order (tampered audit hash chain).',
+      created_at_local: now,
+      is_offline_entry: true,
+      device_id: 'dev-tampered',
+      created_at: now,
+      updated_at: now,
+      salesperson_id: 'rep-1',
+      executed_by_id: 'rep-1',
+      approved_by_id: null,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.interaction_items).values([
+    {
+      id: 'log-item-e2e-poison-1',
+      interaction_log_id: 'log-e2e-poison-order',
+      item_id: 'item-1',
+      quantity: 8,
+      unit_price_at_sale: 47000,
+      interest_level: 'HIGH',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // The tampered audit event. writeAuditEvent() normally hashes
+  //   JSON.stringify({...fields}) + '|' + actor_id + '|' + prevHash
+  // and chains prevHash to the previous event. Here we deliberately OMIT the
+  // '|' + prevHash suffix, so the chain link is broken and the server's
+  // recomputed (chained) hash will never match this value.
+  const poisonCreatedAt = now;
+  const poisonEventId = 'evt-e2e-poison-1';
+  const poisonActorId = 'rep-1';
+  const poisonPreviousState = JSON.stringify({ fulfillment_status: null });
+  const poisonNewState = JSON.stringify({
+    fulfillment_status: 'PENDING_FULFILLMENT',
+  });
+  const poisonGps = '16.9123, 96.1645';
+  const unchainedPayload =
+    JSON.stringify({
+      event_id: poisonEventId,
+      trace_id: 'tr-e2e-poison',
+      entity_type: 'ORDER',
+      action: 'CREATE',
+      previous_state: poisonPreviousState,
+      new_state: poisonNewState,
+      gps_coordinates: poisonGps,
+      created_at: poisonCreatedAt,
+    }) +
+    '|' +
+    poisonActorId;
+  // Intentionally WRONG: hashed without the trailing '|' + prevHash chain link.
+  const tamperedHash = sha256(unchainedPayload);
+
+  await db.insert(sqliteSchema.audit_events).values([
+    {
+      event_id: poisonEventId,
+      trace_id: 'tr-e2e-poison',
+      actor_id: poisonActorId,
+      device_id: 'dev-tampered',
+      entity_type: 'ORDER',
+      action: 'CREATE',
+      previous_state: poisonPreviousState,
+      new_state: poisonNewState,
+      gps_coordinates: poisonGps,
+      hash: tamperedHash,
+      // A tampered client still claims the row is VALID; the server is what
+      // re-derives the truth and flips it to COMPROMISED on push. That flip is
+      // stamped with a fresh updated_at server-side, so it pulls back here and
+      // surfaces in the Leadership Oversight "Compromised Audit Events" panel
+      // after a normal push+pull cycle — no pre-flagged exemplar needed.
+      status: 'VALID',
+      created_at: poisonCreatedAt,
+      updated_at: poisonCreatedAt,
+      shop_id: 'shop-1',
+      executed_by_id: poisonActorId,
+      salesperson_id: poisonActorId,
+      approved_by_id: null,
     },
   ]);
 };

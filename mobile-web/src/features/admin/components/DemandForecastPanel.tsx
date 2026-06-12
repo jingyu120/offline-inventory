@@ -4,6 +4,7 @@ import {
   Text,
   Card,
   DropdownSelector,
+  useResponsive,
 } from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { SKU_METRICS } from '../../../config/appConfig';
@@ -28,9 +29,17 @@ export const DemandForecastPanel: React.FC<DemandForecastPanelProps> = ({
   shopOptions,
 }) => {
   const { t } = useTranslation();
+  // Right gutter only applies when the panel actually sits beside the quota
+  // panel (>=1024); when stacked it must be flush-left like the panel below it.
+  const { isLargeScreen } = useResponsive();
 
   return (
-    <Box flex={1} minWidth={320} mr={isDesktop ? 'm' : 'none'} mb="m">
+    <Box
+      flex={1}
+      minWidth={isDesktop ? 320 : undefined}
+      mr={isLargeScreen ? 'm' : 'none'}
+      mb="m"
+    >
       <Card p="m" bg="cardBackground" height="100%">
         <Text variant="title" mb="s">
           {t('gemmaDemandForecast')}

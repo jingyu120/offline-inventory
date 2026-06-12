@@ -1,6 +1,11 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import {
+  Box,
+  Text,
+  DropdownSelector,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { OVERSIGHT_TAB, OversightTab, TranslationKey } from '../types';
 
@@ -27,14 +32,38 @@ export const OversightTabBar: React.FC<OversightTabBarProps> = ({
   onSelectTab,
 }) => {
   const { t } = useTranslation();
+  const { isPhone } = useResponsive();
 
+  // On phones a horizontal tab row forces side-scrolling that hides the later
+  // sections, so present the sections as a dropdown picker instead.
+  if (isPhone) {
+    const options = TAB_DESCRIPTORS.map(({ tab, labelKey }) => ({
+      value: tab,
+      label: t(labelKey),
+    }));
+    return (
+      <Box mb="l">
+        <DropdownSelector
+          selectedValue={activeTab}
+          options={options}
+          onValueChange={(value) => {
+            const descriptor = TAB_DESCRIPTORS.find((d) => d.tab === value);
+            if (descriptor) onSelectTab(descriptor.tab);
+          }}
+        />
+      </Box>
+    );
+  }
+
+  // Tablet/desktop: full tab row. Wraps to a second line if space is tight
+  // rather than scrolling, so every section stays visible.
   return (
     <Box
       flexDirection="row"
+      flexWrap="wrap"
       borderBottomWidth={1}
       borderBottomColor="borderColor"
       mb="l"
-      gap="m"
     >
       {TAB_DESCRIPTORS.map(({ tab, labelKey }) => {
         const isActive = activeTab === tab;

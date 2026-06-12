@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
   Platform,
   Image as RNImage,
 } from 'react-native';
-import { Box, Text } from '@burma-inventory/ui-components';
+import { Box, Text, ModalSheet } from '@burma-inventory/ui-components';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from '../../../core/i18n/i18n';
 import { ThermalGuard } from '../../../core/utils/thermalGuard';
@@ -101,6 +100,12 @@ interface ImageAnnotationModalProps {
   onAnnotated: (croppedUri: string) => void;
 }
 
+const MODAL_MAX_WIDTH = 560;
+const CANVAS_HEIGHT = 400;
+// Overlay inset (both sides) + card inner padding (both sides) reserved around
+// the canvas so it never overflows the card on a narrow phone screen.
+const CANVAS_HORIZONTAL_INSET = 48;
+
 export function ImageAnnotationModal({
   visible,
   imageUri,
@@ -142,8 +147,12 @@ export function ImageAnnotationModal({
   if (!imageUri) return null;
 
   const windowWidth = Dimensions.get('window').width;
-  const canvasWidth = windowWidth - 40;
-  const canvasHeight = 400;
+  // Clamp the canvas to the card width so it never overflows on phones:
+  // the card is capped at MODAL_MAX_WIDTH on tablet+ and spans the viewport on
+  // phones, minus the overlay/card padding reserved by CANVAS_HORIZONTAL_INSET.
+  const canvasWidth =
+    Math.min(windowWidth, MODAL_MAX_WIDTH) - CANVAS_HORIZONTAL_INSET;
+  const canvasHeight = CANVAS_HEIGHT;
 
   // Touch handlers to track box selection coordinates
   const handleTouchStart = (e: $Any) => {
@@ -243,120 +252,109 @@ export function ImageAnnotationModal({
     Canvas && SkiaImage && SkiaRect && skiaImageObject && !isThrottled;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <Box
-        flex={1}
-        bg="mainBackground"
-        justifyContent="center"
-        alignItems="center"
-        p="m"
-      >
+    <ModalSheet
+      visible={visible}
+      onRequestClose={onClose}
+      maxWidth={MODAL_MAX_WIDTH}
+      animationType="slide"
+    >
+      <Box p="m">
+        <Text variant="title" mb="s" textAlign="center">
+          {t('cropAnnotateTitle')}
+        </Text>
+        <Text variant="bodySecondary" mb="m" textAlign="center">
+          {t('cropAnnotateDesc')}
+        </Text>
+
+        {/* Draw Container */}
         <Box
-          bg="cardBackground"
-          p="m"
+          style={{ width: canvasWidth, height: canvasHeight }}
+          bg="secondaryBackground"
           borderRadius="m"
+          overflow="hidden"
           borderWidth={1}
-          borderColor="borderColor"
-          width="100%"
-          maxWidth={500}
+          borderColor="brandBorder"
         >
-          <Text variant="title" mb="s" textAlign="center">
-            {t('cropAnnotateTitle')}
-          </Text>
-          <Text variant="bodySecondary" mb="m" textAlign="center">
-            {t('cropAnnotateDesc')}
-          </Text>
-
-          {/* Draw Container */}
-          <Box
-            style={{ width: canvasWidth, height: canvasHeight }}
-            bg="secondaryBackground"
-            borderRadius="m"
-            overflow="hidden"
-            borderWidth={1}
-            borderColor="brandBorder"
-          >
-            {hasSkia ? (
-              // Mobile Canvas using Shopify Skia
-              <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
-                <SkiaImage
-                  image={skiaImageObject}
-                  x={0}
-                  y={0}
-                  width={canvasWidth}
-                  height={canvasHeight}
-                  fit="contain"
+          {hasSkia ? (
+            // Mobile Canvas using Shopify Skia
+            <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
+              <SkiaImage
+                image={skiaImageObject}
+                x={0}
+                y={0}
+                width={canvasWidth}
+                height={canvasHeight}
+                fit="contain"
+              />
+              {box && (
+                <SkiaRect
+                  x={box.x}
+                  y={box.y}
+                  width={box.width}
+                  height={box.height}
+                  color="red"
+                  style="stroke"
+                  strokeWidth={3}
                 />
-                {box && (
-                  <SkiaRect
-                    x={box.x}
-                    y={box.y}
-                    width={box.width}
-                    height={box.height}
-                    color="red"
-                    style="stroke"
-                    strokeWidth={3}
-                  />
-                )}
-              </Canvas>
-            ) : (
-              // Web Fallback utilizing standard absolute view overlays
-              <Box
-                style={{
-                  width: canvasWidth,
-                  height: canvasHeight,
-                  position: 'relative',
-                }}
-              >
-                <RNImage
-                  source={{ uri: imageUri }}
-                  style={{ width: canvasWidth, height: canvasHeight }}
-                  resizeMode="contain"
-                />
-                {box && (
-                  <Box
-                    style={{
-                      position: 'absolute',
-                      left: box.x,
-                      top: box.y,
-                      width: box.width,
-                      height: box.height,
-                      borderWidth: 3,
-                      borderColor: 'red',
-                      backgroundColor: 'rgba(255, 0, 0, 0.15)',
-                    }}
-                  />
-                )}
-              </Box>
-            )}
-
-            {/* Gesture overlay */}
+              )}
+            </Canvas>
+          ) : (
+            // Web Fallback utilizing standard absolute view overlays
             <Box
-              style={StyleSheet.absoluteFill}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            />
-          </Box>
+              style={{
+                width: canvasWidth,
+                height: canvasHeight,
+                position: 'relative',
+              }}
+            >
+              <RNImage
+                source={{ uri: imageUri }}
+                style={{ width: canvasWidth, height: canvasHeight }}
+                resizeMode="contain"
+              />
+              {box && (
+                <Box
+                  style={{
+                    position: 'absolute',
+                    left: box.x,
+                    top: box.y,
+                    width: box.width,
+                    height: box.height,
+                    borderWidth: 3,
+                    borderColor: 'red',
+                    backgroundColor: 'rgba(255, 0, 0, 0.15)',
+                  }}
+                />
+              )}
+            </Box>
+          )}
 
-          <Box flexDirection="row" justifyContent="space-between" mt="m">
-            <TouchableOpacity onPress={onClose}>
-              <Box py="s" px="m" borderRadius="s" bg="secondaryButton">
-                <Text variant="body" color="primaryText">
-                  {t('cancel')}
-                </Text>
-              </Box>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSave}>
-              <Box py="s" px="m" borderRadius="s" bg="primaryButton">
-                <Text variant="body" color="pureWhite">
-                  {t('cropAndSave')}
-                </Text>
-              </Box>
-            </TouchableOpacity>
-          </Box>
+          {/* Gesture overlay */}
+          <Box
+            style={StyleSheet.absoluteFill}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          />
+        </Box>
+
+        <Box flexDirection="row" justifyContent="space-between" mt="m">
+          <TouchableOpacity onPress={onClose}>
+            <Box py="s" px="m" borderRadius="s" bg="secondaryButton">
+              <Text variant="body" color="primaryText">
+                {t('cancel')}
+              </Text>
+            </Box>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSave}>
+            <Box py="s" px="m" borderRadius="s" bg="primaryButton">
+              <Text variant="body" color="pureWhite">
+                {t('cropAndSave')}
+              </Text>
+            </Box>
+          </TouchableOpacity>
         </Box>
       </Box>
-    </Modal>
+    </ModalSheet>
   );
 }

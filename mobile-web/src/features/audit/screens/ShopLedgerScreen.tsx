@@ -1,5 +1,8 @@
-import { useWindowDimensions } from 'react-native';
-import { Box, SkeletonCard } from '@burma-inventory/ui-components';
+import {
+  Box,
+  SkeletonCard,
+  useResponsive,
+} from '@burma-inventory/ui-components';
 import { ShopSidebarList } from '../components/ShopSidebarList';
 import { ShopDetailPane } from '../components/ShopDetailPane';
 import { RegisterShopModal } from '../components/RegisterShopModal';
@@ -7,12 +10,14 @@ import { LedgerWelcomePane } from '../components/LedgerWelcomePane';
 import { InteractionLoggingScreen } from './InteractionLoggingScreen';
 import { useShopLedger } from '../hooks/useShopLedger';
 
-const DESKTOP_BREAKPOINT = 768;
-const SIDEBAR_WIDTH = 360;
+const SIDEBAR_WIDTH_TABLET = 300;
+const SIDEBAR_WIDTH_LARGE = 360;
 
 export function ShopLedgerScreen() {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= DESKTOP_BREAKPOINT;
+  const { isDesktop, isLargeScreen } = useResponsive();
+  const sidebarWidth = isLargeScreen
+    ? SIDEBAR_WIDTH_LARGE
+    : SIDEBAR_WIDTH_TABLET;
 
   const {
     shopsData,
@@ -99,7 +104,7 @@ export function ShopLedgerScreen() {
     return (
       <Box flex={1} flexDirection="row" bg="mainBackground">
         <Box
-          width={SIDEBAR_WIDTH}
+          width={sidebarWidth}
           borderRightWidth={1}
           borderColor="borderColor"
           bg="cardBackground"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { Box } from '@burma-inventory/ui-components';
+import { Box, useResponsive } from '@burma-inventory/ui-components';
 import { ComplianceScorecard } from './ComplianceScorecard';
 import { VelocityTimeline } from './VelocityTimeline';
 import { SVGAnalyticsDashboard } from './SVGAnalyticsDashboard';
@@ -65,6 +65,9 @@ export const OversightOverviewTab: React.FC<OversightOverviewTabProps> = ({
   onApplyQuotaAdjustments,
   reloadDatabaseData,
 }) => {
+  // These two panels are content-dense; only sit them side by side on a true
+  // desktop (>=1024). Below that they stack full-width so nothing is clipped.
+  const { isLargeScreen } = useResponsive();
   const {
     syncLogs,
     syncLogsLoading,
@@ -133,7 +136,7 @@ export const OversightOverviewTab: React.FC<OversightOverviewTabProps> = ({
       <SVGAnalyticsDashboard stats={activeStats} />
 
       {/* Row 3: Buying Forecast & Quota Optimizations */}
-      <Box flexDirection="row" flexWrap="wrap">
+      <Box flexDirection={isLargeScreen ? 'row' : 'column'} flexWrap="wrap">
         <DemandForecastPanel
           isDesktop={isDesktop}
           selectedShopId={selectedShopId}

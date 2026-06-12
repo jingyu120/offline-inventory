@@ -439,6 +439,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         hash TEXT,
         status TEXT NOT NULL DEFAULT 'VALID',
         created_at INTEGER NOT NULL,
+        updated_at INTEGER,
         shop_id TEXT,
         executed_by_id TEXT,
         salesperson_id TEXT,
@@ -516,6 +517,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         hash TEXT,
         status TEXT NOT NULL DEFAULT 'VALID',
         created_at INTEGER NOT NULL,
+        updated_at INTEGER,
         shop_id TEXT,
         executed_by_id TEXT,
         salesperson_id TEXT,
@@ -643,6 +645,7 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
     alterTable('audit_events', 'executed_by_id', 'TEXT');
     alterTable('audit_events', 'salesperson_id', 'TEXT');
     alterTable('audit_events', 'approved_by_id', 'TEXT');
+    alterTable('audit_events', 'updated_at', 'INTEGER');
     alterTable('draft_carts', 'executed_by_id', 'TEXT');
     alterTable('draft_carts', 'salesperson_id', 'TEXT');
     alterTable('draft_carts', 'approved_by_id', 'TEXT');
@@ -767,6 +770,23 @@ export const database = databaseProxy as ReturnType<
   typeof drizzle<typeof sqliteSchema>
 >;
 export type DatabaseType = typeof database;
+
+/**
+ * Runs a group of local writes as one logical unit.
+ *
+ * On web the sql.js proxy executes every statement on a single in-memory
+ * connection across async `await`s, so a real `BEGIN`/`COMMIT` can be closed by
+ * a concurrently-running sync ("cannot commit - no transaction is active").
+ * We therefore run the work directly against the db without a transaction.
+ * Local writes here are idempotent and re-sync to Postgres on the next push, so
+ * per-statement commits are safe. The native build (database.native.ts) wraps
+ * the same callback in a real op-sqlite transaction for true atomicity.
+ */
+export async function runAtomic(
+  work: (tx: DatabaseType) => Promise<void>,
+): Promise<void> {
+  await work(database);
+}
 
 /**
  * powerSyncDb stub — exposes just enough surface area so that callers in
