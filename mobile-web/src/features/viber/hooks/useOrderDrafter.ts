@@ -250,9 +250,6 @@ export const useOrderDrafter = (): UseOrderDrafterReturn => {
 
     const parsedMatches = parseOrderText(rawText, items);
     if (parsedMatches.length === 0) {
-      console.log(
-        `[ViberSimulator] Token parser failed. Falling back to local AI note parser at ${AI_PARSE_NOTE_URL}`,
-      );
       await parseViaAiFallback();
       return;
     }

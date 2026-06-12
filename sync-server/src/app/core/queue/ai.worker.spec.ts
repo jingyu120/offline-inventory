@@ -55,10 +55,6 @@ describe('AiWorker', () => {
       expect.any(Object),
     );
     expect(mockWorkerMethods.on).toHaveBeenCalledWith(
-      'completed',
-      expect.any(Function),
-    );
-    expect(mockWorkerMethods.on).toHaveBeenCalledWith(
       'failed',
       expect.any(Function),
     );
@@ -263,18 +259,10 @@ describe('AiWorker', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    it('should handle completed and failed worker events', () => {
-      const consoleLogSpy = jest
-        .spyOn(console, 'log')
-        .mockImplementation(jest.fn());
+    it('should handle failed worker events', () => {
       const consoleErrorSpy = jest
         .spyOn(console, 'error')
         .mockImplementation(jest.fn());
-
-      registeredEventHandlers['completed']({ id: 'job-5' });
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[AiWorker] Job job-5 completed.'),
-      );
 
       registeredEventHandlers['failed'](
         { id: 'job-6' },
@@ -285,7 +273,6 @@ describe('AiWorker', () => {
         expect.any(Error),
       );
 
-      consoleLogSpy.mockRestore();
       consoleErrorSpy.mockRestore();
     });
   });

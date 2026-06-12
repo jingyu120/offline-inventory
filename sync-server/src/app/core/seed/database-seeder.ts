@@ -23,6 +23,13 @@ import {
   buildMismatchInteractionLogSeed,
   buildPaymentsSeed,
   buildPendingInventoryUpdatesSeed,
+  buildSprint38DispatchInteractionItemsSeed,
+  buildSprint38DispatchInteractionLogsSeed,
+  buildSprint38InboundSheraItemSeed,
+  buildSprint38InboundSheraStockSeed,
+  buildSprint38InvoicesSeed,
+  buildSprint38MarginInteractionItemSeed,
+  buildSprint38MarginInteractionLogSeed,
 } from './seed-data';
 
 type Db = NodePgDatabase<typeof schema.pgSchema>;
@@ -437,6 +444,9 @@ export class DatabaseSeeder {
         .values(buildMismatchInteractionItemSeed(now))
         .onConflictDoNothing();
 
+      // 11.5 Sprint 38 — E2E Transactional State (idempotent variant)
+      await this.seedSprint38TransactionalState(db, now, true);
+
       // 12. Seed failed queue jobs (DLQ monitor)
       await this.seedFailedQueueJobs();
 
@@ -671,10 +681,59 @@ export class DatabaseSeeder {
       .insert(schema.pgSchema.interaction_items)
       .values(buildMismatchInteractionItemSeed(now));
 
+    // 11.5 Sprint 38 — E2E Transactional State (destructive variant)
+    await this.seedSprint38TransactionalState(db, now, false);
+
     // 12. Seed failed queue jobs (DLQ monitor)
     await this.seedFailedQueueJobs();
 
     this.logger.log('Deterministic seeding completed successfully');
+  }
+
+  /**
+   * Sprint 38 — E2E Transactional State. Inserts the AR credit-lock, intake
+   * quarantine, margin override, dispatch, and KPay reconciliation fixtures.
+   * When `idempotent` is true (boot-time seed) inserts are guarded with
+   * onConflictDoNothing; the deterministic seed inserts directly after its
+   * wipe. All ids are deterministic/prefixed so reruns never collide.
+   */
+  private async seedSprint38TransactionalState(
+    db: Db,
+    now: number,
+    idempotent: boolean,
+  ): Promise<void> {
+    const itemInsert = db
+      .insert(schema.pgSchema.items)
+      .values(buildSprint38InboundSheraItemSeed(now));
+    await (idempotent ? itemInsert.onConflictDoNothing() : itemInsert);
+
+    const stockInsert = db
+      .insert(schema.pgSchema.item_stocks)
+      .values(buildSprint38InboundSheraStockSeed(now));
+    await (idempotent ? stockInsert.onConflictDoNothing() : stockInsert);
+
+    const invoiceInsert = db
+      .insert(schema.pgSchema.invoices)
+      .values(buildSprint38InvoicesSeed(now));
+    await (idempotent ? invoiceInsert.onConflictDoNothing() : invoiceInsert);
+
+    const marginLogInsert = db
+      .insert(schema.pgSchema.interaction_logs)
+      .values([
+        buildSprint38MarginInteractionLogSeed(now),
+        ...buildSprint38DispatchInteractionLogsSeed(now),
+      ]);
+    await (idempotent
+      ? marginLogInsert.onConflictDoNothing()
+      : marginLogInsert);
+
+    const itemsInsert = db
+      .insert(schema.pgSchema.interaction_items)
+      .values([
+        buildSprint38MarginInteractionItemSeed(now),
+        ...buildSprint38DispatchInteractionItemsSeed(now),
+      ]);
+    await (idempotent ? itemsInsert.onConflictDoNothing() : itemsInsert);
   }
 
   private async seedFailedQueueJobs(): Promise<void> {

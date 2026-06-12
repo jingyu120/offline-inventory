@@ -105,12 +105,10 @@ export const useShopLedger = (): UseShopLedgerReturn => {
       if (!targetShopId) {
         return;
       }
-      console.log('[Recovery] Restoring last selected shop:', targetShopId);
       const mappedShop = await fetchShopById(targetShopId);
       if (mappedShop && active) {
         await selectShop(mappedShop);
         if (recoveryState?.loggingModalVisible) {
-          console.log('[Recovery] Restoring logging modal state.');
           setLoggingShop(mappedShop);
           setLoggingModalVisible(true);
         }

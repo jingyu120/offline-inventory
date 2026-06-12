@@ -33,7 +33,6 @@ export class ImageUploadQueue {
   }
 
   static async retryTask(taskId: string): Promise<void> {
-    console.log(`[ImageUploadQueue] Retrying task ${taskId}`);
     const now = Math.floor(Date.now() / 1000);
     try {
       await database
@@ -51,12 +50,10 @@ export class ImageUploadQueue {
 
   static pause(): void {
     ImageUploadQueue.isPaused = true;
-    console.log('[ImageUploadQueue] Queue manually paused.');
   }
 
   static resume(): void {
     ImageUploadQueue.isPaused = false;
-    console.log('[ImageUploadQueue] Queue manually resumed.');
     ImageUploadQueue.processQueue();
   }
 
@@ -66,10 +63,6 @@ export class ImageUploadQueue {
     traceId?: string,
     actorId?: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing screenshot for log ${interactionLogId}, tempUri: ${tempUri}`,
-    );
-
     const localFilePath = tempUri;
 
     if (tempUri.startsWith('blob:')) {
@@ -91,7 +84,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(`[ImageUploadQueue] Enqueued task ${queueId}`);
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -111,10 +103,6 @@ export class ImageUploadQueue {
     traceId?: string,
     actorId?: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing POD image for log ${interactionLogId}, tempUri: ${tempUri}`,
-    );
-
     const localFilePath = tempUri;
 
     if (tempUri.startsWith('blob:')) {
@@ -136,7 +124,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(`[ImageUploadQueue] Enqueued POD task ${queueId}`);
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -154,10 +141,6 @@ export class ImageUploadQueue {
     competitorInsightId: string,
     tempUri: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing photo for competitor insight ${competitorInsightId}, tempUri: ${tempUri}`,
-    );
-
     const localFilePath = tempUri;
 
     if (tempUri.startsWith('blob:')) {
@@ -176,9 +159,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(
-        `[ImageUploadQueue] Enqueued competitor insight task ${queueId}`,
-      );
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -194,21 +174,14 @@ export class ImageUploadQueue {
 
   static async processQueue(): Promise<void> {
     if (ImageUploadQueue.isPaused) {
-      console.log(
-        '[ImageUploadQueue] Queue is manually paused. Skipping execution.',
-      );
       return;
     }
 
     if (isProcessing) {
-      console.log(
-        '[ImageUploadQueue] Queue is already processing. Skipping run.',
-      );
       return;
     }
 
     isProcessing = true;
-    console.log('[ImageUploadQueue] Starting queue processor...');
 
     try {
       const tasks = await database
@@ -221,15 +194,7 @@ export class ImageUploadQueue {
           ),
         );
 
-      console.log(
-        `[ImageUploadQueue] Found ${tasks.length} pending/failed tasks.`,
-      );
-
       for (const task of tasks) {
-        console.log(
-          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id || 'null'}, competitor ID: ${task.competitor_insight_id || 'null'})`,
-        );
-
         const now = Math.floor(Date.now() / 1000);
         await database
           .update(sqliteSchema.image_upload_queue)
@@ -282,10 +247,6 @@ export class ImageUploadQueue {
           serverUrl = uploadRes.data.viberScreenshotUrl || uploadRes.data.url;
 
           if (serverUrl) {
-            console.log(
-              `[ImageUploadQueue] Upload succeeded. Server URL: ${serverUrl}`,
-            );
-
             if (task.competitor_insight_id) {
               await database
                 .update(sqliteSchema.competitor_insights)
@@ -340,7 +301,6 @@ export class ImageUploadQueue {
       console.error('[ImageUploadQueue] Error in queue processing loop:', err);
     } finally {
       isProcessing = false;
-      console.log('[ImageUploadQueue] Queue processor loop ended.');
     }
   }
 }

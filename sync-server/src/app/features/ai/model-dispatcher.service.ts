@@ -95,8 +95,6 @@ export class ModelDispatcherService {
 
       const [response, err] = await guardAsync(requestPromise);
       if (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        this.logger.debug(`Ollama dispatch failed: ${message}`);
         if (attempt < maxRetries) {
           await this.delay(backoffMs * (attempt + 1));
           continue;

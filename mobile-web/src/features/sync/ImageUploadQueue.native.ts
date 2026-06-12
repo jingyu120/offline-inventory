@@ -33,7 +33,6 @@ export class ImageUploadQueue {
   }
 
   static async retryTask(taskId: string): Promise<void> {
-    console.log(`[ImageUploadQueue] Retrying task ${taskId}`);
     const now = Math.floor(Date.now() / 1000);
     try {
       await database
@@ -51,12 +50,10 @@ export class ImageUploadQueue {
 
   static pause(): void {
     ImageUploadQueue.isPaused = true;
-    console.log('[ImageUploadQueue] Queue manually paused.');
   }
 
   static resume(): void {
     ImageUploadQueue.isPaused = false;
-    console.log('[ImageUploadQueue] Queue manually resumed.');
     ImageUploadQueue.processQueue();
   }
 
@@ -66,10 +63,6 @@ export class ImageUploadQueue {
     traceId?: string,
     actorId?: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing screenshot for log ${interactionLogId}, tempUri: ${tempUri}`,
-    );
-
     let localFilePath = tempUri;
 
     try {
@@ -97,9 +90,6 @@ export class ImageUploadQueue {
       const filename = `${interactionLogId}-${Date.now()}.jpg`;
       localFilePath = dir + filename;
       await FileSystem.copyAsync({ from: tempUri, to: localFilePath });
-      console.log(
-        `[ImageUploadQueue] Copied file persistently to: ${localFilePath}`,
-      );
     } catch (err) {
       console.error(
         '[ImageUploadQueue] Failed to save persistent local file copy:',
@@ -122,7 +112,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(`[ImageUploadQueue] Enqueued task ${queueId}`);
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -142,10 +131,6 @@ export class ImageUploadQueue {
     traceId?: string,
     actorId?: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing POD image for log ${interactionLogId}, tempUri: ${tempUri}`,
-    );
-
     let localFilePath = tempUri;
 
     try {
@@ -173,9 +158,6 @@ export class ImageUploadQueue {
       const filename = `${interactionLogId}-${Date.now()}.jpg`;
       localFilePath = dir + filename;
       await FileSystem.copyAsync({ from: tempUri, to: localFilePath });
-      console.log(
-        `[ImageUploadQueue] Copied file persistently to: ${localFilePath}`,
-      );
     } catch (err) {
       console.error(
         '[ImageUploadQueue] Failed to save persistent local file copy:',
@@ -198,7 +180,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(`[ImageUploadQueue] Enqueued POD task ${queueId}`);
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -216,10 +197,6 @@ export class ImageUploadQueue {
     competitorInsightId: string,
     tempUri: string,
   ): Promise<void> {
-    console.log(
-      `[ImageUploadQueue] Enqueuing screenshot for competitor insight ${competitorInsightId}, tempUri: ${tempUri}`,
-    );
-
     let localFilePath = tempUri;
 
     try {
@@ -247,9 +224,6 @@ export class ImageUploadQueue {
       const filename = `${competitorInsightId}-${Date.now()}.jpg`;
       localFilePath = dir + filename;
       await FileSystem.copyAsync({ from: tempUri, to: localFilePath });
-      console.log(
-        `[ImageUploadQueue] Copied competitor file persistently to: ${localFilePath}`,
-      );
     } catch (err) {
       console.error(
         '[ImageUploadQueue] Failed to save persistent local file copy:',
@@ -269,7 +243,6 @@ export class ImageUploadQueue {
         created_at: now,
         updated_at: now,
       });
-      console.log(`[ImageUploadQueue] Enqueued competitor task ${queueId}`);
       ImageUploadQueue.notifySubscribers();
 
       this.processQueue().catch((err) => {
@@ -285,9 +258,6 @@ export class ImageUploadQueue {
 
   static async processQueue(): Promise<void> {
     if (ImageUploadQueue.isPaused) {
-      console.log(
-        '[ImageUploadQueue] Queue is manually paused. Skipping execution.',
-      );
       return;
     }
 
@@ -299,9 +269,6 @@ export class ImageUploadQueue {
       const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
       if (is2G || isMockDegraded) {
         isNetworkDegraded = true;
-        console.log(
-          '[ImageUploadQueue] Connection is degraded (2G/EDGE or mock packet loss). Enabling aggressive low-res/high-loss compression.',
-        );
       }
     } catch (netErr) {
       console.warn(
@@ -311,14 +278,10 @@ export class ImageUploadQueue {
     }
 
     if (isProcessing) {
-      console.log(
-        '[ImageUploadQueue] Queue is already processing. Skipping run.',
-      );
       return;
     }
 
     isProcessing = true;
-    console.log('[ImageUploadQueue] Starting queue processor...');
 
     try {
       const tasks = await database
@@ -331,15 +294,7 @@ export class ImageUploadQueue {
           ),
         );
 
-      console.log(
-        `[ImageUploadQueue] Found ${tasks.length} pending/failed tasks.`,
-      );
-
       for (const task of tasks) {
-        console.log(
-          `[ImageUploadQueue] Processing task ${task.id} (log ID: ${task.interaction_log_id || 'null'}, competitor ID: ${task.competitor_insight_id || 'null'})`,
-        );
-
         const now = Math.floor(Date.now() / 1000);
         await database
           .update(sqliteSchema.image_upload_queue)
@@ -351,9 +306,6 @@ export class ImageUploadQueue {
         let tempCompressedFile: string | null = null;
         if (isNetworkDegraded) {
           try {
-            console.log(
-              `[ImageUploadQueue] Aggressively compressing ${task.local_file_path} for degraded network...`,
-            );
             const ImageManipulator = (require as $Any)(
               'expo-image-manipulator',
             );
@@ -364,9 +316,6 @@ export class ImageUploadQueue {
             );
             uploadFilePath = manipResult.uri;
             tempCompressedFile = manipResult.uri;
-            console.log(
-              `[ImageUploadQueue] Aggressive compression completed: ${uploadFilePath}`,
-            );
           } catch (manipErr) {
             console.warn(
               '[ImageUploadQueue] Failed to aggressively compress image under degraded network, falling back to original:',
@@ -413,10 +362,6 @@ export class ImageUploadQueue {
           }
 
           if (serverUrl) {
-            console.log(
-              `[ImageUploadQueue] Upload succeeded. Server URL: ${serverUrl}`,
-            );
-
             if (task.competitor_insight_id) {
               await database
                 .update(sqliteSchema.competitor_insights)
@@ -450,9 +395,6 @@ export class ImageUploadQueue {
                 await FileSystem.deleteAsync(task.local_file_path, {
                   idempotent: true,
                 });
-                console.log(
-                  `[ImageUploadQueue] Cleaned up local file: ${task.local_file_path}`,
-                );
               }
             } catch (cleanupErr) {
               console.warn(
@@ -490,9 +432,6 @@ export class ImageUploadQueue {
                 await FileSystem.deleteAsync(tempCompressedFile, {
                   idempotent: true,
                 });
-                console.log(
-                  `[ImageUploadQueue] Cleaned up temp compressed file: ${tempCompressedFile}`,
-                );
               }
             } catch (cleanupErr) {
               console.warn(
@@ -507,7 +446,6 @@ export class ImageUploadQueue {
       console.error('[ImageUploadQueue] Error in queue processing loop:', err);
     } finally {
       isProcessing = false;
-      console.log('[ImageUploadQueue] Queue processor loop ended.');
     }
   }
 }

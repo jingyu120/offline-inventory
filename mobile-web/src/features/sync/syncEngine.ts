@@ -24,7 +24,6 @@ import {
   getActiveRepId,
 } from '../../core/storage/platformStorage';
 import { ImageUploadQueue } from './ImageUploadQueue';
-import { isNetworkDegraded } from './networkQualityUtil';
 import { pruneSyncedLocalData } from '../../core/database/garbageCollector';
 
 type SqliteSchema = typeof sqliteSchema;
@@ -130,7 +129,6 @@ async function applyPullChanges(
 async function runDatabaseCompaction(): Promise<void> {
   try {
     await database.run(sql`VACUUM`);
-    console.log('[SyncEngine] Database compaction (VACUUM) completed.');
   } catch (err) {
     console.warn('[SyncEngine] Failed to run database compaction:', err);
   }
@@ -143,9 +141,6 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
   const userId = await getActiveRepId();
 
   if (targetTable) {
-    console.log(
-      `[SyncEngine] Starting targeted pull for table: ${targetTable}`,
-    );
     const lastSyncedAt = await getLastSyncedAt();
 
     try {
@@ -158,9 +153,6 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
 
       const { changes } = pullResponse;
       await applyPullChanges(changes);
-      console.log(
-        `[SyncEngine] Targeted pull for ${targetTable} completed successfully.`,
-      );
     } catch (error) {
       console.error(
         `[SyncEngine] Targeted pull for ${targetTable} failed:`,
@@ -170,16 +162,8 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
     return;
   }
 
-  console.log('[SyncEngine] Starting sync cycle...');
-
   // Network-Aware Queue Prioritization
   try {
-    const degraded = await isNetworkDegraded();
-    if (degraded) {
-      console.log(
-        '[SyncEngine] Highly degraded network (2G/EDGE or mock packet loss). Keeping ImageUploadQueue active with aggressive compression.',
-      );
-    }
     ImageUploadQueue.resume();
   } catch (err) {
     console.warn(
@@ -190,9 +174,6 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
 
   // 1. Pull Changes
   const lastSyncedAt = await getLastSyncedAt();
-  console.log(
-    `[SyncEngine] Last synced timestamp: ${lastSyncedAt}, Device: ${devId}, User: ${userId}`,
-  );
 
   let pullResponse;
   try {
@@ -212,7 +193,6 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
 
   const { changes, timestamp } = pullResponse;
   await applyPullChanges(changes);
-  console.log('[SyncEngine] Pull applied successfully.');
 
   // 2. Push Changes
   const syncableTables = [
@@ -334,17 +314,12 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
   }
 
   if (Object.keys(pushChanges).length > 0) {
-    console.log(
-      '[SyncEngine] Pushing changes to server...',
-      JSON.stringify(Object.keys(pushChanges)),
-    );
     try {
       await trpcClient.sync.push.mutate({
         changes: pushChanges,
         deviceId: devId,
         userId: userId || undefined,
       });
-      console.log('[SyncEngine] Push successful.');
 
       // Mark local records as synced generically
       for (const [tableName, changeset] of Object.entries(pushChanges)) {
@@ -393,8 +368,6 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
       );
       return;
     }
-  } else {
-    console.log('[SyncEngine] No local changes to push.');
   }
 
   // Update sync timestamp
@@ -409,15 +382,10 @@ async function executeSyncCycle(targetTable?: string): Promise<void> {
   } catch (pruneErr) {
     console.warn('[SyncEngine] Failed to prune synced local data:', pruneErr);
   }
-
-  console.log('[SyncEngine] Sync cycle complete.');
 }
 
 export async function syncData(targetTable?: string): Promise<void> {
   if (activeSyncPromise) {
-    console.log(
-      '[SyncEngine] Sync is already in progress, attaching to existing cycle.',
-    );
     return activeSyncPromise;
   }
 

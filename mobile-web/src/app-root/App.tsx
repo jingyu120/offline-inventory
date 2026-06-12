@@ -112,11 +112,6 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
           const currentState = useCartStore.getState().recoveryState;
           if (currentState) {
             StateRecovery.saveState(currentState);
-            console.log(
-              '[App] Saved recovery state on AppState change:',
-              nextAppState,
-              currentState,
-            );
           }
         }
       },
@@ -168,7 +163,6 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
     // 1. Prioritize lightweight JSON data sync first on startup
     const startSync = async () => {
       try {
-        console.log('[App] Performing startup delta synchronization...');
         const { syncData } = await import('../features/sync/sync');
         await syncData();
 
@@ -181,11 +175,7 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
           state.details?.cellularGeneration === '2g';
         const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
-        if (is2G || isMockDegraded) {
-          console.log(
-            '[App] Connection degraded. Postponing image upload queue processing.',
-          );
-        } else {
+        if (!is2G && !isMockDegraded) {
           await ImageUploadQueue.processQueue();
         }
       } catch (err) {
@@ -204,18 +194,12 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
     const runProfileChecks = async () => {
       if (Platform.OS === 'web') {
         if (isDesktop) {
-          console.log(
-            '[App] Environment: Running in Desktop Web view. Native location check-ins and device sensors are disabled.',
-          );
           return;
         }
       }
 
       try {
-        const isPhysDevice = Device.isDevice;
-        console.log(
-          `[App] Device Check: Physical Device = ${isPhysDevice}, Model = ${Device.modelName || 'Unknown'}`,
-        );
+        void Device.isDevice;
       } catch (e) {
         console.warn('[App] Failed to check physical device status:', e);
       }
@@ -285,15 +269,9 @@ export const AppContent = ({ themeMode, setThemeMode, activeTheme }: $Any) => {
 
   React.useEffect(() => {
     if (thermalState === 'CRITICAL') {
-      console.log(
-        '[App] Thermal state is CRITICAL. Foreground periodic sync paused.',
-      );
       return;
     }
     const intervalTime = thermalState === 'SERIOUS' ? 60000 : 15000;
-    console.log(
-      `[App] Starting foreground periodic sync every ${intervalTime / 1000}s (Thermal: ${thermalState})`,
-    );
 
     const timer = setInterval(() => {
       handleSync().catch((err) =>

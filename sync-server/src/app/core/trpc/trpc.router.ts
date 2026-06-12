@@ -70,8 +70,6 @@ export class TrpcRouter implements OnModuleInit {
   }
 
   onModuleInit() {
-    console.log('[TrpcRouter] Registering tRPC resolvers...');
-
     trpcResolvers.seedDatabase = async () => {
       this.validateRequest('seedDatabase', undefined);
       await this.drizzleService.runDeterministicSeeding();

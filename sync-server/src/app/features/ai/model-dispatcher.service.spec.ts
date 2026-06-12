@@ -8,7 +8,6 @@ jest.mock('axios');
 describe('ModelDispatcherService', () => {
   let logger: Logger;
   let warnSpy: jest.SpyInstance;
-  let debugSpy: jest.SpyInstance;
 
   const baseConfig = {
     ollamaModel: 'gemma4',
@@ -29,7 +28,6 @@ describe('ModelDispatcherService', () => {
     jest.clearAllMocks();
     logger = new Logger('test');
     warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
-    debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => undefined);
   });
 
   it('returns model text on a successful first attempt', async () => {
@@ -90,9 +88,6 @@ describe('ModelDispatcherService', () => {
     const res = await service.dispatchModel('prompt');
     expect(res).toBeNull();
     expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(debugSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Ollama dispatch failed: boom'),
-    );
   });
 
   it('retries on transient failure and succeeds on a later attempt', async () => {
@@ -137,9 +132,7 @@ describe('ModelDispatcherService', () => {
     const service = createService({ ollamaMaxRetries: 0 });
     const res = await service.dispatchModel('prompt');
     expect(res).toBeNull();
-    expect(debugSpy).toHaveBeenCalledWith(
-      expect.stringContaining('string failure'),
-    );
+    expect(axios.post).toHaveBeenCalledTimes(1);
   });
 
   it('treats undefined retry/backoff config as zero retries', async () => {

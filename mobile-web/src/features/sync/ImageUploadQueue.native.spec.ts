@@ -122,6 +122,31 @@ describe('ImageUploadQueue (Native)', () => {
         { intermediates: true },
       );
     });
+
+    it('should fall back to the original uri when pre-enqueue compression fails', async () => {
+      const consoleWarnSpy = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+      (ImageManipulator.manipulateAsync as jest.Mock).mockRejectedValueOnce(
+        new Error('Compression failed'),
+      );
+      const mockInsertValues = jest.fn().mockResolvedValue(undefined);
+      mockDb.insert.mockReturnValue({ values: mockInsertValues } as any);
+      mockDb.select.mockReturnValue(createQueryChain([]) as any);
+
+      await ImageUploadQueue.enqueueImage('log-123', 'temp-uri-path');
+
+      // Compression failure must not abort enqueue: it copies the original uri
+      // and still persists the queue entry.
+      expect(FileSystem.copyAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'temp-uri-path',
+          to: expect.stringContaining('mock-doc-dir/viber_uploads/log-123-'),
+        }),
+      );
+      expect(mockDb.insert).toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('Queue Processing', () => {
@@ -388,21 +413,14 @@ describe('ImageUploadQueue (Native)', () => {
 
       const firstProcess = ImageUploadQueue.processQueue();
 
-      const consoleLogSpy = jest
-        .spyOn(console, 'log')
-        .mockImplementation(() => undefined);
-
       await ImageUploadQueue.processQueue();
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '[ImageUploadQueue] Queue is already processing. Skipping run.',
-        ),
-      );
+      // The second call must bail out early at the isProcessing guard,
+      // so the database select should only have been issued by the first run.
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
 
       resolveSelect([mockTask]);
       await firstProcess;
-      consoleLogSpy.mockRestore();
     });
 
     it('handles degraded network image compression failure and falls back to original', async () => {

@@ -20,16 +20,9 @@ export async function getCachedLocation(
 }> {
   const now = Date.now();
   if (cachedLocation && now - cachedLocation.timestamp < CACHE_DURATION_MS) {
-    console.log(
-      '[LocationCache] Returning cached coordinates:',
-      cachedLocation.coords,
-    );
     return cachedLocation;
   }
 
-  console.log(
-    '[LocationCache] Cache expired or missing. Fetching fresh location...',
-  );
   const freshLoc = await Location.getCurrentPositionAsync(options);
   cachedLocation = {
     coords: {

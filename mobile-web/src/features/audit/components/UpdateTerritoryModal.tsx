@@ -142,10 +142,6 @@ export const UpdateTerritoryModal: React.FC<UpdateTerritoryModalProps> = ({
         })
         .where(eq(sqliteSchema.shops.id, shop.id));
 
-      console.log(
-        '[UpdateTerritoryModal] Shop territory updated successfully:',
-        shop.id,
-      );
       onUpdateSuccess();
       onClose();
       Alert.alert(t('success'), t('territoryUpdatedSuccess'));

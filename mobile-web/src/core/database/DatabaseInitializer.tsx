@@ -32,10 +32,6 @@ export const DatabaseInitializer: React.FC<{ children: React.ReactNode }> = ({
             .limit(1);
           if (lastEvents.length > 0 && lastEvents[0].hash) {
             setLatestAuditHash(lastEvents[0].hash);
-            console.log(
-              '[Recovery] Hydrated latest audit hash:',
-              lastEvents[0].hash,
-            );
           }
         } catch (hashErr) {
           console.warn('Failed to load latest audit event hash:', hashErr);
@@ -68,10 +64,6 @@ export const DatabaseInitializer: React.FC<{ children: React.ReactNode }> = ({
             }
           }
           useCartStore.setState({ sessions });
-          console.log(
-            '[Recovery] Hydrated draft cart sessions on boot:',
-            Object.keys(sessions),
-          );
         } catch (draftErr) {
           console.error(
             '[Recovery] Failed to hydrate draft cart sessions:',

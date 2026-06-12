@@ -261,23 +261,16 @@ describe('ImageUploadQueue (Web)', () => {
 
       const firstProcess = ImageUploadQueue.processQueue();
 
-      const consoleLogSpy = jest
-        .spyOn(console, 'log')
-        .mockImplementation(() => undefined);
-
       // Call processQueue again while first is running
       await ImageUploadQueue.processQueue();
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '[ImageUploadQueue] Queue is already processing. Skipping run.',
-        ),
-      );
+      // The second call must bail out early at the isProcessing guard,
+      // so the database select should only have been issued by the first run.
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
 
       // Clean up first run
       resolveSelect([mockTask]);
       await firstProcess;
-      consoleLogSpy.mockRestore();
     });
 
     it('should throw error when server upload response has no valid URL', async () => {

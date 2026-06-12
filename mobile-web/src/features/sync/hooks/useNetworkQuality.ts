@@ -80,7 +80,6 @@ function connectSSE() {
     return;
   }
 
-  console.log('[SSE] Connecting to live invalidations stream...');
   const url = `${SYNC_API_URL}/live-invalidations`;
 
   try {
@@ -88,16 +87,13 @@ function connectSSE() {
     currentEventSource = es;
 
     es.onopen = () => {
-      console.log('[SSE] Connected to live invalidations stream.');
+      // Connection established; no action required beyond keeping the stream open.
     };
 
     es.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data || '{}');
         if (payload.table) {
-          console.log(
-            `[SSE] Received invalidation for table: ${payload.table}`,
-          );
           syncData(payload.table).catch((err) => {
             console.error('[SSE] Targeted sync failed:', err);
           });
@@ -141,7 +137,6 @@ function disconnectSSE() {
     }
     currentEventSource = null;
   }
-  console.log('[SSE] Disconnected from live invalidations stream.');
 }
 
 // Subscribe to network quality transitions

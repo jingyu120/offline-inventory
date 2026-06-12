@@ -7,8 +7,10 @@ import { requestStorage } from './request-context';
 
 @Controller('trpc')
 export class TrpcController {
+  // TrpcRouter is injected so Nest instantiates it (registering tRPC
+  // resolvers via its OnModuleInit hook) even though it is not used directly.
   constructor(_trpcRouter: TrpcRouter) {
-    console.log('[TrpcController] Initialized and dependencies injected');
+    // Intentionally empty: dependency injection alone is the required effect.
   }
 
   private trpcMiddleware = createExpressMiddleware({

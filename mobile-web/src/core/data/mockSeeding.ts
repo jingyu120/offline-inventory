@@ -1,5 +1,19 @@
 import { sqliteSchema } from '@burma-inventory/shared-types';
 
+/**
+ * Sprint 38 — E2E Transactional State.
+ *
+ * Canned KPay transfer payload for the reconciliation E2E flow. Testers (and
+ * automated E2E specs) feed these values directly into PendingReconciliationPanel
+ * so the FIFO reconcile can run deterministically without pinging the local LLM
+ * OCR/parse pipeline. Matched against the open `inv-e2e-kpay-shop-2` invoice.
+ */
+export const MOCK_KPAY_TRANSFER = {
+  transaction_id: 'KPAY-998877',
+  transfer_amount: 1500000,
+  confidence_score: 0.98,
+} as const;
+
 export const seedLocalDatabase = async (db: $Any): Promise<void> => {
   // Clear existing records first
   const tables = [
@@ -195,6 +209,10 @@ export const seedLocalDatabase = async (db: $Any): Promise<void> => {
       unit_type: 'PAL',
       conversion_factor: 100,
       dimensions: '2x2 (0.35x61x61)',
+      // Sprint 38: explicit wholesale floor so margin-override detection has a
+      // baseline to compare against (PendingSalesApproval flags sales below this).
+      base_wholesale_price: 40000,
+      base_currency: 'MMK',
       is_in_deficit: false,
       created_at: now,
       updated_at: now,
@@ -1437,6 +1455,234 @@ export const seedLocalDatabase = async (db: $Any): Promise<void> => {
       pending_allocation_count: 0,
       inventory_status: 'PENDING_APPROVAL',
       created_at: now - 1 * 24 * 3600 * 1000,
+      updated_at: now,
+    },
+  ]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Sprint 38 — E2E Transactional State
+  //
+  // Deterministic, idempotent fixtures that drive the end-to-end transactional
+  // flows (credit lock, intake quarantine, margin override, dispatch manifest,
+  // KPay reconciliation). All ids are prefixed (`inv-e2e-`, `log-e2e-`, etc.) so
+  // re-seeding is predictable and does not collide with the ids above.
+  //
+  // Task spec term → reality (this codebase) mapping:
+  //   • "UNPAID" invoice status          → invoices.state ('OVERDUE' / 'PENDING')
+  //   • "landed_cost_mmk"                → items.base_wholesale_price (margin floor)
+  //   • "orders"                         → interaction_logs (+ interaction_items)
+  //   • "inbound lot quarantine"         → items/item_stocks.inventory_status
+  //                                        = 'PENDING_APPROVAL'
+  //
+  // Task entity → seeded entity mapping (names kept as-is in the DB; the spec's
+  // names are only documented here, no shops/reps are renamed or invented):
+  //   • SHOP_001 "Soe Moe Khaing"  → shop-1 ("Soe Moe Khaing (North Okkalar)")
+  //   • SHOP_003 "Thingaha"        → shop-3 ("Thingaha (North Okkalar)")
+  //   • SHOP_004 "Doh Loke Thar"   → shop-4 ("Mandalay Station Store")
+  //   • REP_001  "Wint Thandar"    → rep-1  ("Ko Min", sales role)
+  //   • SKU_SHERA_001              → item-1 ("Shera Ceiling Board", SKU-SH-CEILING-2X2)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const fortyFiveDaysAgo = now - 45 * 24 * 3600 * 1000;
+
+  // Scenario 1 — AR credit-lock (shop-4 / "Doh Loke Thar").
+  // computeBlockedStatus (creditStatus.ts, consumed by useInteractionLogging.ts)
+  // pulls invoices for the shop in state PENDING | PARTIALLY_PAID | OVERDUE and
+  // blocks checkout when ANY invoice's aging (now − (due_date + grace_period_days))
+  // is ≥ 30 days. due_date 45 days ago + 7 grace ⇒ ~38 overdue days ⇒ blocked.
+  await db.insert(sqliteSchema.invoices).values([
+    {
+      id: 'inv-e2e-overdue-shop-4',
+      shop_id: 'shop-4',
+      interaction_log_id: null,
+      amount: 2500000,
+      due_date: fortyFiveDaysAgo,
+      grace_period_days: 7,
+      state: 'OVERDUE',
+      created_at: fortyFiveDaysAgo,
+      updated_at: now,
+    },
+    // Scenario 5 — KPay reconciliation target. Open invoice on shop-2 (NOT the
+    // AR-blocked shop-4) so PendingReconciliationPanel.loadInvoices (filters
+    // state IN ('PENDING','PARTIALLY_PAID')) surfaces it and the FIFO reconcile
+    // can pay it down using MOCK_KPAY_TRANSFER (1,500,000 MMK).
+    {
+      id: 'inv-e2e-kpay-shop-2',
+      shop_id: 'shop-2',
+      interaction_log_id: null,
+      amount: 1500000,
+      due_date: now + 15 * 24 * 3600 * 1000,
+      grace_period_days: 7,
+      state: 'PENDING',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // Scenario 2 — Intake quarantine (Shera inbound lot).
+  // PendingIntakeApproval queries items AND item_stocks where
+  // inventory_status='PENDING_APPROVAL', then maps from the stock rows and joins
+  // the item by item_id. A NEW item id is used (reusing the Shera SKU/name with a
+  // " (Inbound Lot E2E)" suffix) so the existing AVAILABLE item-1 stays sellable.
+  await db.insert(sqliteSchema.items).values([
+    {
+      id: 'item-shera-inbound-e2e',
+      sku: 'SKU-SH-CEILING-2X2',
+      name: 'Shera Ceiling Board 2x2 (0.35x61x61) (Inbound Lot E2E)',
+      unit_price: 47000,
+      category: 'Fiber Cement',
+      brand_id: 'brand-shera',
+      unit_type: 'PAL',
+      conversion_factor: 100,
+      dimensions: '2x2 (0.35x61x61)',
+      is_in_deficit: false,
+      inventory_status: 'PENDING_APPROVAL',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.item_stocks).values([
+    {
+      id: 'stock-shera-inbound-e2e',
+      item_id: 'item-shera-inbound-e2e',
+      good_stock_count: 5000,
+      wet_stock_count: 0,
+      bad_stock_count: 0,
+      pending_allocation_count: 0,
+      inventory_status: 'PENDING_APPROVAL',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // Scenario 3 — Margin override (shop-3 / "Thingaha", rep-1 / "Ko Min").
+  // PendingSalesApproval queries interaction_logs WHERE approved_by_id IS NULL,
+  // keeps logs that have interaction_items, and flags an override when
+  // unit_price_at_sale < items.base_wholesale_price. item-1's base_wholesale_price
+  // is 40,000 MMK; selling 20% below ⇒ 32,000 MMK trips the margin warning.
+  await db.insert(sqliteSchema.interaction_logs).values([
+    {
+      id: 'log-e2e-margin-shop-3',
+      shop_id: 'shop-3',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      commercial_status: 'ORDER_PLACED',
+      notes: 'E2E: order placed 20% below wholesale floor (awaiting approval).',
+      created_at_local: now,
+      is_offline_entry: false,
+      device_id: 'dev-1',
+      created_at: now,
+      updated_at: now,
+      salesperson_id: 'rep-1',
+      executed_by_id: 'rep-1',
+      approved_by_id: null,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.interaction_items).values([
+    {
+      id: 'log-item-e2e-margin-1',
+      interaction_log_id: 'log-e2e-margin-shop-3',
+      item_id: 'item-1',
+      quantity: 10,
+      unit_price_at_sale: 32000,
+      interest_level: 'HIGH',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      created_at: now,
+      updated_at: now,
+    },
+  ]);
+
+  // Scenario 4 — Dispatch manifest (shop-1 / "Soe Moe Khaing").
+  // DriverManifestScreen queries interaction_logs WHERE assigned_driver_id =
+  // activeRep.id AND commercial_status != 'DELIVERED'. The driver-manifest screen
+  // is gated to the `sales` role, so a tester logs in as rep-1 ("Ko Min", sales);
+  // assigned_driver_id is therefore set to 'rep-1' for all three dispatched orders.
+  const dispatchedAt = now - 2 * 3600 * 1000;
+  await db.insert(sqliteSchema.interaction_logs).values([
+    {
+      id: 'log-e2e-dispatch-1',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      commercial_status: 'DISPATCHED',
+      notes: 'E2E dispatch order 1 of 3 (awaiting proof-of-delivery).',
+      created_at_local: dispatchedAt,
+      is_offline_entry: false,
+      device_id: 'dev-1',
+      created_at: dispatchedAt,
+      updated_at: now,
+      assigned_driver_id: 'rep-1',
+      dispatched_at: dispatchedAt,
+      pod_image_url: null,
+    },
+    {
+      id: 'log-e2e-dispatch-2',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      commercial_status: 'DISPATCHED',
+      notes: 'E2E dispatch order 2 of 3 (awaiting proof-of-delivery).',
+      created_at_local: dispatchedAt,
+      is_offline_entry: false,
+      device_id: 'dev-1',
+      created_at: dispatchedAt,
+      updated_at: now,
+      assigned_driver_id: 'rep-1',
+      dispatched_at: dispatchedAt,
+      pod_image_url: null,
+    },
+    {
+      id: 'log-e2e-dispatch-3',
+      shop_id: 'shop-1',
+      rep_id: 'rep-1',
+      type: 'SHOP_VISIT',
+      commercial_status: 'DISPATCHED',
+      notes: 'E2E dispatch order 3 of 3 (awaiting proof-of-delivery).',
+      created_at_local: dispatchedAt,
+      is_offline_entry: false,
+      device_id: 'dev-1',
+      created_at: dispatchedAt,
+      updated_at: now,
+      assigned_driver_id: 'rep-1',
+      dispatched_at: dispatchedAt,
+      pod_image_url: null,
+    },
+  ]);
+
+  await db.insert(sqliteSchema.interaction_items).values([
+    {
+      id: 'log-item-e2e-dispatch-1',
+      interaction_log_id: 'log-e2e-dispatch-1',
+      item_id: 'item-1',
+      quantity: 12,
+      unit_price_at_sale: 47000,
+      interest_level: 'HIGH',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      created_at: dispatchedAt,
+      updated_at: now,
+    },
+    {
+      id: 'log-item-e2e-dispatch-2',
+      interaction_log_id: 'log-e2e-dispatch-2',
+      item_id: 'item-7',
+      quantity: 20,
+      unit_price_at_sale: 18000,
+      interest_level: 'MEDIUM',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      created_at: dispatchedAt,
+      updated_at: now,
+    },
+    {
+      id: 'log-item-e2e-dispatch-3',
+      interaction_log_id: 'log-e2e-dispatch-3',
+      item_id: 'item-3',
+      quantity: 4,
+      unit_price_at_sale: 35000,
+      interest_level: 'MEDIUM',
+      fulfillment_status: 'PENDING_FULFILLMENT',
+      created_at: dispatchedAt,
       updated_at: now,
     },
   ]);

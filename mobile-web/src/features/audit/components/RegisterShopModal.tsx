@@ -241,11 +241,6 @@ export const RegisterShopModal: React.FC<RegisterShopModalProps> = ({
     try {
       await database.insert(sqliteSchema.shops).values(newShop);
       await database.insert(sqliteSchema.contacts).values(newContact);
-      console.log(
-        '[RegisterShopModal] Successfully created shop & contact:',
-        newShop,
-        newContact,
-      );
       onRegister(newShopId);
       onClose();
     } catch (e: $Any) {

@@ -10,11 +10,7 @@ const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC_TASK';
 
 if (Platform.OS !== 'web') {
   TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
-    console.log('[BackgroundFetch] Running background sync task...');
     if (ThermalGuard.getThermalState() === 'CRITICAL') {
-      console.log(
-        '[BackgroundFetch] Thermal state is CRITICAL. Aborting background sync.',
-      );
       return BackgroundFetch.BackgroundFetchResult.Failed;
     }
     try {
@@ -28,15 +24,10 @@ if (Platform.OS !== 'web') {
         state.type === 'cellular' && state.details?.cellularGeneration === '2g';
       const isMockDegraded = (global as $Any).__mockNetworkDegraded === true;
 
-      if (is2G || isMockDegraded) {
-        console.log(
-          '[BackgroundFetch] Network degraded. Skipping image uploads.',
-        );
-      } else {
+      if (!is2G && !isMockDegraded) {
         await ImageUploadQueue.processQueue();
       }
 
-      console.log('[BackgroundFetch] Background sync completed successfully.');
       return BackgroundFetch.BackgroundFetchResult.NewData;
     } catch (error) {
       console.error('[BackgroundFetch] Background sync failed:', error);
@@ -53,14 +44,10 @@ export async function registerBackgroundSyncAsync() {
     const isRegistered =
       await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
     if (!isRegistered) {
-      console.log('[BackgroundFetch] Registering background sync task...');
       await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
         minimumInterval: 15 * 60, // 15 minutes
         stopOnTerminate: false,
       });
-      console.log('[BackgroundFetch] Background sync task registered.');
-    } else {
-      console.log('[BackgroundFetch] Background sync task already registered.');
     }
   } catch (error) {
     console.error(

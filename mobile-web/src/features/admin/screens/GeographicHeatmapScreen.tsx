@@ -201,18 +201,7 @@ export const GeographicHeatmapScreen: React.FC = () => {
 
   // 3. Initialize Map Instance
   useEffect(() => {
-    console.log(
-      '[Heatmap] Effect triggered. leafletLoaded:',
-      leafletLoaded,
-      'container:',
-      mapContainerRef.current,
-      'loading:',
-      loading,
-    );
     if (!leafletLoaded || !mapContainerRef.current || isThermalCritical) {
-      console.log(
-        '[Heatmap] Effect returned early due to missing leaflet, container, or thermal critical state',
-      );
       return;
     }
 

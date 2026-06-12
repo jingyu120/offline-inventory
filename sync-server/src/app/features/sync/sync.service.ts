@@ -484,10 +484,6 @@ export class SyncService {
                 .where(inArray(table.id, changeset.deleted));
             }
           }
-
-          this.logger.debug(
-            `[${tableName}] +${changeset.created.length} ~${changeset.updated.length} -${changeset.deleted.length}`,
-          );
         }
       }),
     );

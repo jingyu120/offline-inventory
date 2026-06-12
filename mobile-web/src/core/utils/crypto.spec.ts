@@ -42,6 +42,13 @@ describe('sha256 (custom implementation)', () => {
     expect(burmeseHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('handles two-byte UTF-8 characters (U+0080–U+07FF)', () => {
+    // Accented Latin / Greek code points exercise the two-byte encoding path.
+    const hash = sha256('café Ω ñ');
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it('handles long strings without errors', () => {
     const longString = 'a'.repeat(10_000);
     const hash = sha256(longString);

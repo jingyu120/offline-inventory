@@ -56,7 +56,6 @@ export class TelemetryLogger {
         created_at: Math.floor(now / 1000),
         updated_at: Math.floor(now / 1000),
       } as $Any);
-      console.log(`[TelemetryLogger] Logged event: ${eventType} - ${message}`);
     } catch (e) {
       console.error(
         '[TelemetryLogger] Failed to write telemetry log to SQLite:',

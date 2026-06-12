@@ -440,6 +440,8 @@ export const DETERMINISTIC_SHOPS_SEED: readonly DeterministicShopSeed[] = [
 
 type InvoiceInsert = typeof schema.pgSchema.invoices.$inferInsert;
 type PaymentInsert = typeof schema.pgSchema.payments.$inferInsert;
+type ItemInsert = typeof schema.pgSchema.items.$inferInsert;
+type ItemStockInsert = typeof schema.pgSchema.item_stocks.$inferInsert;
 type ExpectedInboundInsert =
   typeof schema.pgSchema.expected_inbounds.$inferInsert;
 type PendingInventoryUpdateInsert =
@@ -687,6 +689,211 @@ export const buildMismatchInteractionLogSeed = (
   created_at: now - 2 * 3600 * 1000,
   updated_at: now,
 });
+
+/* ===========================================================================
+ * Sprint 38 — E2E Transactional State
+ * ---------------------------------------------------------------------------
+ * Deterministic fixtures that drive five end-to-end transactional scenarios.
+ *
+ * Task → reality term mapping (the SERVER seed uses its OWN ids; we map the
+ * task's client-side references by POSITION onto the server's seeded shops):
+ *   - SHOP_001 (dispatch)            -> server shop #1  -> 'shop-1'
+ *   - reconciliation open invoice    -> server shop #2  -> 'shop-2'
+ *   - SHOP_003 (margin override)     -> server shop #3  -> 'shop-3'
+ *   - SHOP_004 (AR credit-lock)      -> server shop #4  -> 'shop-4'
+ *   - REP_001 (rep / driver)         -> server first rep -> 'rep-1'
+ *   - SKU_SHERA_001                  -> server Shera SKU/name (reused on a NEW
+ *                                       item id 'item-shera-inbound-e2e' so the
+ *                                       existing AVAILABLE Shera item is left
+ *                                       untouched).
+ *
+ * NOTE: the deterministic seed only inserts shop-1/2/3 (no shop-4); the AR
+ * credit-lock invoice still uses 'shop-4' per the mapping. There are no DB
+ * foreign keys on shop_id, so the row inserts cleanly and is overwritten on the
+ * next deterministic wipe. The boot-time idempotent seed has all of shop-1..5,
+ * so the scenario is fully linked there.
+ *
+ * Canonical Shera wholesale reference: SPRINT_38_SHERA_BASE_WHOLESALE_PRICE.
+ * The margin-override line is priced 20% below it.
+ * =========================================================================== */
+
+/** Server ids chosen for the Sprint 38 scenarios (documented for callers). */
+export const SPRINT_38_DISPATCH_SHOP_ID = 'shop-1';
+export const SPRINT_38_RECONCILIATION_SHOP_ID = 'shop-2';
+export const SPRINT_38_MARGIN_SHOP_ID = 'shop-3';
+export const SPRINT_38_AR_BLOCK_SHOP_ID = 'shop-4';
+export const SPRINT_38_REP_ID = 'rep-1';
+export const SPRINT_38_SHERA_INBOUND_ITEM_ID = 'item-shera-inbound-e2e';
+
+/** Reused Shera SKU/name so the existing AVAILABLE Shera item is untouched. */
+const SPRINT_38_SHERA_SKU = 'SKU-SH-6MM';
+const SPRINT_38_SHERA_NAME = 'Shera Fiber Cement Board 6mm';
+/** Canonical wholesale price (MMK) the margin-override line is discounted from. */
+export const SPRINT_38_SHERA_BASE_WHOLESALE_PRICE = 15000;
+const SPRINT_38_MARGIN_DISCOUNT_FACTOR = 0.8;
+const SPRINT_38_INBOUND_QUANTITY = 5000;
+const SPRINT_38_PENDING_INVENTORY_STATUS = 'PENDING_APPROVAL';
+
+const DAY_MS = 24 * 3600 * 1000;
+
+/**
+ * Scenario 2 (Intake quarantine): a 5,000-unit Shera inbound lot held for
+ * approval. Seeded as a NEW item id reusing the Shera SKU/name, with both the
+ * `items` row and its `item_stocks` row flagged PENDING_APPROVAL so whichever
+ * side the admin pending-intake reads picks it up.
+ */
+export const buildSprint38InboundSheraItemSeed = (now: number): ItemInsert => ({
+  id: SPRINT_38_SHERA_INBOUND_ITEM_ID,
+  sku: SPRINT_38_SHERA_SKU,
+  name: SPRINT_38_SHERA_NAME,
+  unit_price: SPRINT_38_SHERA_BASE_WHOLESALE_PRICE,
+  category: 'Fiber Cement',
+  brand_id: 'brand-shera',
+  color: 'Off-White',
+  material_sub_type: 'MR',
+  is_in_deficit: false,
+  base_wholesale_price: SPRINT_38_SHERA_BASE_WHOLESALE_PRICE,
+  base_currency: 'MMK',
+  inventory_status: SPRINT_38_PENDING_INVENTORY_STATUS,
+  created_at: now,
+  updated_at: now,
+});
+
+/** Scenario 2: the quarantined stock row for the inbound Shera lot. */
+export const buildSprint38InboundSheraStockSeed = (
+  now: number,
+): ItemStockInsert => ({
+  id: `stock-${SPRINT_38_SHERA_INBOUND_ITEM_ID}`,
+  item_id: SPRINT_38_SHERA_INBOUND_ITEM_ID,
+  good_stock_count: SPRINT_38_INBOUND_QUANTITY,
+  wet_stock_count: 0,
+  bad_stock_count: 0,
+  pending_allocation_count: 0,
+  inventory_status: SPRINT_38_PENDING_INVENTORY_STATUS,
+  created_at: now,
+  updated_at: now,
+});
+
+/**
+ * Scenario 1 (AR credit-lock) + Scenario 5 (KPay reconciliation).
+ * inv-e2e-ar-block-1: overdue invoice (45 days past due) on shop #4.
+ * inv-e2e-reconcile-1: open PENDING invoice on shop #2 for FIFO pay-down.
+ */
+export const buildSprint38InvoicesSeed = (now: number): InvoiceInsert[] => {
+  const dueOverdue = now - 45 * DAY_MS;
+
+  return [
+    {
+      id: 'inv-e2e-ar-block-1',
+      shop_id: SPRINT_38_AR_BLOCK_SHOP_ID,
+      interaction_log_id: null,
+      amount: 2500000,
+      due_date: dueOverdue,
+      grace_period_days: 7,
+      state: 'OVERDUE',
+      created_at: dueOverdue,
+      updated_at: now,
+    },
+    {
+      id: 'inv-e2e-reconcile-1',
+      shop_id: SPRINT_38_RECONCILIATION_SHOP_ID,
+      interaction_log_id: null,
+      amount: 1500000,
+      due_date: now + 15 * DAY_MS,
+      grace_period_days: 7,
+      state: 'PENDING',
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+};
+
+/**
+ * Scenario 3 (Margin override): an unapproved order on shop #3 by the first
+ * rep, with one Shera line priced 20% below the canonical wholesale price.
+ */
+export const buildSprint38MarginInteractionLogSeed = (
+  now: number,
+): InteractionLogInsert => ({
+  id: 'log-e2e-margin-1',
+  shop_id: SPRINT_38_MARGIN_SHOP_ID,
+  rep_id: SPRINT_38_REP_ID,
+  type: 'VISIT',
+  commercial_status: 'ORDER_PLACED',
+  notes: 'Sprint 38 E2E: margin override pending approval.',
+  approved_by_id: null,
+  salesperson_id: SPRINT_38_REP_ID,
+  executed_by_id: SPRINT_38_REP_ID,
+  created_at_local: now,
+  device_id: 'device-e2e-rep1',
+  created_at: now,
+  updated_at: now,
+});
+
+/** Scenario 3: the discounted Shera line for the margin-override order. */
+export const buildSprint38MarginInteractionItemSeed = (
+  now: number,
+): InteractionItemInsert => ({
+  id: 'ii-e2e-margin-1',
+  interaction_log_id: 'log-e2e-margin-1',
+  item_id: SPRINT_38_SHERA_INBOUND_ITEM_ID,
+  quantity: 100,
+  unit_price_at_sale:
+    SPRINT_38_SHERA_BASE_WHOLESALE_PRICE * SPRINT_38_MARGIN_DISCOUNT_FACTOR,
+  interest_level: 'HIGH',
+  selected_currency: 'MMK',
+  selected_unit: 'PCS',
+  stock_condition: 'GOOD',
+  fulfillment_status: 'PENDING_FULFILLMENT',
+  compliance_status: 'PENDING',
+  created_at: now,
+  updated_at: now,
+});
+
+/**
+ * Scenario 4 (Dispatch): three dispatched orders on shop #1 assigned to the
+ * first rep as driver, with dispatched_at set and pod_image_url still null.
+ */
+export const buildSprint38DispatchInteractionLogsSeed = (
+  now: number,
+): InteractionLogInsert[] =>
+  [1, 2, 3].map((seq) => ({
+    id: `log-e2e-dispatch-${seq}`,
+    shop_id: SPRINT_38_DISPATCH_SHOP_ID,
+    rep_id: SPRINT_38_REP_ID,
+    type: 'VISIT',
+    commercial_status: 'DISPATCHED',
+    notes: `Sprint 38 E2E: dispatched delivery ${seq} awaiting POD.`,
+    assigned_driver_id: SPRINT_38_REP_ID,
+    dispatched_at: now - seq * 3600 * 1000,
+    pod_image_url: null,
+    salesperson_id: SPRINT_38_REP_ID,
+    executed_by_id: SPRINT_38_REP_ID,
+    created_at_local: now - seq * 3600 * 1000,
+    device_id: 'device-e2e-rep1',
+    created_at: now - seq * 3600 * 1000,
+    updated_at: now,
+  }));
+
+/** Scenario 4: one fulfilled-pending Shera line per dispatched order. */
+export const buildSprint38DispatchInteractionItemsSeed = (
+  now: number,
+): InteractionItemInsert[] =>
+  [1, 2, 3].map((seq) => ({
+    id: `ii-e2e-dispatch-${seq}`,
+    interaction_log_id: `log-e2e-dispatch-${seq}`,
+    item_id: SPRINT_38_SHERA_INBOUND_ITEM_ID,
+    quantity: 10 * seq,
+    unit_price_at_sale: SPRINT_38_SHERA_BASE_WHOLESALE_PRICE,
+    interest_level: 'HIGH',
+    selected_currency: 'MMK',
+    selected_unit: 'PCS',
+    stock_condition: 'GOOD',
+    fulfillment_status: 'PENDING_FULFILLMENT',
+    compliance_status: 'APPROVED',
+    created_at: now - seq * 3600 * 1000,
+    updated_at: now,
+  }));
 
 /** Mismatch interaction item shared by both routines. */
 export const buildMismatchInteractionItemSeed = (

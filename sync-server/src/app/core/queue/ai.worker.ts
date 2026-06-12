@@ -14,7 +14,6 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
       'ai-tasks',
       async (job: Job) => {
         const { name, data } = job;
-        console.log(`[AiWorker] Processing job ${job.id} (${name})`);
         try {
           if (name === 'process-screenshot') {
             const { interactionLogId, filePath, traceId, actorId } = data;
@@ -26,11 +25,7 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
             );
           } else if (name === 'parse-payment-transfer') {
             const { base64Image } = data;
-            const result =
-              await this.aiService.parsePaymentTransfer(base64Image);
-            console.log(
-              `[AiWorker] Payment transfer parsed: confidence=${result.confidence}, amount=${result.amount}, txId=${result.transactionId}`,
-            );
+            await this.aiService.parsePaymentTransfer(base64Image);
           } else if (name === 'eod-digest') {
             const { dateStr } = data;
             await this.aiService.generateEodDigest(dateStr);
@@ -56,10 +51,6 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
       },
     );
 
-    this.worker.on('completed', (job) => {
-      console.log(`[AiWorker] Job ${job.id} completed.`);
-    });
-
     this.worker.on('failed', (job, err) => {
       console.error(`[AiWorker] Job ${job?.id} failed:`, err);
     });
@@ -84,16 +75,10 @@ export class AiWorker implements OnModuleInit, OnModuleDestroy {
           console.error(
             `[AiWorker] Slack webhook failed with status ${response.status}: ${await response.text()}`,
           );
-        } else {
-          console.log('[AiWorker] Slack webhook alert sent successfully.');
         }
       } catch (err) {
         console.error('[AiWorker] Failed to send Slack webhook alert:', err);
       }
-    } else {
-      console.log(
-        '[AiWorker] SLACK_WEBHOOK_URL not configured. Skipping Slack alert.',
-      );
     }
   }
 

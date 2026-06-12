@@ -564,9 +564,6 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
         }
 
         sqljsDb.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
-        console.log(
-          `Successfully migrated database: Added column ${column} to table ${table}`,
-        );
       } catch (e: $Any) {
         console.warn(
           `Migration info for column ${column} in table ${table}:`,
@@ -685,9 +682,6 @@ async function createTablesAndSeedIfEmpty(sqljsDb: $Any) {
     }
 
     if (isEmpty || isStockLocationsEmpty) {
-      console.log(
-        'Local SQLite database is empty or missing stock locations. Auto-seeding mock data...',
-      );
       const tempDb = createProxyDb(sqljsDb);
       const { seedLocalDatabase } = await import('../data/mockSeeding');
       await seedLocalDatabase(tempDb);
